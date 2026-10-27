@@ -1,0 +1,111 @@
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build · ${{ matrix.name }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Windows
+            os: windows-latest
+            target: --win
+            smoke: release/win-unpacked/jysvhera.exe
+          - name: macOS
+            os: macos-latest
+            target: --mac
+            smoke: release/mac-arm64/JYSV HERA.app/Contents/MacOS/JYSV HERA
+          - name: Linux
+            os: ubuntu-22.04
+            target: --linux
+            smoke: release/linux-unpacked/jysvhera
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      # node-pty ships no Linux binary. Build it on Debian 11 (glibc 2.31) so it loads on
+      # every distro Electron itself supports: Ubuntu 20.04+, Debian 11+, Fedora, Rocky / Alma / RHEL 9+.
+      - name: Build node-pty for Linux
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends rpm xvfb
+          docker run --rm -u "$(id -u):$(id -g)" -e HOME=/tmp -v "$PWD:/w" -w /w/node_modules/node-pty node:22-bullseye \
+            bash -c "npx --yes node-gyp@11.2.0 rebuild && mkdir -p prebuilds/linux-x64 && cp build/Release/pty.node prebuilds/linux-x64/"
+          echo "newest glibc symbol needed:"
+          objdump -T node_modules/node-pty/prebuilds/linux-x64/pty.node | grep -o 'GLIBC_[0-9.]*' | sort -uV | tail -1
+
+      - name: Make spawn-helper executable
+        if: runner.os == 'macOS'
+        run: chmod +x node_modules/node-pty/prebuilds/darwin-*/spawn-helper
+
+      - run: npm run typecheck
+      - run: npm run build
+
+      - name: Package
+        run: npx electron-builder ${{ matrix.target }} --publish never
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: false
+
+      - name: Self-test (real terminal, hera CLI, window)
+        shell: bash
+        run: |
+          if [ "$RUNNER_OS" = "Linux" ]; then
+            xvfb-run -a scripts/smoke.sh "${{ matrix.smoke }}" --no-sandbox
+          else
+            scripts/smoke.sh "${{ matrix.smoke }}"
+          fi
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: hera-${{ matrix.name }}
+          if-no-files-found: error
+          path: |
+            release/*.exe
+            release/*.zip
+            release/*.dmg
+            release/*.AppImage
+            release/*.deb
+            release/*.rpm
+            release/*.tar.gz
+
+  release:
+    name: Publish release
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          path: out
+          merge-multiple: true
+
+      - name: Checksums
+        run: |
+          cd out
+          sha256sum * > SHA256SUMS.txt
+          cat SHA256SUMS.txt
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          name: JYSV HERA ${{ github.ref_name }}
+          body_path: .github/release-notes/${{ github.ref_name }}.md
+          files: out/*
+          make_latest: true

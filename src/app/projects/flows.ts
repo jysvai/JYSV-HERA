@@ -1,0 +1,42 @@
+import { atom } from 'nanostores'
+
+import { api } from '../../lib/hera'
+import { $projectId, $view, refreshActivity, toast } from '../../store/app'
+
+export interface ScanResult {
+  parent: string
+  found: { path: string; name: string; markers: string[]; mtime: number }[]
+}
+
+export const $scanResult = atom<ScanResult | null>(null)
+export const $editProjectId = atom<string | null>(null)
+
+export async function addProjectsFlow(mode: 'pick' | 'scan') {
+  if (mode === 'scan') {
+    const result = await api.scanFolder()
+
+    if (result) {
+      if (!result.found.length) toast('프로젝트로 보이는 하위 폴더가 없습니다.')
+      else $scanResult.set(result)
+    }
+
+    return
+  }
+
+  const paths = await api.pickFolders()
+
+  if (!paths.length) return
+
+  await addPaths(paths)
+}
+
+export async function addPaths(paths: string[]) {
+  const added = await api.addProjects(paths)
+
+  if (added.length) {
+    $projectId.set(added[0].id)
+    $view.set('workspace')
+    toast(added.length === 1 ? `${added[0].name} 등록됨` : `프로젝트 ${added.length}개 등록됨`)
+    refreshActivity()
+  }
+}

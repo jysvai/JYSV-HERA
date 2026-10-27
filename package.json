@@ -1,0 +1,240 @@
+{
+  "name": "jysv-hera",
+  "productName": "JYSV HERA",
+  "version": "0.2.0",
+  "description": "JYSV HERA - a lightweight project terminal and multi-AI command center (Claude Code, Codex, Gemini, ...)",
+  "author": {
+    "name": "jysvai",
+    "email": "220118619+jysvai@users.noreply.github.com",
+    "url": "https://github.com/jysvai"
+  },
+  "license": "AGPL-3.0-only",
+  "homepage": "https://github.com/jysvai/JYSV-HERA",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jysvai/JYSV-HERA.git"
+  },
+  "bugs": {
+    "url": "https://github.com/jysvai/JYSV-HERA/issues"
+  },
+  "private": true,
+  "main": "dist/main.js",
+  "scripts": {
+    "dev": "node scripts/dev.mjs",
+    "build:renderer": "vite build",
+    "build:main": "node scripts/build-main.mjs",
+    "build": "npm run build:renderer && npm run build:main",
+    "start": "npm run build && electron .",
+    "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.node.json --noEmit",
+    "pack": "npm run build && electron-builder --dir",
+    "dist": "npm run build && electron-builder",
+    "dist:win": "npm run build && electron-builder --win",
+    "dist:mac": "npm run build && electron-builder --mac",
+    "dist:linux": "npm run build && electron-builder --linux"
+  },
+  "dependencies": {
+    "@xterm/addon-serialize": "0.14.0",
+    "@xterm/headless": "6.0.0",
+    "node-pty": "1.1.0"
+  },
+  "devDependencies": {
+    "@nanostores/react": "1.1.0",
+    "@tabler/icons-react": "3.44.0",
+    "@tailwindcss/vite": "4.3.3",
+    "@types/node": "22.20.1",
+    "@types/react": "19.2.17",
+    "@types/react-dom": "19.2.3",
+    "@vitejs/plugin-react": "6.0.3",
+    "@xterm/addon-fit": "0.11.0",
+    "@xterm/addon-unicode11": "0.9.0",
+    "@xterm/addon-web-links": "0.12.0",
+    "@xterm/addon-webgl": "0.19.0",
+    "@xterm/xterm": "6.0.0",
+    "clsx": "2.1.1",
+    "electron": "40.10.2",
+    "electron-builder": "26.15.3",
+    "esbuild": "0.28.1",
+    "nanostores": "1.4.2",
+    "react": "19.2.7",
+    "react-dom": "19.2.7",
+    "tailwind-merge": "3.6.0",
+    "tailwindcss": "4.3.3",
+    "typescript": "6.0.3",
+    "vite": "8.2.0"
+  },
+  "build": {
+    "appId": "com.jysvai.hera",
+    "productName": "JYSV HERA",
+    "executableName": "jysvhera",
+    "artifactName": "JYSV-HERA-${version}-${os}-${arch}.${ext}",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**",
+      "!dist/bin/**",
+      "package.json",
+      "!**/*.map",
+      "!**/node_modules/node-pty/{build,deps,src,scripts,third_party,typings}/**",
+      "!**/node_modules/node-pty/binding.gyp",
+      "!**/node_modules/node-pty/prebuilds/*/conpty/**",
+      "!**/node_modules/node-pty/lib/**/*.test.js"
+    ],
+    "extraResources": [
+      {
+        "from": "dist/bin",
+        "to": "bin"
+      },
+      {
+        "from": "resources",
+        "to": ".",
+        "filter": [
+          "icon.ico",
+          "icon.png",
+          "tray-16.png",
+          "tray-16@2x.png"
+        ]
+      },
+      {
+        "from": "LICENSE",
+        "to": "LICENSE.txt"
+      },
+      {
+        "from": "THIRD_PARTY_NOTICES.md",
+        "to": "THIRD_PARTY_NOTICES.md"
+      }
+    ],
+    "asar": true,
+    "asarUnpack": [
+      "**/*.node",
+      "**/node-pty/**"
+    ],
+    "npmRebuild": false,
+    "electronLanguages": [
+      "en-US",
+      "ko"
+    ],
+    "win": {
+      "icon": "resources/icon.ico",
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "zip",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "signAndEditExecutable": true,
+      "files": [
+        "!**/node_modules/node-pty/prebuilds/{darwin,linux}-*/**",
+        "!**/node_modules/node-pty/prebuilds/win32-arm64/**"
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "shortcutName": "JYSV HERA",
+      "uninstallDisplayName": "JYSV HERA"
+    },
+    "mac": {
+      "icon": "resources/icon.icns",
+      "category": "public.app-category.developer-tools",
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "x64",
+            "arm64"
+          ]
+        },
+        {
+          "target": "zip",
+          "arch": [
+            "x64",
+            "arm64"
+          ]
+        }
+      ],
+      "hardenedRuntime": false,
+      "files": [
+        "!**/node_modules/node-pty/prebuilds/{win32,linux}-*/**"
+      ],
+      "identity": "-",
+      "gatekeeperAssess": false,
+      "minimumSystemVersion": "12.0"
+    },
+    "linux": {
+      "icon": "resources/icon-1024.png",
+      "target": [
+        {
+          "target": "AppImage",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "deb",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "rpm",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "tar.gz",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "category": "Development",
+      "files": [
+        "!**/node_modules/node-pty/prebuilds/{win32,darwin}-*/**"
+      ],
+      "maintainer": "jysvai <220118619+jysvai@users.noreply.github.com>",
+      "vendor": "jysvai",
+      "synopsis": "Lightweight project terminal and multi-AI command center",
+      "description": "JYSV HERA opens project terminals in one click, runs AI coding CLIs (Claude Code, Codex, Antigravity, Grok, ...) side by side, lets them hand work to each other and brings every session back after a reboot."
+    },
+    "compression": "maximum",
+    "dmg": {
+      "title": "JYSV HERA ${version}",
+      "artifactName": "JYSV-HERA-${version}-mac-${arch}.${ext}"
+    },
+    "deb": {
+      "packageCategory": "devel",
+      "priority": "optional"
+    },
+    "rpm": {
+      "packageCategory": "Development/Tools",
+      "compression": "xz"
+    },
+    "appImage": {
+      "artifactName": "JYSV-HERA-${version}-linux-${arch}.AppImage"
+    },
+    "publish": null
+  },
+  "keywords": [
+    "terminal",
+    "claude-code",
+    "codex",
+    "ai-agents",
+    "multi-agent",
+    "electron",
+    "xterm",
+    "developer-tools",
+    "lanes",
+    "cli"
+  ]
+}

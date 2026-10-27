@@ -1,0 +1,23 @@
+# dependencies and build output
+node_modules/
+dist/
+release/
+
+# local data and dev instances
+.hera-dev/
+.claude/
+cli-token
+*.log
+
+# secrets
+.env
+.env.*
+*.pem
+*.p12
+*.key
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

@@ -1,0 +1,196 @@
+@import 'tailwindcss';
+@import '@xterm/xterm/css/xterm.css';
+
+/* JYSV HERA tokens — the Hermes desktop contract (flat surfaces, hairlines,
+   shadow-nous + stroke-nous for floating panels, tokens over literals),
+   re-seeded with HERA's gold-on-ink palette. */
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme inline {
+  --font-sans: var(--hera-font-sans);
+  --font-mono: var(--hera-font-mono);
+  --color-accent: var(--ui-accent);
+  --shadow-nous:
+    0 0.125rem 0.25rem -0.125rem color-mix(in srgb, #000 14%, transparent),
+    0 0.5rem 0.75rem -0.375rem color-mix(in srgb, #000 12%, transparent),
+    0 1.25rem 1.75rem -0.875rem color-mix(in srgb, #000 12%, transparent),
+    0 2.25rem 3rem -1.75rem color-mix(in srgb, #000 8%, transparent);
+}
+
+:root {
+  color-scheme: light;
+  --hera-font-sans: 'Pretendard Variable', Pretendard, 'Segoe UI Variable', 'Segoe UI', 'Apple SD Gothic Neo', 'Malgun Gothic', system-ui, sans-serif;
+  --hera-font-mono: 'Cascadia Mono', 'JetBrains Mono', 'D2Coding', Consolas, 'SF Mono', Menlo, monospace;
+
+  --ui-accent: #b8860b;
+  --ui-accent-fg: #000000;
+  --ui-accent-text: var(--ui-accent);
+  --ui-base: #1d1c19;
+  --ui-bg-chrome: #f4f2ed;
+  --ui-bg-sidebar: #ece9e2;
+  --ui-bg-editor: #fbfaf7;
+  --ui-bg-elevated: #ffffff;
+  --ui-bg-input: #ffffff;
+  --ui-text-primary: color-mix(in srgb, var(--ui-base) 94%, transparent);
+  --ui-text-secondary: color-mix(in srgb, var(--ui-base) 72%, transparent);
+  --ui-text-tertiary: color-mix(in srgb, var(--ui-base) 54%, transparent);
+  --ui-stroke-primary: color-mix(in srgb, var(--ui-base) 22%, transparent);
+  --ui-stroke-secondary: color-mix(in srgb, var(--ui-base) 13%, transparent);
+  --ui-stroke-tertiary: color-mix(in srgb, var(--ui-base) 8%, transparent);
+  --ui-bg-quaternary: color-mix(in srgb, var(--ui-base) 6%, transparent);
+  --chrome-action-hover: color-mix(in srgb, var(--ui-base) 7%, transparent);
+  --ui-selection: color-mix(in srgb, var(--ui-accent) 16%, transparent);
+  --stroke-nous: color-mix(in srgb, currentColor 9%, transparent);
+  --status-busy: #c98a12;
+  --status-idle: #2f9e6e;
+  --status-waiting: #d4453a;
+  --status-exited: color-mix(in srgb, var(--ui-base) 35%, transparent);
+  --term-bg: #fbfaf7;
+}
+
+.dark {
+  color-scheme: dark;
+  --ui-accent: #d4a72c;
+  --ui-base: #ece8de;
+  --ui-bg-chrome: #0e0f11;
+  --ui-bg-sidebar: #121316;
+  --ui-bg-editor: #0b0c0e;
+  --ui-bg-elevated: #191a1e;
+  --ui-bg-input: #15161a;
+  --ui-text-primary: color-mix(in srgb, var(--ui-base) 92%, transparent);
+  --ui-text-secondary: color-mix(in srgb, var(--ui-base) 70%, transparent);
+  --ui-text-tertiary: color-mix(in srgb, var(--ui-base) 50%, transparent);
+  --ui-stroke-primary: color-mix(in srgb, var(--ui-base) 20%, transparent);
+  --ui-stroke-secondary: color-mix(in srgb, var(--ui-base) 11%, transparent);
+  --ui-stroke-tertiary: color-mix(in srgb, var(--ui-base) 6.5%, transparent);
+  --ui-bg-quaternary: color-mix(in srgb, var(--ui-base) 6%, transparent);
+  --chrome-action-hover: color-mix(in srgb, var(--ui-base) 7%, transparent);
+  --stroke-nous: color-mix(in srgb, currentColor 10%, transparent);
+  --status-busy: #e0a526;
+  --status-idle: #3fbf86;
+  --status-waiting: #f0625a;
+  --term-bg: #0b0c0e;
+}
+
+/* "글자 선명하게": stronger secondary text and hairlines on any theme. */
+.contrast-high {
+  --ui-text-primary: var(--ui-base);
+  --ui-text-secondary: color-mix(in srgb, var(--ui-base) 86%, transparent);
+  --ui-text-tertiary: color-mix(in srgb, var(--ui-base) 68%, transparent);
+  --ui-stroke-primary: color-mix(in srgb, var(--ui-base) 34%, transparent);
+  --ui-stroke-secondary: color-mix(in srgb, var(--ui-base) 22%, transparent);
+  --ui-stroke-tertiary: color-mix(in srgb, var(--ui-base) 14%, transparent);
+}
+
+/* z-index ladder (Hermes contract): pick a rung, never ad-hoc literals. */
+:root {
+  --z-modal-backdrop: 40;
+  --z-modal: 50;
+  --z-over-modal: 60;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--ui-bg-chrome);
+  color: var(--ui-text-primary);
+  font-family: var(--hera-font-sans);
+  font-size: 13px;
+  -webkit-font-smoothing: antialiased;
+  overflow: hidden;
+  user-select: none;
+}
+
+::selection {
+  background: var(--ui-selection);
+}
+
+input,
+textarea,
+select {
+  user-select: text;
+}
+
+button {
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: default;
+}
+
+:focus-visible {
+  outline: 1.5px solid color-mix(in srgb, var(--ui-accent) 70%, transparent);
+  outline-offset: 1px;
+}
+
+.drag {
+  -webkit-app-region: drag;
+}
+
+.no-drag {
+  -webkit-app-region: no-drag;
+}
+
+/* Thin, quiet scrollbars. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--ui-stroke-secondary) transparent;
+}
+
+.xterm {
+  padding: 6px 0 0 10px;
+  height: 100%;
+}
+
+.xterm .xterm-viewport {
+  background-color: transparent !important;
+}
+
+.status-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  flex: none;
+}
+
+.status-busy {
+  background: var(--status-busy);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--status-busy) 22%, transparent);
+  animation: hera-pulse 1.4s ease-in-out infinite;
+}
+
+.status-idle {
+  background: var(--status-idle);
+}
+
+.status-waiting {
+  background: var(--status-waiting);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--status-waiting) 25%, transparent);
+}
+
+.status-starting {
+  background: var(--ui-accent);
+}
+
+.status-exited {
+  background: var(--status-exited);
+}
+
+@keyframes hera-pulse {
+  50% {
+    opacity: 0.45;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .status-busy {
+    animation: none;
+  }
+}
