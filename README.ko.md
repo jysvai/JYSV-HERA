@@ -53,6 +53,7 @@ HERA 는 원래 쓰던 셸(PowerShell, cmd, Git Bash, bash, zsh, fish)을 그대
 <p align="center"><img src="docs/images/wt-import.gif" alt="Windows Terminal 설정을 HERA 로 가져오는 모습" width="860"></p>
 
 - **쓰던 터미널 설정을 그대로.** *설정 → 터미널* 에서 Windows Terminal 의 글꼴 · 커서 · 스크롤백 · 기본 셸 · 색 구성을 항목별로 가져옵니다.
+- **에이전트에 스크린샷 붙여넣기.** 클립보드에 이미지가 있으면 `Ctrl+V` 가 파일로 저장하고 경로를 붙여 넣어, Claude Code · Codex 가 이미지로 첨부합니다.
 - **어떤 셸이든.** PowerShell, PowerShell 7, cmd, Git Bash, WSL, 또는 `wsl.exe -d Ubuntu` 같은 명령줄. 커서 모양과 깜빡임도 설정할 수 있고, Cascadia Mono 글꼴이 들어 있습니다.
 - **고친 것:** 붙여넣기가 두 번 되던 문제, 탭 전환 · 크기 조절 뒤 화면이 깨지던 문제, 스크롤해야 고쳐지던 화면, 재시작 뒤 lane 회신이 사라지던 문제(lane 의 대화가 메인 탭에서 이어 열리던 문제).
 

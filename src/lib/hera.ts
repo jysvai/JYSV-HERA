@@ -58,6 +58,8 @@ export const api = {
   setVisibleSessions: (ids: string[]) => call<void>('app:visibleSessions', ids),
   copy: (text: string) => call<void>('clipboard:write', text),
   paste: () => call<string>('clipboard:read'),
+  /** Saves a clipboard image as a PNG; its path, or null when there is none. */
+  pasteImage: () => call<string | null>('clipboard:image'),
 
   getConfig: () => call<HeraConfig>('config:get'),
   setConfig: (config: HeraConfig) => call<HeraConfig>('config:set', config),

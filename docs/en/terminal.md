@@ -24,7 +24,9 @@ In split view a bar at the bottom lists the sessions as chips. Switch on the one
 | Copy selection | `Ctrl+C` when text is selected, or `Ctrl+Shift+C` | `⌘C` |
 | Paste | `Ctrl+V` | `⌘V` |
 
-With nothing selected, `Ctrl+C` is sent to the program as usual (interrupt). If the clipboard holds an image rather than text and an AI agent is running in that tab, `Ctrl+V` passes the key to the agent, which reads the image itself.
+With nothing selected, `Ctrl+C` is sent to the program as usual (interrupt). ### Paste an image
+
+A terminal can only receive text, so when the clipboard holds an image (a screenshot, say) and no text, `Ctrl+V` (`⌘V` on macOS) saves it as a PNG and pastes the file's path. Claude Code, Codex and other agent CLIs attach an image whose path is pasted into their prompt; in a plain shell you get a path you can pass to any command. The files go to `jysv-hera-paste` in your temp folder and are removed after a week.
 
 ## Drag and drop
 

@@ -53,6 +53,7 @@ Terminals now behave like Windows Terminal, and lanes stay inside HERA. Full not
 <p align="center"><img src="docs/images/wt-import.gif" alt="Importing Windows Terminal settings into HERA" width="860"></p>
 
 - **Your old terminal's settings come along.** *Settings → Terminal* imports Windows Terminal's font, cursor, scrollback, default shell and color scheme, item by item.
+- **Paste screenshots into agents.** With an image on the clipboard, `Ctrl+V` saves it and pastes its path, which Claude Code and Codex attach as an image.
 - **Any shell.** PowerShell, PowerShell 7, cmd, Git Bash, WSL, or any command line such as `wsl.exe -d Ubuntu`. Cursor shape and blink are settings now, and Cascadia Mono ships with HERA.
 - **Fixed:** double paste, screens that broke after a tab switch or resize, rows that stayed stale until you scrolled, and lane replies lost after a restart (a lane's conversation was resumed in the main tab).
 

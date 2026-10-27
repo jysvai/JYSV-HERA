@@ -9,6 +9,7 @@ const INVOKE = new Set([
   'app:visibleSessions',
   'clipboard:write',
   'clipboard:read',
+  'clipboard:image',
   'config:get',
   'config:set',
   'projects:pick',

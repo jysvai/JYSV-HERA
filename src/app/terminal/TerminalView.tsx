@@ -36,6 +36,11 @@ function quotePath(p: string, shell: string | undefined) {
   return `'${p.replace(/'/g, "'\\''")}'`
 }
 
+/** Agent prompts take a path as a terminal drop types it: bare, or in double quotes. */
+function quoteForAgent(p: string) {
+  return /^[A-Za-z0-9_./:\\-]+$/.test(p) ? p : `"${p}"`
+}
+
 export function TerminalView({ sessionId, focused, onFocus }: { sessionId: string; focused: boolean; onFocus?: () => void }) {
   const host = useRef<HTMLDivElement>(null)
   const termRef = useRef<Terminal | null>(null)
@@ -114,10 +119,11 @@ export function TerminalView({ sessionId, focused, onFocus }: { sessionId: strin
       if (!isMac && event.ctrlKey && key === 'v') {
         // Pasted here only: left alone, the browser's own paste would type it a second time.
         event.preventDefault()
-        void api.paste().then(text => {
-          if (text) term.paste(text)
-          // No text (an image): an agent CLI reads the clipboard itself on Ctrl+V.
-          else if (!event.shiftKey && sessionRef.current?.activeAgentId) writePty(sessionId, '\x16')
+        void api.paste().then(async text => {
+          if (text) return term.paste(text)
+          if (await pasteImage()) return
+          // Nothing HERA can paste: an agent CLI may read the clipboard itself on Ctrl+V.
+          if (!event.shiftKey && sessionRef.current?.activeAgentId) writePty(sessionId, '\x16')
         })
 
         return false
@@ -125,6 +131,25 @@ export function TerminalView({ sessionId, focused, onFocus }: { sessionId: strin
 
       return true
     })
+
+    /** An image on the clipboard is saved as a file and its path pasted (agent CLIs attach it). */
+    const pasteImage = async () => {
+      const image = await api.pasteImage().catch(() => null)
+      const session = sessionRef.current
+
+      if (image) term.paste(session?.activeAgentId ? quoteForAgent(image) : quotePath(image, session?.shell))
+
+      return Boolean(image)
+    }
+    // macOS pastes through the Edit menu: xterm takes the text itself, an image is handled here.
+    const onPaste = (event: ClipboardEvent) => {
+      const data = event.clipboardData
+
+      if (!data || data.getData('text/plain') || ![...data.items].some(item => item.type.startsWith('image/'))) return
+      void pasteImage()
+    }
+
+    if (isMac) element.addEventListener('paste', onPaste, true)
 
     term.onData(data => writePty(sessionId, data))
     registerTerminal(sessionId, term)
@@ -188,6 +213,7 @@ export function TerminalView({ sessionId, focused, onFocus }: { sessionId: strin
       cancelAnimationFrame(frame)
       clearTimeout(resizeTimer)
       observer.disconnect()
+      element.removeEventListener('paste', onPaste, true)
       void api.detach(sessionId)
       unregisterTerminal(sessionId, term)
       webgl?.dispose()

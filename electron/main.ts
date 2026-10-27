@@ -34,6 +34,7 @@ import { openExternalTerminal, scanForProjects } from './external'
 import { searchHistory } from './history'
 import { invalidateInsight, projectActivityTimes, projectInsight } from './insight'
 import { applyLaneAllowlist, laneMainArgs, laneProject, lanesInfo, saveLaneRole, setLaneOptions, setLaneTabs, startLanes, stopLanes } from './lanes'
+import { saveClipboardImage } from './paste-image'
 import { dataPath, findOnPath, isMac, isWin, readJson, writeJsonAtomic } from './paths'
 import * as pty from './pty-host'
 import { quoteArg, resolveShell, writeShortcutFiles } from './shell'
@@ -603,6 +604,7 @@ function registerIpc() {
   })
   handle('clipboard:write', (text: string) => clipboard.writeText(String(text)))
   handle('clipboard:read', () => clipboard.readText())
+  handle('clipboard:image', () => saveClipboardImage())
 
   handle('config:get', () => getConfig())
   handle('config:set', (next: HeraConfig) => {

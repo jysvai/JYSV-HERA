@@ -16,6 +16,7 @@ Full patch notes, one file per release in English and Korean: [docs/patch-notes]
 
 - lanes open as HERA tabs whoever opens them (lanes 0.3.13+, registered projects only), through the new `hera host`.
 - Windows Terminal import (font, cursor, scrollback, shell, color scheme), any shell or command line (WSL, custom), cursor settings, bundled Cascadia Mono.
+- Image paste: a clipboard image is saved as a PNG and its path pasted, for agent CLIs to attach.
 - Patch notes in `docs/patch-notes/{en,ko}`; releases are written from them and updated when they change.
 
 ## 0.2.0 — 2026-10-27
