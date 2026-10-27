@@ -168,7 +168,8 @@
       ],
       "identity": "-",
       "gatekeeperAssess": false,
-      "minimumSystemVersion": "12.0"
+      "minimumSystemVersion": "12.0",
+      "executableName": "JYSV HERA"
     },
     "linux": {
       "icon": "resources/icon-1024.png",
