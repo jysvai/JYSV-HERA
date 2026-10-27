@@ -160,7 +160,7 @@ function useUsage(refreshMs: number) {
 
   useEffect(() => {
     load()
-    // Refresh only while this view is open (main caches the parse for 60s).
+    // Refresh only while this view is open (limits are fresh each time; tokens every 4 minutes).
     const timer = setInterval(() => $windowVisible.get() && load(), refreshMs)
 
     return () => clearInterval(timer)

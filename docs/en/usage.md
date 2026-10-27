@@ -8,7 +8,7 @@ HERA shows how much of your AI plans you are using: limits, tokens, and an estim
 
 ## The Usage page
 
-Open **Usage** (사용량) from the sidebar. **Refresh** (새로고침) recomputes now; otherwise the page refreshes every 90 seconds while the window is visible.
+Open **Usage** (사용량) from the sidebar. **Refresh** (새로고침) recomputes now; otherwise the page refreshes every 90 seconds while the window is visible. Limits are read fresh every time; token totals are re-counted at most every 4 minutes.
 
 The first time, HERA has to read all existing logs, which can take from tens of seconds to a few minutes (the page says so). After that it only reads what is new.
 

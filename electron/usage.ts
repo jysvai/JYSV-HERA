@@ -246,40 +246,26 @@ function runWorker(): Promise<WorkerResult> {
 
 export async function getUsage(force = false): Promise<AgentUsage[]> {
   const key = projectsKey()
-  // Each parse is a short-lived ~100 MB worker; 5 minutes of staleness is fine
-  // for a usage view (the refresh button forces a fresh parse).
-  const fresh = (at: number) => Date.now() - at < 5 * 60_000
+  // Each parse is a short-lived ~100 MB worker, so tokens are re-parsed at most every
+  // 4 minutes: the status bar asks every 5, and each of its asks gets a fresh parse
+  // (the refresh button forces one). Limits are read fresh on every call.
+  const fresh = (at: number) => Date.now() - at < 4 * 60_000
 
   if (!force && lastResult && fresh(lastResult.at) && lastResult.key === key) {
-    return lastResult.usages
+    return withLimits(lastResult.usages)
   }
 
   const projectOf = projectMatcher(getConfig().projects)
   // A project added/removed only needs a re-split of the parsed logs, not a re-parse.
+  const started = Date.now()
   const result = !force && lastRaw && fresh(lastRaw.at) ? lastRaw.result : await runWorker()
-  if (result !== lastRaw?.result) lastRaw = { at: Date.now(), result }
+  // Stamped with the start of the parse: what it read is that old, not the moment it finished.
+  if (result !== lastRaw?.result) lastRaw = { at: started, result }
   const usages: AgentUsage[] = []
 
-  const claude = summarize('claude', 'claude', result.claude, claudeCost, projectOf)
-  const claudeLimits = claudeRateLimits(dataDir())
-
-  if (claudeLimits) {
-    claude.limits = claudeLimits.limits
-    claude.limitsSource = `${claudeLimits.source} · ${new Date(claudeLimits.at).toLocaleTimeString()}`
-  } else {
-    claude.note = '한도 %는 Claude Code 상태줄 연동(설정 → Claude 한도 연동)을 켜면 표시됩니다.'
-  }
-
-  usages.push(claude)
+  usages.push(summarize('claude', 'claude', result.claude, claudeCost, projectOf))
 
   const codex = summarize('codex', 'codex', result.codex, () => 0, projectOf)
-  const codexLimits = codexRateLimits(codexHomes())
-
-  if (codexLimits) {
-    codex.limits = codexLimits.limits
-    codex.limitsSource = `Codex 세션 로그 · ${new Date(codexLimits.at).toLocaleTimeString()}${codexLimits.plan ? ` · ${codexLimits.plan}` : ''}`
-  }
-
   codex.note = '비용은 플랜 요금제라 표시하지 않습니다 (토큰만 집계).'
   usages.push(codex)
 
@@ -293,6 +279,29 @@ export async function getUsage(force = false): Promise<AgentUsage[]> {
   usages.push(agy)
 
   lastResult = { at: lastRaw?.at ?? Date.now(), key, usages }
+
+  return withLimits(usages)
+}
+
+/** Limits are small files the CLIs keep current, so they are read on every request, not cached with the tokens. */
+function withLimits(usages: AgentUsage[]): AgentUsage[] {
+  const claude = usages.find(entry => entry.agentId === 'claude')
+  const codex = usages.find(entry => entry.agentId === 'codex')
+
+  if (claude) {
+    const limits = claudeRateLimits(dataDir())
+
+    claude.limits = limits?.limits || []
+    claude.limitsSource = limits ? `${limits.source} · ${new Date(limits.at).toLocaleTimeString()}` : undefined
+    claude.note = limits ? undefined : '한도 %는 Claude Code 상태줄 연동(설정 → Claude 한도 연동)을 켜면 표시됩니다.'
+  }
+
+  if (codex) {
+    const limits = codexRateLimits(codexHomes())
+
+    codex.limits = limits?.limits || []
+    codex.limitsSource = limits ? `Codex 세션 로그 · ${new Date(limits.at).toLocaleTimeString()}${limits.plan ? ` · ${limits.plan}` : ''}` : undefined
+  }
 
   return usages
 }

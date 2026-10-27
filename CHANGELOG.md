@@ -2,6 +2,13 @@
 
 Full patch notes, one file per release in English and Korean: [docs/patch-notes](docs/patch-notes/README.md).
 
+## 0.2.2 — 2026-10-27
+
+### Fixed
+
+- Usage refreshed only every 10 minutes: the 5-minute poll always landed inside the 5-minute cache. Tokens are re-parsed at most every 4 minutes now.
+- Claude Code and Codex limits are read on every request instead of being cached with the tokens.
+
 ## 0.2.1 — 2026-10-27
 
 ### Fixed

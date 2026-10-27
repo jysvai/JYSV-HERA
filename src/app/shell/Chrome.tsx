@@ -62,7 +62,7 @@ export function Statusbar() {
   useEffect(() => {
     if (!visible) return
     const loadMetrics = () => void api.metrics().then(setMetrics)
-    // Usage parsing is cached in main for 60s; a light poll is enough.
+    // Main re-parses tokens at most every 4 minutes, so each poll here gets fresh numbers.
     const refreshUsage = () => void loadUsage(false).catch(() => undefined)
     loadMetrics()
     const usageDelay = setTimeout(refreshUsage, 4000)

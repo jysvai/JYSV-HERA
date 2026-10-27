@@ -6,6 +6,7 @@ One file per release and language. A release on GitHub is written from these fil
 
 | Version | Date | Summary | Notes |
 |---|---|---|---|
+| [v0.2.2](https://github.com/jysvai/JYSV-HERA/releases/tag/v0.2.2) | 2026-10-27 | Usage numbers that keep themselves current. | [English](en/v0.2.2.md) · [한국어](ko/v0.2.2.md) |
 | [v0.2.1](https://github.com/jysvai/JYSV-HERA/releases/tag/v0.2.1) | 2026-10-27 | A fix-and-compatibility release: terminals now behave like Windows Terminal, and lanes stay inside HERA. | [English](en/v0.2.1.md) · [한국어](ko/v0.2.1.md) |
 | [v0.2.0](https://github.com/jysvai/JYSV-HERA/releases/tag/v0.2.0) | 2026-10-27 | The first public release of **JYSV HERA**: a lightweight project terminal and command center for AI coding CLIs, for Windows, macOS and Linux. | [English](en/v0.2.0.md) · [한국어](ko/v0.2.0.md) |
 

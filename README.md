@@ -139,7 +139,7 @@ A bare console window is lighter, and HERA does not pretend otherwise: its fixed
 - Each terminal's state lives in a headless xterm in the main process. The window renders only the visible terminals, and output is batched to one update per ~8 ms.
 - Hidden window: nothing is streamed to it. After 10 minutes hidden (configurable) the UI process is released entirely while terminals keep running.
 - GPU acceleration is off by default (it costs about 135 MB). There is a single renderer process and no spare one kept warm.
-- Usage is parsed incrementally in a short-lived worker that exits when done, at most every 5 minutes.
+- Usage is parsed incrementally in a short-lived worker that exits when done, at most every 4 minutes; limits are read fresh on every request.
 - 0.2.0 caps the heap of node-pty's per-terminal output thread and loads the WebGL renderer only in GPU mode. Together they save about 23 MB at 4 terminals, and terminals stayed correct through a 300,000-line output test.
 - Each installer ships only its own platform's node-pty binaries: on Windows, unpacked native files went from 9.3 MB to 1.5 MB. 0.2.1 adds Windows Terminal's ConPTY (1.3 MB) and leaves out node-pty's debug symbols.
 
