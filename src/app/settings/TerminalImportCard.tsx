@@ -58,7 +58,13 @@ export function TerminalImportCard() {
   if (found.cursorStyle) rows.push({ part: 'cursor', label: '커서', value: CURSOR_LABEL[found.cursorStyle], current: CURSOR_LABEL[settings.cursorStyle] })
   if (found.scrollback) rows.push({ part: 'scrollback', label: '스크롤백', value: `${found.scrollback.toLocaleString()}줄`, current: `${settings.scrollback.toLocaleString()}줄` })
   if (found.shell) rows.push({ part: 'shell', label: '기본 셸', value: found.shellLabel || found.shell, current: SHELL_LABEL[settings.defaultShell] || settings.defaultShell })
-  if (found.scheme) rows.push({ part: 'colors', label: '터미널 색', value: `${found.scheme.name} (테마로 추가)`, current: '지금 테마' })
+  if (found.scheme) {
+    const mode = luminance(found.scheme.background) < 0.35 ? 'dark' : 'light'
+    const id = mode === 'dark' ? settings.darkTheme : settings.lightTheme
+    const active = [...THEME_PRESETS, ...settings.customThemes].find(theme => theme.id === id)
+
+    rows.push({ part: 'colors', label: '터미널 색', value: `${found.scheme.name} (테마로 추가)`, current: active?.name || id })
+  }
 
   const apply = () => {
     updateConfig(draft => {

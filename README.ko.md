@@ -14,7 +14,7 @@
 
 [English](README.md) · **한국어**
 
-[다운로드](#설치) · [기능](#기능) · [hera CLI](#멀티-에이전트-협업-hera-cli) · [lanes](#lanes-와-같이-쓰기) · [구조](docs/architecture.md)
+[다운로드](#설치) · [달라진 점](#021-에서-달라진-점) · [기능](#기능) · [문서](#문서) · [hera CLI](#멀티-에이전트-협업-hera-cli) · [lanes](#lanes-와-같이-쓰기) · [패치노트](docs/patch-notes/README.md)
 
 </div>
 
@@ -34,6 +34,27 @@ HERA 는 원래 쓰던 셸(PowerShell, cmd, Git Bash, bash, zsh, fish)을 그대
 - **가벼움.** 터미널 1개 기준 약 170 MB, 하나 늘 때마다 약 11 MB, 쉴 때 CPU 는 거의 0. 자세한 수치는 아래에.
 
 ![JYSV HERA 작업 화면: 터미널 두 개를 나란히 띄우고 오른쪽에 프로젝트 백로그](docs/images/workspace-dark.png)
+
+## 0.2.1 에서 달라진 점
+
+터미널이 Windows Terminal 처럼 동작하고, lanes 가 HERA 밖으로 나가지 않습니다. 전체 내용: [docs/patch-notes](docs/patch-notes/README.md) · [v0.2.1](docs/patch-notes/ko/v0.2.1.md).
+
+<table>
+<tr>
+<td width="50%"><img src="docs/images/tui-wheel.gif" alt="전체 화면 프로그램에서 마우스 휠로 스크롤하는 모습"></td>
+<td width="50%"><img src="docs/images/lanes-tab.gif" alt="lane 이 HERA 탭으로 열리는 모습"></td>
+</tr>
+<tr>
+<td><b>전체 화면 프로그램에서 휠이 됩니다.</b> Windows Terminal 의 콘솔 엔진(ConPTY)을 함께 넣어, Claude Code 전체 화면 모드 · vim · htop 이 화살표 키 대신 마우스 휠로 스크롤됩니다. 탭을 바꿔도 마우스 모드 · 커서 · 스크롤 영역이 유지됩니다.</td>
+<td><b>모든 lane 이 HERA 탭으로 열립니다.</b> lanes 0.3.13 부터 메인 Claude 가 스스로 여는 lane 도 HERA 에 탭을 요청합니다(<code>hera host --lane</code>). HERA 에 등록한 프로젝트만 받고, 나머지는 예전처럼 열립니다.</td>
+</tr>
+</table>
+
+<p align="center"><img src="docs/images/wt-import.gif" alt="Windows Terminal 설정을 HERA 로 가져오는 모습" width="860"></p>
+
+- **쓰던 터미널 설정을 그대로.** *설정 → 터미널* 에서 Windows Terminal 의 글꼴 · 커서 · 스크롤백 · 기본 셸 · 색 구성을 항목별로 가져옵니다.
+- **어떤 셸이든.** PowerShell, PowerShell 7, cmd, Git Bash, WSL, 또는 `wsl.exe -d Ubuntu` 같은 명령줄. 커서 모양과 깜빡임도 설정할 수 있고, Cascadia Mono 글꼴이 들어 있습니다.
+- **고친 것:** 붙여넣기가 두 번 되던 문제, 탭 전환 · 크기 조절 뒤 화면이 깨지던 문제, 스크롤해야 고쳐지던 화면, 재시작 뒤 lane 회신이 사라지던 문제(lane 의 대화가 메인 탭에서 이어 열리던 문제).
 
 ## 기능
 
@@ -82,6 +103,25 @@ HERA 는 원래 쓰던 셸(PowerShell, cmd, Git Bash, bash, zsh, fish)을 그대
 
 Google 의 Gemini CLI 는 Google 계정 사용자에게 Antigravity 로 대체되어 내장 목록에서 뺐습니다. API 키로 계속 쓴다면 에이전트 페이지에서 `gemini` 를 추가하세요.
 
+## 문서
+
+기능마다 한 페이지씩, [한국어](docs/ko/README.md) 와 [영어](docs/en/README.md) 로 있습니다. 그 밖에: [문제 해결](docs/ko/troubleshooting.md) · [업데이트와 개인정보](docs/ko/updates-and-privacy.md) · [패치노트](docs/patch-notes/README.md) · [구조](docs/architecture.md).
+
+<table>
+<tr>
+<td align="center" width="25%"><a href="docs/ko/projects.md"><img src="docs/images/features/projects.jpg" width="96" alt=""><br><b>프로젝트</b></a></td>
+<td align="center" width="25%"><a href="docs/ko/terminal.md"><img src="docs/images/features/terminal.jpg" width="96" alt=""><br><b>터미널</b></a></td>
+<td align="center" width="25%"><a href="docs/ko/agents.md"><img src="docs/images/features/agents.jpg" width="96" alt=""><br><b>에이전트</b></a></td>
+<td align="center" width="25%"><a href="docs/ko/hera-cli.md"><img src="docs/images/features/hera-cli.jpg" width="96" alt=""><br><b>hera CLI</b></a></td>
+</tr>
+<tr>
+<td align="center" width="25%"><a href="docs/ko/lanes.md"><img src="docs/images/features/lanes.jpg" width="96" alt=""><br><b>lanes</b></a></td>
+<td align="center" width="25%"><a href="docs/ko/session-memory.md"><img src="docs/images/features/session-memory.jpg" width="96" alt=""><br><b>세션 기억</b></a></td>
+<td align="center" width="25%"><a href="docs/ko/usage.md"><img src="docs/images/features/usage.jpg" width="96" alt=""><br><b>사용량</b></a></td>
+<td align="center" width="25%"><a href="docs/ko/themes.md"><img src="docs/images/features/themes.jpg" width="96" alt=""><br><b>테마</b></a></td>
+</tr>
+</table>
+
 ## 가볍게 만든 방식
 
 Windows 11(논리 코어 16개)에서 각 앱에 Windows PowerShell 5.1 터미널을 열어 두고 쉬는 상태에서 직접 측정했습니다. 메모리는 앱 자체 프로세스의 Private Bytes 입니다. 셸(하나에 약 55 MB)은 어느 앱이든 같으므로 뺐습니다.
@@ -100,7 +140,7 @@ Windows 11(논리 코어 16개)에서 각 앱에 Windows PowerShell 5.1 터미�
 - GPU 가속은 기본 꺼짐입니다(켜면 약 135 MB 증가). 화면 프로세스는 하나뿐이고 예비 프로세스도 두지 않습니다.
 - 사용량은 일을 마치면 바로 종료되는 별도 프로세스에서 증분으로 집계하며, 최대 5분에 한 번 돕니다.
 - 0.2.0 에서 두 가지를 줄였습니다. 터미널마다 붙는 node-pty 출력 스레드의 힙을 제한했고, WebGL 렌더러는 GPU 모드에서만 불러옵니다. 둘을 합쳐 터미널 4개 기준 약 23 MB 가 줄었고, 30만 줄 출력 시험에서도 터미널이 정상 동작했습니다.
-- 설치 파일마다 그 OS 의 node-pty 바이너리만 넣습니다. Windows 에서는 압축되지 않은 네이티브 파일이 9.3 MB 에서 1.5 MB 로 줄었습니다.
+- 설치 파일마다 그 OS 의 node-pty 바이너리만 넣습니다. Windows 에서는 압축되지 않은 네이티브 파일이 9.3 MB 에서 1.5 MB 로 줄었습니다. 0.2.1 은 Windows Terminal 의 ConPTY(1.3 MB)를 더하고 node-pty 디버그 기호는 뺐습니다.
 
 ## 설치
 
@@ -178,6 +218,7 @@ lanes 는 Claude Code 프롬프트에서 한 번 설치하고, *Lanes → HERA �
 - 다음에 켜면 (*설정 → 세션 기억 → 자동으로 이어서 실행*, 기본값):
   - 셸은 **마지막에 있던 폴더**에서 다시 열립니다(OSC 7 / OSC 9;9 와 프롬프트로 추적).
   - Claude Code 는 HERA 가 정해 준 `--session-id` 의 대화로, Codex 는 기록에서 찾은 세션으로 이어집니다. 같은 폴더에 Claude 탭이 여러 개여도 각자 자기 대화로 돌아갑니다.
+  - lane 탭은 HERA 가 다시 열지 않고, 메인 세션이 필요할 때 lanes 가 엽니다. lane 의 대화를 메인 탭에서 이어 여는 일은 없습니다.
   - 다른 AI 는 각자의 "최근 대화 이어하기" 옵션을 씁니다. 개발 서버 같은 프로젝트 명령은 자동으로 다시 실행하지 않고 *다시 시작* 버튼으로 재개합니다.
 - *컴퓨터를 켜면 HERA 자동 실행*(설치본)과 함께 쓰면 재부팅 직후 바로 이어서 일할 수 있습니다.
 

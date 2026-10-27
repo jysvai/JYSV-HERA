@@ -14,7 +14,7 @@
 
 **English** · [한국어](README.ko.md)
 
-[Download](#install) · [Features](#features) · [hera CLI](#multi-agent-collaboration-the-hera-cli) · [lanes](#works-great-with-lanes) · [Architecture](docs/architecture.md)
+[Download](#install) · [What's new](#whats-new-in-021) · [Features](#features) · [Docs](#documentation) · [hera CLI](#multi-agent-collaboration-the-hera-cli) · [lanes](#works-great-with-lanes) · [Patch notes](docs/patch-notes/README.md)
 
 </div>
 
@@ -34,6 +34,27 @@ HERA keeps the shell you already use (PowerShell, cmd, Git Bash, bash, zsh, fish
 - **Light.** About 170 MB with one terminal and about 11 MB more per extra terminal, idle CPU near zero. Details below.
 
 ![JYSV HERA workspace: two terminals side by side and the project backlog](docs/images/workspace-dark.png)
+
+## What's new in 0.2.1
+
+Terminals now behave like Windows Terminal, and lanes stay inside HERA. Full notes: [docs/patch-notes](docs/patch-notes/README.md) · [v0.2.1](docs/patch-notes/en/v0.2.1.md).
+
+<table>
+<tr>
+<td width="50%"><img src="docs/images/tui-wheel.gif" alt="The mouse wheel scrolling inside a full-screen program"></td>
+<td width="50%"><img src="docs/images/lanes-tab.gif" alt="A lane opening as a HERA tab"></td>
+</tr>
+<tr>
+<td><b>The wheel works in full-screen programs.</b> HERA ships Windows Terminal's console engine (ConPTY), so Claude Code's full-screen mode, vim and htop scroll with the mouse instead of getting arrow keys. Tab switches keep the mouse mode, cursor and scroll region.</td>
+<td><b>Every lane opens as a HERA tab.</b> With lanes 0.3.13, a lane the main Claude opens by itself asks HERA for a tab (<code>hera host --lane</code>). Only projects registered in HERA are taken over; anything else opens as before.</td>
+</tr>
+</table>
+
+<p align="center"><img src="docs/images/wt-import.gif" alt="Importing Windows Terminal settings into HERA" width="860"></p>
+
+- **Your old terminal's settings come along.** *Settings → Terminal* imports Windows Terminal's font, cursor, scrollback, default shell and color scheme, item by item.
+- **Any shell.** PowerShell, PowerShell 7, cmd, Git Bash, WSL, or any command line such as `wsl.exe -d Ubuntu`. Cursor shape and blink are settings now, and Cascadia Mono ships with HERA.
+- **Fixed:** double paste, screens that broke after a tab switch or resize, rows that stayed stale until you scrolled, and lane replies lost after a restart (a lane's conversation was resumed in the main tab).
 
 ## Features
 
@@ -82,6 +103,25 @@ Installed CLIs are detected on `PATH` and appear in the launcher; the rest stay 
 
 Google's Gemini CLI was replaced by Antigravity for Google accounts, so it is no longer built in; if you use it with an API key, add `gemini` on the Agents page.
 
+## Documentation
+
+One page per feature, in [English](docs/en/README.md) and [Korean](docs/ko/README.md). Also: [Troubleshooting](docs/en/troubleshooting.md) · [Updates and privacy](docs/en/updates-and-privacy.md) · [Patch notes](docs/patch-notes/README.md) · [Architecture](docs/architecture.md).
+
+<table>
+<tr>
+<td align="center" width="25%"><a href="docs/en/projects.md"><img src="docs/images/features/projects.jpg" width="96" alt=""><br><b>Projects</b></a></td>
+<td align="center" width="25%"><a href="docs/en/terminal.md"><img src="docs/images/features/terminal.jpg" width="96" alt=""><br><b>Terminal</b></a></td>
+<td align="center" width="25%"><a href="docs/en/agents.md"><img src="docs/images/features/agents.jpg" width="96" alt=""><br><b>Agents</b></a></td>
+<td align="center" width="25%"><a href="docs/en/hera-cli.md"><img src="docs/images/features/hera-cli.jpg" width="96" alt=""><br><b>hera CLI</b></a></td>
+</tr>
+<tr>
+<td align="center" width="25%"><a href="docs/en/lanes.md"><img src="docs/images/features/lanes.jpg" width="96" alt=""><br><b>lanes</b></a></td>
+<td align="center" width="25%"><a href="docs/en/session-memory.md"><img src="docs/images/features/session-memory.jpg" width="96" alt=""><br><b>Session memory</b></a></td>
+<td align="center" width="25%"><a href="docs/en/usage.md"><img src="docs/images/features/usage.jpg" width="96" alt=""><br><b>Usage</b></a></td>
+<td align="center" width="25%"><a href="docs/en/themes.md"><img src="docs/images/features/themes.jpg" width="96" alt=""><br><b>Themes</b></a></td>
+</tr>
+</table>
+
 ## Lightweight by design
 
 Measured on Windows 11 (16 logical cores), each app with idle Windows PowerShell 5.1 terminals. Memory is private bytes of the app's own processes. The shells are left out because they cost the same everywhere (about 55 MB each).
@@ -100,7 +140,7 @@ A bare console window is lighter, and HERA does not pretend otherwise: its fixed
 - GPU acceleration is off by default (it costs about 135 MB). There is a single renderer process and no spare one kept warm.
 - Usage is parsed incrementally in a short-lived worker that exits when done, at most every 5 minutes.
 - 0.2.0 caps the heap of node-pty's per-terminal output thread and loads the WebGL renderer only in GPU mode. Together they save about 23 MB at 4 terminals, and terminals stayed correct through a 300,000-line output test.
-- Each installer ships only its own platform's node-pty binaries: on Windows, unpacked native files went from 9.3 MB to 1.5 MB.
+- Each installer ships only its own platform's node-pty binaries: on Windows, unpacked native files went from 9.3 MB to 1.5 MB. 0.2.1 adds Windows Terminal's ConPTY (1.3 MB) and leaves out node-pty's debug symbols.
 
 ## Install
 
@@ -178,6 +218,7 @@ Verified end to end: a main Claude in HERA sent `/lane low …`, the low lane ru
 - On the next start (*Settings → Session memory → Resume automatically*, the default):
   - Shells reopen in **the folder they were last in**, tracked through OSC 7 / OSC 9;9 and the prompt.
   - Claude Code resumes the conversation HERA gave it a `--session-id` for; Codex resumes the session found in its logs. Several Claude tabs in one folder each get their own conversation back.
+  - Lane tabs are not reopened by HERA; lanes reopens a lane when the main session needs it. A lane's conversation is never resumed in a main tab.
   - Other AIs use their own "continue last conversation" option. Project commands such as dev servers are not re-run automatically; use *Restart*.
 - *Start HERA at login* (installed builds) puts you back to work right after a reboot.
 
