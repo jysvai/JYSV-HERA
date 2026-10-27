@@ -9,10 +9,11 @@ import os from 'node:os'
 import path from 'node:path'
 
 import { LANE_ALLOW_RULES } from '../shared/defaults'
+import { t } from '../shared/i18n'
 import type { CreateSessionRequest, LaneLive, LaneOptionSpec, LaneProjectState, LanesInfo, LaneTask, LaneTier, Project, SessionInfo } from '../shared/types'
 import { HOST_PASSED_ENV } from '../shared/util'
 
-import { binDir, dataPath, isWin, readJson, writeJsonAtomic } from './paths'
+import { binDir, dataPath, hydrateLoginPath, isWin, readJson, writeJsonAtomic } from './paths'
 import { getConfig, projectById, projectForPath } from './store'
 
 const REPO = 'https://github.com/jysvai/lanes'
@@ -191,7 +192,7 @@ export function lanesInfo(): LanesInfo {
  */
 export function setLaneOptions(patch: Record<string, string | number | boolean | null>): LanesInfo {
   const where = locate()
-  if (!where) throw new Error('lanes 플러그인이 설치되어 있지 않습니다.')
+  if (!where) throw new Error(t('lanes 플러그인이 설치되어 있지 않습니다.'))
 
   const { schema } = readSchema(where.root)
   const file = settingsFile()
@@ -492,6 +493,8 @@ function hostEnv(): Record<string, string> {
 
 /** Run lanes.ps1 / lanes.sh hidden, the way the plugin itself does. */
 async function runScript(info: LanesInfo, project: Project, verb: 'start' | 'stop', which: LaneTier | 'all', launch: 'window' | 'background', extra: Record<string, string> = {}) {
+  // lanes.sh looks for `claude` on PATH; a Dock / Finder launch needs the login shell's PATH first.
+  await hydrateLoginPath()
   const slug = laneSlug(project.path)
   const args = scriptArgs(info, project, slug, launch)
 
@@ -573,17 +576,17 @@ export interface HostRequest {
  */
 export function hostLane(req: HostRequest): { id: string | null; name: string; project: string } {
   const settings = getConfig().settings.lanes
-  if (!settings.enabled || settings.host !== 'hera') throw new Error('HERA 가 lanes 를 탭으로 열지 않도록 설정되어 있습니다.')
-  if (!tabs) throw new Error('HERA 창이 아직 준비되지 않았습니다.')
+  if (!settings.enabled || settings.host !== 'hera') throw new Error(t('HERA 가 lanes 를 탭으로 열지 않도록 설정되어 있습니다.'))
+  if (!tabs) throw new Error(t('HERA 창이 아직 준비되지 않았습니다.'))
 
   const cwd = path.resolve(req.cwd || '')
   const project = req.cwd ? projectForPath(cwd) : null
-  if (!project) throw new Error(`HERA 에 등록된 프로젝트가 아닙니다: ${cwd}`)
+  if (!project) throw new Error(t('HERA 에 등록된 프로젝트가 아닙니다: {cwd}', { cwd }))
 
   const run = path.resolve(req.run || '')
   const expected = path.join(cwd, '.claude', 'lanes', 'state', `${req.lane}.run.${isWin ? 'ps1' : 'command'}`)
   const same = isWin ? run.toLowerCase() === expected.toLowerCase() : run === expected
-  if (!req.check && (!same || !fs.existsSync(run))) throw new Error(`lane 실행 파일이 아닙니다: ${run}`)
+  if (!req.check && (!same || !fs.existsSync(run))) throw new Error(t('lane 실행 파일이 아닙니다: {run}', { run }))
 
   const name = `${laneSlug(cwd)}-${req.lane}`
   if (req.check) return { id: null, name, project: project.name }
@@ -621,7 +624,7 @@ function applyAllowFor(project: Project, rules: string[]): number {
 /** Add the lane allow rules to a project's .claude/settings.local.json (for dontAsk lanes). */
 export function applyLaneAllowlist(projectId: string): { added: number; file: string } {
   const project = projectById(projectId)
-  if (!project) throw new Error('프로젝트를 찾을 수 없습니다.')
+  if (!project) throw new Error(t('프로젝트를 찾을 수 없습니다.'))
 
   return { added: applyAllowFor(project, getConfig().settings.lanes.allowRules), file: allowFile(project) }
 }
@@ -631,11 +634,11 @@ export async function startLanes(projectId: string, which: LaneTier | 'all'): Pr
   const info = lanesInfo()
   const settings = getConfig().settings.lanes
 
-  if (!project) return { ok: false, message: '프로젝트를 찾을 수 없습니다.' }
-  if (!info.installed) return { ok: false, message: 'lanes 플러그인이 설치되어 있지 않습니다.' }
+  if (!project) return { ok: false, message: t('프로젝트를 찾을 수 없습니다.') }
+  if (!info.installed) return { ok: false, message: t('lanes 플러그인이 설치되어 있지 않습니다.') }
 
   const linked = linkedUnder(project)
-  if (linked) return { ok: false, message: `${linked} 가 링크라서 lanes 가 이 프로젝트에서 꺼져 있습니다.` }
+  if (linked) return { ok: false, message: t('{linked} 가 링크라서 lanes 가 이 프로젝트에서 꺼져 있습니다.', { linked }) }
 
   // dontAsk denies every call that is not allowed in advance; in auto mode HERA adds what a lane needs.
   if (info.effective.permission_mode === 'dontAsk' && settings.mode === 'auto') applyAllowFor(project, settings.allowRules)
@@ -647,7 +650,7 @@ export async function startLanes(projectId: string, which: LaneTier | 'all'): Pr
     return !lane || lane.state === 'off'
   })
 
-  if (!tiers.length) return { ok: true, message: '이미 열려 있습니다.' }
+  if (!tiers.length) return { ok: true, message: t('이미 열려 있습니다.') }
 
   const scope = tiers.length === 2 ? 'all' : tiers[0]
 
@@ -658,9 +661,15 @@ export async function startLanes(projectId: string, which: LaneTier | 'all'): Pr
 
     if (result.code === 0 && !untrusted) for (const tier of tiers) opening.set(`${slug}-${tier}`, Date.now())
 
+    const failure = result.out.split('\n').filter(Boolean).slice(-2).join(' ') || `exit ${result.code}`
+
     return {
       ok: result.code === 0 && !untrusted,
-      message: untrusted ? '이 폴더를 Claude Code 가 아직 신뢰하지 않습니다. 이 프로젝트에서 claude 를 한 번 열어 신뢰를 허용한 뒤 다시 시도하세요.' : `${tiers.join(', ')} lane 을 HERA 탭에서 엽니다.`
+      message: untrusted
+        ? t('이 폴더를 Claude Code 가 아직 신뢰하지 않습니다. 이 프로젝트에서 claude 를 한 번 열어 신뢰를 허용한 뒤 다시 시도하세요.')
+        : result.code === 0
+          ? t('{tiers} lane 을 HERA 탭에서 엽니다.', { tiers: tiers.join(', ') })
+          : t('lane 을 열지 못했습니다: {reason}', { reason: failure })
     }
   }
 
@@ -670,7 +679,7 @@ export async function startLanes(projectId: string, which: LaneTier | 'all'): Pr
       opening.set(`${slug}-${tier}`, Date.now())
     }
 
-    return { ok: true, message: `${tiers.join(', ')} lane 을 HERA 탭에서 엽니다.` }
+    return { ok: true, message: t('{tiers} lane 을 HERA 탭에서 엽니다.', { tiers: tiers.join(', ') }) }
   }
 
   const result = await runScript(info, project, 'start', scope, 'window')
@@ -681,7 +690,7 @@ export async function startLanes(projectId: string, which: LaneTier | 'all'): Pr
 
   return {
     ok: result.code === 0 && !untrusted,
-    message: untrusted ? '이 폴더를 Claude Code 가 아직 신뢰하지 않습니다. 이 프로젝트에서 claude 를 한 번 열어 신뢰를 허용한 뒤 다시 시도하세요.' : result.out || `exit ${result.code}`
+    message: untrusted ? t('이 폴더를 Claude Code 가 아직 신뢰하지 않습니다. 이 프로젝트에서 claude 를 한 번 열어 신뢰를 허용한 뒤 다시 시도하세요.') : result.out || `exit ${result.code}`
   }
 }
 
@@ -689,7 +698,7 @@ export async function stopLanes(projectId: string, which: LaneTier | 'all'): Pro
   const project = projectById(projectId)
   const info = lanesInfo()
 
-  if (!project || !info.installed) return { ok: false, message: 'lanes 를 찾을 수 없습니다.' }
+  if (!project || !info.installed) return { ok: false, message: t('lanes 를 찾을 수 없습니다.') }
 
   const result = await runScript(info, project, 'stop', which, 'window')
   const slug = laneSlug(project.path)
@@ -707,8 +716,8 @@ export async function stopLanes(projectId: string, which: LaneTier | 'all'): Pro
 /** Save a project's instructions for one lane (.claude/lanes/roles/<tier>.md, read when the lane starts). */
 export function saveLaneRole(projectId: string, tier: LaneTier, text: string): void {
   const project = projectById(projectId)
-  if (!project) throw new Error('프로젝트를 찾을 수 없습니다.')
-  if (linkedUnder(project)) throw new Error('.claude/lanes 경로에 링크가 있어 쓸 수 없습니다.')
+  if (!project) throw new Error(t('프로젝트를 찾을 수 없습니다.'))
+  if (linkedUnder(project)) throw new Error(t('.claude/lanes 경로에 링크가 있어 쓸 수 없습니다.'))
 
   const file = path.join(lanesDir(project), 'roles', `${tier}.md`)
 

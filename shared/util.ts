@@ -1,3 +1,5 @@
+import { t } from './i18n'
+
 export function newId(prefix = ''): string {
   const random = Math.random().toString(36).slice(2, 8)
   const time = Date.now().toString(36).slice(-5)
@@ -19,42 +21,42 @@ export function clip(text: string, max: number): string {
   return flat.length > max ? `${flat.slice(0, max - 1)}…` : flat
 }
 
-/** Compact relative time in Korean, e.g. "3분 전", "어제", "5일 전". */
-export function relTime(t: number | null | undefined, now = Date.now()): string {
-  if (!t) {
-    return '기록 없음'
+/** Compact relative time, e.g. "3분 전" / "3 min ago", "어제" / "yesterday", "5일 전" / "5 d ago". */
+export function relTime(time: number | null | undefined, now = Date.now()): string {
+  if (!time) {
+    return t('기록 없음')
   }
 
-  const diff = Math.max(0, now - t)
+  const diff = Math.max(0, now - time)
   const min = Math.floor(diff / 60000)
 
   if (min < 1) {
-    return '방금'
+    return t('방금')
   }
 
   if (min < 60) {
-    return `${min}분 전`
+    return t('{min}분 전', { min })
   }
 
   const hours = Math.floor(min / 60)
 
   if (hours < 24) {
-    return `${hours}시간 전`
+    return t('{hours}시간 전', { hours })
   }
 
   const days = Math.floor(hours / 24)
 
   if (days === 1) {
-    return '어제'
+    return t('어제')
   }
 
   if (days < 30) {
-    return `${days}일 전`
+    return t('{days}일 전', { days })
   }
 
   const months = Math.floor(days / 30)
 
-  return months < 12 ? `${months}개월 전` : `${Math.floor(months / 12)}년 전`
+  return months < 12 ? t('{months}개월 전', { months }) : t('{years}년 전', { years: Math.floor(months / 12) })
 }
 
 export function formatTokens(n: number): string {

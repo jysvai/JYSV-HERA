@@ -2,7 +2,7 @@
 
 # Projects
 
-<img src="../images/features/projects.jpg" alt="" width="120" align="right">
+<img src="../images/features/projects.jpg" alt="">
 
 A project is a folder you registered in HERA. Everything else (terminals, agents, usage, the backlog) hangs off it.
 
@@ -10,6 +10,7 @@ A project is a folder you registered in HERA. Everything else (terminals, agents
 
 In the sidebar:
 
+- **Drag and drop:** drop one or more folders from Explorer or Finder onto the sidebar to register them. Files are not registered.
 - **Add folder** (폴더 추가) registers one folder.
 - **Find projects in a parent folder** (상위 폴더에서 프로젝트 찾기) scans the sub-folders of a folder you pick. A dialog lists what it found, with the markers it recognised (for example `.git`) and the last change time. Folders you already registered are greyed out and marked "(등록됨)". Tick the ones you want and press **Register N** ("N개 등록").
 
@@ -55,6 +56,16 @@ claude-yolo = claude --dangerously-skip-permissions
 ```
 
 **Remove from list** (목록에서 제거) asks twice. It only forgets the project in HERA; your folder is untouched.
+
+## The folder tree
+
+The **Folders** tab of the right panel (`Ctrl+Shift+E`, `⌘E` on macOS) shows the project's folders. A folder is read when you expand it, and open folders are re-read every few seconds while the panel is visible.
+
+- In a git repository, changed files get a dot (modified, added, deleted, untracked). A folder shows the strongest change inside it.
+- Double-click a file to open it with its app. Programs and scripts (`.exe`, `.bat`, `.ps1`, `.sh`, `.js` and so on) are never run; HERA shows them in Explorer / Finder instead.
+- Hover an entry for its buttons: **Insert path into the terminal** (types the quoted path into the active terminal), **Copy path**, and **Open / Show in folder**.
+- Drag an entry onto a terminal to type its path.
+- The eye button hides dotfiles, the refresh button reads again now. A folder with more than 2,000 entries is shown in part.
 
 ## The backlog panel
 

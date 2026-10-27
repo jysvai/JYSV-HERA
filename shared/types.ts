@@ -105,6 +105,8 @@ export interface Settings {
   gpu: boolean
   /** Windows: the ConPTY that ships with HERA (as Windows Terminal does) instead of the system one. */
   conptyDll: boolean
+  /** Start Codex tabs with `--no-daemon`, so a stale shared Codex daemon cannot sign them out. */
+  codexOwnServer: boolean
   cursorStyle: 'bar' | 'block' | 'underline'
   cursorBlink: boolean
   /** Fewer Chromium processes + aggressive trimming. Applies on restart. */
@@ -136,7 +138,8 @@ export interface Settings {
   checkUpdates: boolean
   /** Monthly budget hints for the usage page (tokens, 0 = off). */
   usageWarnPercent: number
-  language: 'ko' | 'en'
+  /** UI language; 'auto' follows the OS (Korean on a Korean system, English elsewhere). */
+  uiLanguage: 'auto' | 'ko' | 'en'
 }
 
 /** What HERA can take over from the terminal used before it (Windows Terminal's default profile). */
@@ -165,6 +168,87 @@ export interface UpdateInfo {
   /** 0 = never checked. */
   checkedAt: number
   /** The last attempt failed (the rest is the previous good answer). */
+  error?: string
+  /** HERA can download and install the newer release itself (installed builds). */
+  installable?: boolean
+  /** The in-app update, once the user started it. */
+  progress?: UpdateProgress | null
+}
+
+/** One entry of a project folder (right panel → 폴더). */
+export interface DirEntry {
+  name: string
+  dir: boolean
+  /** Bytes, 0 for folders. */
+  size: number
+  hidden: boolean
+  link?: boolean
+}
+
+export interface DirListing {
+  entries: DirEntry[]
+  /** The folder had more entries than HERA lists. */
+  truncated: boolean
+  error?: string
+}
+
+/** An installed CLI tool or global package HERA can update (Agents → Extensions & updates). */
+export interface ToolPackage {
+  /** Update id passed back to `tools:update`. */
+  id: string
+  manager: 'npm' | 'brew' | 'uv' | 'pipx' | 'self'
+  name: string
+  /** The HERA agent this package provides. */
+  agentId?: string
+  current?: string
+  /** Unknown when the manager has no cheap way to ask (uv, pipx, a CLI's own updater). */
+  latest?: string
+  outdated: boolean
+  /** What the update runs, shown before running it. */
+  command: string
+}
+
+export interface ExtensionItem {
+  name: string
+  detail?: string
+  version?: string
+  enabled?: boolean
+  scope?: 'user' | 'project' | 'local'
+  /** Set when HERA can update this one item. */
+  updateId?: string
+  command?: string
+}
+
+export interface ExtensionGroup {
+  kind: 'plugins' | 'mcp' | 'skills' | 'extensions'
+  /** Where it was read from (home shortened to ~). */
+  source: string
+  items: ExtensionItem[]
+  /** Set when one command updates the whole group. */
+  updateId?: string
+  command?: string
+}
+
+/** What one AI CLI has plugged in, read from its own config files. */
+export interface CliExtensions {
+  id: string
+  name: string
+  agentId?: string
+  groups: ExtensionGroup[]
+}
+
+export interface ToolPackages {
+  packages: ToolPackage[]
+  checkedAt: number
+  /** A package manager that could not be asked (offline, say). */
+  errors: string[]
+}
+
+export interface UpdateProgress {
+  phase: 'downloading' | 'ready' | 'installing' | 'error'
+  /** Bytes so far / in total (0 when unknown). */
+  received: number
+  total: number
   error?: string
 }
 

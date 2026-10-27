@@ -4,6 +4,7 @@ import { spawn } from 'node:child_process'
 import fs from 'node:fs'
 import path from 'node:path'
 
+import { t } from '../shared/i18n'
 import type { Project } from '../shared/types'
 
 import { binDir, findOnPath, isMac, isWin } from './paths'
@@ -26,7 +27,7 @@ export function openExternalTerminal(project: Project, command: string | null): 
   const dir = project.path
 
   if (!fs.existsSync(dir)) {
-    return { ok: false, message: `폴더가 없습니다: ${dir}` }
+    return { ok: false, message: t('폴더가 없습니다: {dir}', { dir }) }
   }
 
   if (isWin) {
@@ -57,7 +58,7 @@ export function openExternalTerminal(project: Project, command: string | null): 
       detached('conhost.exe', [spec.command, ...shellArgs], dir)
     }
 
-    return { ok: true, message: wt ? 'Windows Terminal 에서 열었습니다.' : '콘솔 창에서 열었습니다.' }
+    return { ok: true, message: wt ? t('Windows Terminal 에서 열었습니다.') : t('콘솔 창에서 열었습니다.') }
   }
 
   if (isMac) {
@@ -71,12 +72,12 @@ export function openExternalTerminal(project: Project, command: string | null): 
       detached('osascript', ['-e', `tell application "Terminal" to do script ${appleScriptString(script)}`, '-e', 'tell application "Terminal" to activate'])
     }
 
-    return { ok: true, message: '터미널 앱에서 열었습니다.' }
+    return { ok: true, message: t('터미널 앱에서 열었습니다.') }
   }
 
   const term = ['x-terminal-emulator', 'gnome-terminal', 'konsole', 'xterm'].map(findOnPath).find(Boolean)
 
-  if (!term) return { ok: false, message: '터미널 앱을 찾지 못했습니다.' }
+  if (!term) return { ok: false, message: t('터미널 앱을 찾지 못했습니다.') }
 
   const sh = (value: string) => `'${value.replace(/'/g, `'\\''`)}'`
   const script = [`export PATH=${sh(binDir())}:"$PATH"`, command, 'exec "${SHELL:-sh}"'].filter(Boolean).join('; ')
@@ -84,7 +85,7 @@ export function openExternalTerminal(project: Project, command: string | null): 
   const args = path.basename(term).startsWith('gnome-terminal') ? ['--', 'sh', '-c', script] : ['-e', 'sh', '-c', script]
   detached(term, args, dir)
 
-  return { ok: true, message: '터미널을 열었습니다.' }
+  return { ok: true, message: t('터미널을 열었습니다.') }
 }
 
 const MARKERS = [

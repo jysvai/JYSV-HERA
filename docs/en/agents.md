@@ -2,7 +2,7 @@
 
 # Agents
 
-<img src="../images/features/agents.jpg" alt="" width="120" align="right">
+<img src="../images/features/agents.jpg" alt="">
 
 An agent is any AI command-line tool that runs in a terminal. HERA knows 32 of them out of the box and lets you add your own. Open the **Agents** (에이전트) page from the sidebar.
 
@@ -54,6 +54,20 @@ Custom agents can be deleted from the same dialog.
 An account profile is a separate configuration folder for an agent, so you can keep a work and a personal login side by side. Create them on the **Accounts · auto login** (계정 · 자동 로그인) page: give the profile a label (for example "work") and a folder (for example `~/.claude-work`), then press the login button for that profile. HERA starts the tool with the folder set (`CLAUDE_CONFIG_DIR` for Claude Code, `CODEX_HOME` for Codex), and later sessions with that profile are already logged in. HERA does not read the tokens; it only shows expiry and plan information.
 
 Profiles can be chosen in a team's pane settings ("default account" means no profile) and when launching an agent.
+
+### Keeping the Codex login
+
+Recent Codex builds attach their windows to one shared background server (a daemon). The daemon keeps its own copy of the login and does not reload `auth.json` when the account in it changed, so a daemon holding an old login can make a Codex tab opened after a HERA restart ask you to sign in again. HERA starts Codex tabs with `--no-daemon` (when the installed Codex has that option), so each tab reads the current login. Turn it off in *Settings → Terminal → Keep Codex signed in*. If the Codex desktop app lost its login, restart it or run `codex app-server daemon restart`.
+
+## Extensions & updates
+
+**Extensions & updates** (the button at the top of the Agents page, *Settings → Version & updates*, or `Ctrl+K`) keeps your AI CLIs current without visiting each one's site.
+
+- **CLIs & global packages** lists what npm installed globally, the Homebrew formulas and casks your AI CLIs come from, uv and pipx tools, and CLIs that update themselves (`claude update`, `codex update`, `agy update`, `hermes update`, `opencode upgrade`) when no package manager provides them. npm and Homebrew show the latest version; **Update all N** updates every outdated one.
+- **Plugins, MCP & skills** reads each CLI's own config files: Claude Code plugins (with the skills, commands and agents each brings), MCP servers (user, this-project-only and `.mcp.json`) and skills; Codex plugins, MCP servers and skills from `config.toml`; Gemini CLI and Qwen extensions; OpenCode plugins; MCP servers of Copilot, Cursor, Kiro, Droid, Kimi, Amp and Crush; and the skills several CLIs share in `~/.agents/skills`. Groups that can be updated have **Update all** (for example `claude plugin marketplace update` followed by `claude plugin update` for each plugin, `codex plugin marketplace upgrade`, `gemini extensions update --all`, `npx skills update`), and a skill cloned with git updates with `git pull`.
+- Every update runs in a new terminal tab of the current project, so you see its progress, a sudo or password prompt, and any error. Press **Check again** when it is done. On Windows, close a CLI's tabs before updating it: a running program cannot be replaced.
+- MCP servers show only their name and the package or host they use. Tokens, headers and environment variables are not shown.
+- The page asks npm (and Homebrew) for the latest versions when you open it, at most every 10 minutes.
 
 ## Teams
 

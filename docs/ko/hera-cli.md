@@ -2,7 +2,7 @@
 
 # `hera` CLI
 
-<img src="../images/features/hera-cli.jpg" alt="" width="120" align="right">
+<img src="../images/features/hera-cli.jpg" alt="">
 
 HERA 에서 연 모든 터미널에는 PATH 에 `hera` 명령이 있습니다. 에이전트끼리 일을 넘길 때 쓰고, 사용자가 직접 써도 됩니다. 실행 중인 HERA 앱과 로컬 named pipe (macOS · Linux 는 Unix 소켓) 로 대화하며, 데이터 폴더의 토큰 파일로 보호됩니다. HERA 밖의 터미널에서는 동작하지 않고, 네트워크 요청도 하지 않습니다.
 

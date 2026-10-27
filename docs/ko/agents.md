@@ -2,7 +2,7 @@
 
 # 에이전트
 
-<img src="../images/features/agents.jpg" alt="" width="120" align="right">
+<img src="../images/features/agents.jpg" alt="">
 
 에이전트는 터미널에서 도는 모든 AI 명령줄 도구입니다. HERA 는 32종을 기본으로 알고 있고, 직접 추가할 수도 있습니다. 사이드바의 **에이전트** 페이지를 엽니다.
 
@@ -54,6 +54,20 @@ HERA 는 두 경우에 데스크톱 알림을 보냅니다. 설정 → 창 · �
 계정 프로필은 에이전트마다 따로 두는 설정 폴더로, 회사와 개인 로그인을 나눠 쓰게 해 줍니다. **계정 · 자동 로그인** 페이지에서 만듭니다. 프로필 이름(예: “회사”)과 폴더(예: `~/.claude-work`)를 적고 그 프로필의 로그인 버튼을 누르세요. HERA 가 그 폴더를 지정해서 도구를 띄우고 (Claude Code 는 `CLAUDE_CONFIG_DIR`, Codex 는 `CODEX_HOME`), 이후 그 프로필로 여는 세션은 이미 로그인된 상태입니다. HERA 는 토큰 값을 읽지 않고 만료와 플랜 정보만 표시합니다.
 
 프로필은 팀의 화면 설정(“기본 계정” 은 프로필 없음)과 에이전트를 열 때 고를 수 있습니다.
+
+### Codex 로그인 유지
+
+요즘 Codex 는 공유 백그라운드 서버(데몬) 하나에 여러 창을 붙여 쓰는데, 이 데몬은 로그인을 따로 들고 있고 `auth.json` 의 계정이 바뀌면 다시 읽지 않습니다. 그래서 데몬이 예전 로그인을 들고 있으면 HERA 를 재시작한 뒤 연 Codex 가 로그인을 다시 요구할 수 있습니다. HERA 는 Codex 탭을 `--no-daemon` 으로 열어 탭마다 현재 로그인을 읽게 합니다(이 옵션이 있는 Codex 일 때만). *설정 → 터미널 → Codex 로그인 유지* 에서 끌 수 있습니다. Codex 데스크톱 앱이 로그인을 잃었다면 그 앱을 다시 시작하거나 `codex app-server daemon restart` 를 실행하세요.
+
+## 확장 · 업데이트
+
+**확장 · 업데이트** (에이전트 페이지 위쪽 버튼, *설정 → 버전 · 업데이트*, 또는 `Ctrl+K`) 에서 AI CLI 를 각 사이트에 가지 않고 최신으로 유지합니다.
+
+- **CLI · 전역 패키지** 에는 npm 전역 패키지, AI CLI 가 들어 있는 Homebrew formula · cask, uv · pipx 도구, 그리고 패키지 관리자로 설치하지 않은 CLI 의 자체 업데이트(`claude update`, `codex update`, `agy update`, `hermes update`, `opencode upgrade`)가 나옵니다. npm 과 Homebrew 는 최신 버전까지 보여 주고, **새 버전 N개 모두 업데이트** 로 한꺼번에 올립니다.
+- **플러그인 · MCP · 스킬** 은 각 CLI 의 설정 파일에서 읽습니다: Claude Code 플러그인(각 플러그인이 가진 스킬 · 명령 · 에이전트 수), MCP 서버(사용자 · 이 프로젝트만 · `.mcp.json`), 스킬; `config.toml` 의 Codex 플러그인 · MCP 서버 · 스킬; Gemini CLI · Qwen 확장; OpenCode 플러그인; Copilot · Cursor · Kiro · Droid · Kimi · Amp · Crush 의 MCP 서버; 여러 CLI 가 함께 쓰는 `~/.agents/skills` 의 스킬. 업데이트할 수 있는 묶음에는 **모두 업데이트** 가 있습니다(예: `claude plugin marketplace update` 뒤 플러그인마다 `claude plugin update`, `codex plugin marketplace upgrade`, `gemini extensions update --all`, `npx skills update`). git 으로 받은 스킬은 `git pull` 로 업데이트합니다.
+- 업데이트는 지금 프로젝트의 새 터미널 탭에서 실행되므로 진행 상황, sudo · 비밀번호 요청, 오류를 그대로 볼 수 있습니다. 끝나면 **다시 확인** 을 누르세요. Windows 에서는 실행 중인 프로그램을 바꿀 수 없으니, 그 CLI 의 탭을 닫고 업데이트하세요.
+- MCP 서버는 이름과 쓰는 패키지 · 호스트만 보여 줍니다. 토큰 · 헤더 · 환경 변수는 표시하지 않습니다.
+- 이 페이지를 열면 npm (과 Homebrew) 에 최신 버전을 물어봅니다. 많아야 10분에 한 번입니다.
 
 ## 팀
 

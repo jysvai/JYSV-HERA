@@ -3,11 +3,12 @@ import { useEffect } from 'react'
 
 import { cn } from '../lib/cn'
 import { isMac } from '../lib/hera'
-import { $config, $palette, $project, $projectSessions, $rightPanel, $toast, $view, closeSession, launch, layoutFor, setLayout, toggleRightTab } from '../store/app'
+import { $config, $palette, $project, $projectSessions, $rightPanel, $toast, $view, closeSession, launch, layoutFor, setLayout, toggleRightTab, zoomTerminals } from '../store/app'
 import { $theme, applyTheme } from '../store/theme'
 import { AccountsPage } from './pages/AccountsPage'
 import { AgentsPage } from './pages/AgentsPage'
 import { BusPage } from './pages/BusPage'
+import { ExtensionsPage } from './pages/ExtensionsPage'
 import { HistoryPage } from './pages/HistoryPage'
 import { SessionsPage } from './pages/SessionsPage'
 import { SettingsPage } from './pages/SettingsPage'
@@ -68,9 +69,16 @@ function useHotkeys() {
         return
       }
 
-      if (mod && (key === 'b' || key === 'u')) {
+      if ((isMac ? event.metaKey : event.ctrlKey) && !event.altKey && ['=', '+', '-', '0'].includes(event.key) && $view.get() === 'workspace') {
         event.preventDefault()
-        toggleRightTab(key === 'u' || !project ? 'usage' : 'backlog')
+        zoomTerminals(event.key === '0' ? 'reset' : event.key === '-' ? -1 : 1)
+
+        return
+      }
+
+      if (mod && (key === 'b' || key === 'u' || key === 'e')) {
+        event.preventDefault()
+        toggleRightTab(key === 'u' || !project ? 'usage' : key === 'e' ? 'files' : 'backlog')
 
         return
       }
@@ -155,6 +163,8 @@ function Page() {
       return <HistoryPage />
     case 'agents':
       return <AgentsPage />
+    case 'extensions':
+      return <ExtensionsPage />
     case 'shortcuts':
       return <ShortcutsPage />
     case 'settings':

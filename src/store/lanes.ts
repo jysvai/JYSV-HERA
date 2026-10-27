@@ -1,5 +1,6 @@
 import { atom } from 'nanostores'
 
+import { t } from '../../shared/i18n'
 import type { LanesInfo } from '../../shared/types'
 import { api } from '../lib/hera'
 import { toast } from './app'
@@ -11,7 +12,7 @@ export async function loadLanesInfo() {
   try {
     $lanesInfo.set(await api.lanesInfo())
   } catch (error) {
-    toast(`lanes 정보를 읽지 못했습니다: ${(error as Error).message}`, 'error')
+    toast(t('lanes 정보를 읽지 못했습니다: {message}', { message: (error as Error).message }), 'error')
   }
 }
 
@@ -20,6 +21,6 @@ export async function setLaneOptions(patch: Record<string, string | number | boo
   try {
     $lanesInfo.set(await api.setLaneOptions(patch))
   } catch (error) {
-    toast(`lanes 설정을 저장하지 못했습니다: ${(error as Error).message}`, 'error')
+    toast(t('lanes 설정을 저장하지 못했습니다: {message}', { message: (error as Error).message }), 'error')
   }
 }

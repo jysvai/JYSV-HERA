@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 
+import { t } from '../../shared/i18n'
 import { api } from '../lib/hera'
 import { Input, Select } from './ui/primitives'
 
@@ -62,7 +63,7 @@ export function ShellPicker({ value, onChange, autoLabel, className }: { value: 
             {shell.label}
           </option>
         ))}
-        <option value={CUSTOM}>직접 입력 (명령줄)…</option>
+        <option value={CUSTOM}>{t('직접 입력 (명령줄)…')}</option>
       </Select>
       {custom && (
         <Input
@@ -70,7 +71,7 @@ export function ShellPicker({ value, onChange, autoLabel, className }: { value: 
           onChange={event => setText(event.target.value)}
           onBlur={commit}
           onKeyDown={event => event.key === 'Enter' && commit()}
-          placeholder="예: wsl.exe -d Ubuntu"
+          placeholder={t('예: wsl.exe -d Ubuntu')}
           className={`${className || ''} font-mono text-[12px]`}
           spellCheck={false}
         />

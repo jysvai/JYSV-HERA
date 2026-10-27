@@ -15,6 +15,7 @@ import {
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 
+import { t } from '../../../shared/i18n'
 import { allThemes } from '../../../shared/themes'
 import { cn } from '../../lib/cn'
 import { $availability, $config, $palette, $projectId, $sessions, $view, focusSession, launch, launchTeam, toggleRightTab, updateConfig, type View } from '../../store/app'
@@ -33,16 +34,17 @@ interface Item {
 }
 
 const PAGES: { view: View; label: string }[] = [
-  { view: 'sessions', label: '세션 현황' },
-  { view: 'bus', label: '에이전트 대화' },
-  { view: 'usage', label: '사용량' },
-  { view: 'accounts', label: '계정 · 자동 로그인' },
-  { view: 'history', label: '프롬프트 기록' },
-  { view: 'agents', label: '에이전트 · 팀' },
-  { view: 'shortcuts', label: '단축어' },
-  { view: 'theme', label: '테마 · 색상' },
-  { view: 'lanes', label: 'Lanes 연동 설정' },
-  { view: 'settings', label: '설정' }
+  { view: 'sessions', label: t('세션 현황') },
+  { view: 'bus', label: t('에이전트 대화') },
+  { view: 'usage', label: t('사용량') },
+  { view: 'accounts', label: t('계정 · 자동 로그인') },
+  { view: 'history', label: t('프롬프트 기록') },
+  { view: 'agents', label: t('에이전트 · 팀') },
+  { view: 'extensions', label: t('확장 · 업데이트 (CLI · 플러그인 · MCP · 스킬)') },
+  { view: 'shortcuts', label: t('단축어') },
+  { view: 'theme', label: t('테마 · 색상') },
+  { view: 'lanes', label: t('Lanes 연동 설정') },
+  { view: 'settings', label: t('설정') }
 ]
 
 /** Subsequence match score: lower is better, -1 = no match. */
@@ -93,7 +95,7 @@ export function Palette() {
       const owner = config.projects.find(entry => entry.id === session.projectId)
       out.push({
         id: `s:${session.id}`,
-        group: '열린 세션',
+        group: t('열린 세션'),
         label: `${session.title} · ${session.name}`,
         hint: owner?.name,
         keywords: session.status,
@@ -103,13 +105,13 @@ export function Palette() {
     }
 
     if (project) {
-      out.push({ id: 'new-shell', group: project.name, label: '새 터미널', icon: <IconTerminal2 />, run: () => void launch({ projectId: project.id }) })
+      out.push({ id: 'new-shell', group: project.name, label: t('새 터미널'), icon: <IconTerminal2 />, run: () => void launch({ projectId: project.id }) })
 
       for (const agent of agents) {
         out.push({
           id: `a:${agent.id}`,
           group: project.name,
-          label: `${agent.name} 시작`,
+          label: t('{name} 시작', { name: agent.name }),
           keywords: agent.command,
           icon: <AgentGlyph agent={agent} />,
           run: () => void launch({ projectId: project.id, agentId: agent.id })
@@ -118,7 +120,7 @@ export function Palette() {
           out.push({
             id: `r:${agent.id}`,
             group: project.name,
-            label: `${agent.name} 이어하기`,
+            label: t('{name} 이어하기', { name: agent.name }),
             keywords: 'resume continue',
             icon: <IconPlayerPlay />,
             run: () => void launch({ projectId: project.id, agentId: agent.id, resume: true })
@@ -127,7 +129,7 @@ export function Palette() {
       }
 
       for (const team of config.teams) {
-        out.push({ id: `t:${team.id}`, group: project.name, label: `팀: ${team.name}`, icon: <IconUsersGroup />, run: () => void launchTeam(project.id, team.id) })
+        out.push({ id: `t:${team.id}`, group: project.name, label: t('팀: {name}', { name: t(team.name) }), icon: <IconUsersGroup />, run: () => void launchTeam(project.id, team.id) })
       }
 
       for (const command of project.commands) {
@@ -145,7 +147,7 @@ export function Palette() {
     for (const entry of config.projects) {
       out.push({
         id: `p:${entry.id}`,
-        group: '프로젝트',
+        group: t('프로젝트'),
         label: entry.name,
         hint: entry.path,
         icon: <IconFolder />,
@@ -156,33 +158,33 @@ export function Palette() {
       })
       out.push({
         id: `pt:${entry.id}`,
-        group: '프로젝트',
-        label: `${entry.name} 에서 터미널 열기`,
+        group: t('프로젝트'),
+        label: t('{name} 에서 터미널 열기', { name: entry.name }),
         icon: <IconTerminal2 />,
         run: () => void launch({ projectId: entry.id })
       })
     }
 
     for (const page of PAGES) {
-      out.push({ id: `v:${page.view}`, group: '이동', label: page.label, icon: <IconSettings />, run: () => $view.set(page.view) })
+      out.push({ id: `v:${page.view}`, group: t('이동'), label: page.label, icon: <IconSettings />, run: () => $view.set(page.view) })
     }
 
-    out.push({ id: 'usage-panel', group: '이동', label: '사용량 패널 (오른쪽)', icon: <IconChartBar />, keywords: 'usage limit 한도 토큰', run: () => toggleRightTab('usage', true) })
+    out.push({ id: 'usage-panel', group: t('이동'), label: t('사용량 패널 (오른쪽)'), icon: <IconChartBar />, keywords: 'usage limit 한도 토큰', run: () => toggleRightTab('usage', true) }) // i18n-ignore
     if (currentProject) {
-      out.push({ id: 'backlog-panel', group: '이동', label: '백로그 패널 (오른쪽)', icon: <IconListDetails />, keywords: 'backlog', run: () => toggleRightTab('backlog', true) })
+      out.push({ id: 'backlog-panel', group: t('이동'), label: t('백로그 패널 (오른쪽)'), icon: <IconListDetails />, keywords: 'backlog', run: () => toggleRightTab('backlog', true) })
       if (config.settings.lanes.enabled) {
-        out.push({ id: 'lanes-panel', group: '이동', label: 'Lanes 패널 (오른쪽)', icon: <IconListDetails />, keywords: 'lanes lane mid low 보조', run: () => toggleRightTab('lanes', true) })
+        out.push({ id: 'lanes-panel', group: t('이동'), label: t('Lanes 패널 (오른쪽)'), icon: <IconListDetails />, keywords: 'lanes lane mid low 보조', run: () => toggleRightTab('lanes', true) }) // i18n-ignore
       }
     }
-    out.push({ id: 'theme-toggle', group: '화면', label: '다크 ⇄ 라이트 전환', icon: <IconSunMoon />, keywords: 'theme dark light 테마 밝게 어둡게', run: toggleThemeMode })
+    out.push({ id: 'theme-toggle', group: t('화면'), label: t('다크 ⇄ 라이트 전환'), icon: <IconSunMoon />, keywords: 'theme dark light 테마 밝게 어둡게', run: toggleThemeMode }) // i18n-ignore
     for (const theme of allThemes(config.settings)) {
       out.push({
         id: `theme:${theme.id}`,
-        group: '화면',
-        label: `테마: ${theme.name}`,
-        hint: theme.mode === 'dark' ? '다크' : '라이트',
+        group: t('화면'),
+        label: t('테마: {name}', { name: theme.name }),
+        hint: theme.mode === 'dark' ? t('다크') : t('라이트'),
         icon: <IconPalette />,
-        keywords: 'theme color 색상',
+        keywords: 'theme color 색상', // i18n-ignore
         run: () =>
           updateConfig(draft => {
             if (theme.mode === 'dark') draft.settings.darkTheme = theme.id
@@ -191,8 +193,8 @@ export function Palette() {
           })
       })
     }
-    out.push({ id: 'add', group: '이동', label: '프로젝트 폴더 추가', icon: <IconFolder />, run: () => void addProjectsFlow('pick') })
-    out.push({ id: 'scan', group: '이동', label: '상위 폴더에서 프로젝트 찾기', icon: <IconSearch />, run: () => void addProjectsFlow('scan') })
+    out.push({ id: 'add', group: t('이동'), label: t('프로젝트 폴더 추가'), icon: <IconFolder />, run: () => void addProjectsFlow('pick') })
+    out.push({ id: 'scan', group: t('이동'), label: t('상위 폴더에서 프로젝트 찾기'), icon: <IconSearch />, run: () => void addProjectsFlow('scan') })
 
     return out
   }, [config, sessions, availability, currentProject])
@@ -250,7 +252,7 @@ export function Palette() {
                 choose(filtered[index])
               }
             }}
-            placeholder="프로젝트, 세션, 에이전트, 명령 검색…"
+            placeholder={t('프로젝트, 세션, 에이전트, 명령 검색…')}
             className="h-12 flex-1 bg-transparent text-[14px] outline-none placeholder:text-(--ui-text-tertiary)"
           />
         </div>
@@ -279,7 +281,7 @@ export function Palette() {
               </div>
             )
           })}
-          {!filtered.length && <div className="py-8 text-center text-[12.5px] text-(--ui-text-tertiary)">결과 없음</div>}
+          {!filtered.length && <div className="py-8 text-center text-[12.5px] text-(--ui-text-tertiary)">{t('결과 없음')}</div>}
         </div>
       </div>
     </div>,

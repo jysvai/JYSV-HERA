@@ -2,6 +2,7 @@ import { useStore } from '@nanostores/react'
 import { IconFileImport } from '@tabler/icons-react'
 import { useEffect, useState } from 'react'
 
+import { t } from '../../../shared/i18n'
 import { DEFAULT_THEME, THEME_PRESETS, luminance, type ThemeDef } from '../../../shared/themes'
 import type { TerminalImport } from '../../../shared/types'
 import { Button } from '../../components/ui/primitives'
@@ -10,8 +11,8 @@ import { $config, toast, updateConfig } from '../../store/app'
 
 type Part = 'font' | 'cursor' | 'scrollback' | 'shell' | 'colors'
 
-const SHELL_LABEL: Record<string, string> = { auto: '자동', powershell: 'Windows PowerShell', pwsh: 'PowerShell 7', cmd: 'cmd', gitbash: 'Git Bash' }
-const CURSOR_LABEL = { bar: '세로 막대', block: '블록', underline: '밑줄' }
+const SHELL_LABEL = (): Record<string, string> => ({ auto: t('자동'), powershell: 'Windows PowerShell', pwsh: 'PowerShell 7', cmd: 'cmd', gitbash: 'Git Bash' })
+const CURSOR_LABEL = () => ({ bar: t('세로 막대'), block: t('블록'), underline: t('밑줄') })
 
 /** The face first, then the fonts already in the list (Korean and the rest stay as fallbacks). */
 function withFace(list: string, face: string): string {
@@ -54,16 +55,16 @@ export function TerminalImportCard() {
 
   const rows: { part: Part; label: string; value: string; current: string }[] = []
 
-  if (found.fontFace) rows.push({ part: 'font', label: '글꼴', value: `${found.fontFace}${found.fontSize ? ` · ${found.fontSize}px` : ''}`, current: `${settings.fontFamily.split(',')[0].replace(/"/g, '')} · ${settings.fontSize}px` })
-  if (found.cursorStyle) rows.push({ part: 'cursor', label: '커서', value: CURSOR_LABEL[found.cursorStyle], current: CURSOR_LABEL[settings.cursorStyle] })
-  if (found.scrollback) rows.push({ part: 'scrollback', label: '스크롤백', value: `${found.scrollback.toLocaleString()}줄`, current: `${settings.scrollback.toLocaleString()}줄` })
-  if (found.shell) rows.push({ part: 'shell', label: '기본 셸', value: found.shellLabel || found.shell, current: SHELL_LABEL[settings.defaultShell] || settings.defaultShell })
+  if (found.fontFace) rows.push({ part: 'font', label: t('글꼴'), value: `${found.fontFace}${found.fontSize ? ` · ${found.fontSize}px` : ''}`, current: `${settings.fontFamily.split(',')[0].replace(/"/g, '')} · ${settings.fontSize}px` })
+  if (found.cursorStyle) rows.push({ part: 'cursor', label: t('커서'), value: CURSOR_LABEL()[found.cursorStyle], current: CURSOR_LABEL()[settings.cursorStyle] })
+  if (found.scrollback) rows.push({ part: 'scrollback', label: t('스크롤백'), value: t('{count}줄', { count: found.scrollback.toLocaleString() }), current: t('{count}줄', { count: settings.scrollback.toLocaleString() }) })
+  if (found.shell) rows.push({ part: 'shell', label: t('기본 셸'), value: found.shellLabel || found.shell, current: SHELL_LABEL()[settings.defaultShell] || settings.defaultShell })
   if (found.scheme) {
     const mode = luminance(found.scheme.background) < 0.35 ? 'dark' : 'light'
     const id = mode === 'dark' ? settings.darkTheme : settings.lightTheme
     const active = [...THEME_PRESETS, ...settings.customThemes].find(theme => theme.id === id)
 
-    rows.push({ part: 'colors', label: '터미널 색', value: `${found.scheme.name} (테마로 추가)`, current: active?.name || id })
+    rows.push({ part: 'colors', label: t('터미널 색'), value: t('{name} (테마로 추가)', { name: found.scheme.name }), current: active?.name || id })
   }
 
   const apply = () => {
@@ -83,15 +84,15 @@ export function TerminalImportCard() {
         else next.lightTheme = theme.id
       }
     })
-    toast(`${found.source} 설정을 가져왔습니다. 새로 여는 터미널부터 적용됩니다.`)
+    toast(t('{source} 설정을 가져왔습니다. 새로 여는 터미널부터 적용됩니다.', { source: found.source }))
   }
 
   return (
     <div className="mb-3 rounded-lg border border-(--ui-stroke-tertiary) bg-(--ui-bg-elevated) p-3">
       <div className="mb-2 flex items-center gap-2 text-[13px] font-medium text-(--ui-text-primary)">
         <IconFileImport size={16} className="text-(--ui-accent-text)" />
-        {found.source} 설정 가져오기
-        {found.profile && <span className="text-[12px] font-normal text-(--ui-text-tertiary)">· 기본 프로필 “{found.profile}”</span>}
+        {t('{source} 설정 가져오기', { source: found.source })}
+        {found.profile && <span className="text-[12px] font-normal text-(--ui-text-tertiary)">· {t('기본 프로필 “{name}”', { name: found.profile })}</span>}
       </div>
       <div className="grid gap-1">
         {rows.map(row => (
@@ -99,13 +100,13 @@ export function TerminalImportCard() {
             <input type="checkbox" checked={pick[row.part]} onChange={event => setPick(prev => ({ ...prev, [row.part]: event.target.checked }))} className="accent-(--ui-accent)" />
             <span className="w-16 shrink-0 text-(--ui-text-secondary)">{row.label}</span>
             <span className="text-(--ui-text-primary)">{row.value}</span>
-            <span className="truncate text-(--ui-text-tertiary)">(지금: {row.current})</span>
+            <span className="truncate text-(--ui-text-tertiary)">{t('(지금: {current})', { current: row.current })}</span>
           </label>
         ))}
       </div>
       <div className="mt-2.5 flex justify-end">
         <Button size="sm" variant="default" onClick={apply} disabled={!rows.some(row => pick[row.part])}>
-          선택한 항목 가져오기
+          {t('선택한 항목 가져오기')}
         </Button>
       </div>
     </div>

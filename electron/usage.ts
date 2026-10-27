@@ -2,6 +2,7 @@ import path from 'node:path'
 
 import { utilityProcess } from 'electron'
 
+import { t } from '../shared/i18n'
 import type { AgentUsage, Project, ProjectUsageEntry, UsageBucket } from '../shared/types'
 import { localDay } from '../shared/util'
 
@@ -155,7 +156,7 @@ function summarize(
       ? perProject.get(project.id) || { projectId: project.id, today: emptyBucket(today), last7: emptyBucket(day7), last30: emptyBucket(day30) }
       : null
     if (project && entry) perProject.set(project.id, entry)
-    const label = project?.name || cwd || '(알 수 없는 폴더)'
+    const label = project?.name || cwd || t('(알 수 없는 폴더)')
     const folder = byFolder.get(label) || { tokens: 0, costUsd: 0 }
     byFolder.set(label, folder)
 
@@ -266,16 +267,18 @@ export async function getUsage(force = false): Promise<AgentUsage[]> {
   usages.push(summarize('claude', 'claude', result.claude, claudeCost, projectOf))
 
   const codex = summarize('codex', 'codex', result.codex, () => 0, projectOf)
-  codex.note = '비용은 플랜 요금제라 표시하지 않습니다 (토큰만 집계).'
+  codex.note = t('비용은 플랜 요금제라 표시하지 않습니다 (토큰만 집계).')
   usages.push(codex)
 
   const agy = summarize('agy', 'agy', { days: {}, hours: {}, groups: {}, cwdDays: {}, files: 0 }, () => 0, () => null)
   const conversations = agyConversations()
   agy.available = conversations.length > 0
   const loggedIn = agyLoggedIn()
-  agy.note = `로컬 기록에 토큰 정보가 없어 대화 수만 집계합니다 (최근 30일 ${
-    conversations.filter(row => row.lastAt > Date.now() - 30 * 86_400_000).length
-  }개)${loggedIn === false ? ' · 현재 로그인되어 있지 않음' : ''}.`
+  const recentConversations = conversations.filter(row => row.lastAt > Date.now() - 30 * 86_400_000).length
+  agy.note =
+    loggedIn === false
+      ? t('로컬 기록에 토큰 정보가 없어 대화 수만 집계합니다 (최근 30일 {count}개) · 현재 로그인되어 있지 않음.', { count: recentConversations })
+      : t('로컬 기록에 토큰 정보가 없어 대화 수만 집계합니다 (최근 30일 {count}개).', { count: recentConversations })
   usages.push(agy)
 
   lastResult = { at: lastRaw?.at ?? Date.now(), key, usages }
@@ -293,14 +296,14 @@ function withLimits(usages: AgentUsage[]): AgentUsage[] {
 
     claude.limits = limits?.limits || []
     claude.limitsSource = limits ? `${limits.source} · ${new Date(limits.at).toLocaleTimeString()}` : undefined
-    claude.note = limits ? undefined : '한도 %는 Claude Code 상태줄 연동(설정 → Claude 한도 연동)을 켜면 표시됩니다.'
+    claude.note = limits ? undefined : t('한도 %는 Claude Code 상태줄 연동(설정 → Claude 한도 연동)을 켜면 표시됩니다.')
   }
 
   if (codex) {
     const limits = codexRateLimits(codexHomes())
 
     codex.limits = limits?.limits || []
-    codex.limitsSource = limits ? `Codex 세션 로그 · ${new Date(limits.at).toLocaleTimeString()}${limits.plan ? ` · ${limits.plan}` : ''}` : undefined
+    codex.limitsSource = limits ? `${t('Codex 세션 로그')} · ${new Date(limits.at).toLocaleTimeString()}${limits.plan ? ` · ${limits.plan}` : ''}` : undefined
   }
 
   return usages

@@ -2,6 +2,7 @@ import { useStore } from '@nanostores/react'
 import { IconExternalLink, IconPlayerPlay, IconPlayerStop, IconSettings, IconTerminal2 } from '@tabler/icons-react'
 import { useCallback, useEffect, useState } from 'react'
 
+import { t } from '../../../shared/i18n'
 import type { LaneLive, LaneProjectState, LaneTier } from '../../../shared/types'
 import { Badge, Button, Section } from '../../components/ui/primitives'
 import { cn } from '../../lib/cn'
@@ -10,7 +11,7 @@ import { formatUsd } from '../../lib/usage'
 import { $project, $sessions, $view, $windowVisible, focusSession, toast } from '../../store/app'
 import { $lanesInfo, loadLanesInfo } from '../../store/lanes'
 
-const STATE_LABEL: Record<LaneLive['state'], string> = { off: '꺼짐', opening: '여는 중', idle: '대기', busy: '작업 중' }
+const STATE_LABEL: Record<LaneLive['state'], string> = { off: t('꺼짐'), opening: t('여는 중'), idle: t('대기'), busy: t('작업 중') }
 const STATE_TONE: Record<LaneLive['state'], 'muted' | 'warn' | 'ok' | 'accent'> = { off: 'muted', opening: 'warn', idle: 'ok', busy: 'accent' }
 
 function verdictTone(verdict: string | null): 'ok' | 'danger' | 'warn' | 'muted' {
@@ -24,11 +25,11 @@ function verdictTone(verdict: string | null): 'ok' | 'danger' | 'warn' | 'muted'
 function ago(time: number): string {
   if (!time) return ''
   const minutes = Math.round((Date.now() - time) / 60_000)
-  if (minutes < 1) return '방금'
-  if (minutes < 60) return `${minutes}분 전`
+  if (minutes < 1) return t('방금')
+  if (minutes < 60) return t('{minutes}분 전', { minutes })
   const hours = Math.round(minutes / 60)
 
-  return hours < 24 ? `${hours}시간 전` : `${Math.round(hours / 24)}일 전`
+  return hours < 24 ? t('{hours}시간 전', { hours }) : t('{days}일 전', { days: Math.round(hours / 24) })
 }
 
 function LaneCard({ lane, busy, onStart, onStop }: { lane: LaneLive; busy: boolean; onStart: () => void; onStop: () => void }) {
@@ -42,22 +43,22 @@ function LaneCard({ lane, busy, onStart, onStop }: { lane: LaneLive; busy: boole
         <Badge tone={STATE_TONE[lane.state]}>{STATE_LABEL[lane.state]}</Badge>
         <span className="min-w-0 flex-1 truncate text-[11px] text-(--ui-text-tertiary)">{lane.model}</span>
         {tab && (
-          <Button size="icon-xs" variant="ghost" aria-label="lane 탭 보기" onClick={() => focusSession(tab)}>
+          <Button size="icon-xs" variant="ghost" aria-label={t('lane 탭 보기')} onClick={() => focusSession(tab)}>
             <IconTerminal2 />
           </Button>
         )}
         {lane.state === 'off' ? (
-          <Button size="icon-xs" variant="ghost" aria-label={`${lane.tier} lane 열기`} disabled={busy} onClick={onStart}>
+          <Button size="icon-xs" variant="ghost" aria-label={t('{tier} lane 열기', { tier: lane.tier })} disabled={busy} onClick={onStart}>
             <IconPlayerPlay />
           </Button>
         ) : (
-          <Button size="icon-xs" variant="ghost" aria-label={`${lane.tier} lane 닫기`} disabled={busy || lane.state === 'opening'} onClick={onStop}>
+          <Button size="icon-xs" variant="ghost" aria-label={t('{tier} lane 닫기', { tier: lane.tier })} disabled={busy || lane.state === 'opening'} onClick={onStop}>
             <IconPlayerStop />
           </Button>
         )}
       </div>
       {lane.task && <div className="mt-1 line-clamp-2 text-[11.5px] text-(--ui-text-secondary)">{lane.task}</div>}
-      {lane.queued > 0 && <div className="mt-1 text-[11px] text-(--ui-text-tertiary)">대기 중인 일 {lane.queued}개</div>}
+      {lane.queued > 0 && <div className="mt-1 text-[11px] text-(--ui-text-tertiary)">{t('대기 중인 일 {count}개', { count: lane.queued })}</div>}
     </div>
   )
 }
@@ -96,11 +97,11 @@ export function LanesPanel() {
   if (info && !info.installed) {
     return (
       <div className="flex-1 overflow-y-auto px-4 py-3 text-[12.5px] text-(--ui-text-secondary)">
-        lanes 플러그인을 찾지 못했습니다.{' '}
+        {t('lanes 플러그인을 찾지 못했습니다.')}{' '}
         <button type="button" className="text-(--ui-accent-text) underline" onClick={() => $view.set('lanes')}>
-          Lanes 설정
+          {t('Lanes 설정')}
         </button>
-        에서 설치 방법을 볼 수 있습니다.
+        {t('에서 설치 방법을 볼 수 있습니다.')}
       </div>
     )
   }
@@ -130,9 +131,9 @@ export function LanesPanel() {
           <div className="flex gap-1">
             <Button size="xs" variant="ghost" disabled={busy} onClick={() => void act(anyOn ? 'stop' : 'start', 'all')}>
               {anyOn ? <IconPlayerStop /> : <IconPlayerPlay />}
-              {anyOn ? '모두 닫기' : '모두 열기'}
+              {anyOn ? t('모두 닫기') : t('모두 열기')}
             </Button>
-            <Button size="icon-xs" variant="ghost" aria-label="Lanes 설정" onClick={() => $view.set('lanes')}>
+            <Button size="icon-xs" variant="ghost" aria-label={t('Lanes 설정')} onClick={() => $view.set('lanes')}>
               <IconSettings />
             </Button>
           </div>
@@ -142,46 +143,46 @@ export function LanesPanel() {
           {(state?.lanes || []).map(lane => (
             <LaneCard key={lane.tier} lane={lane} busy={busy} onStart={() => void act('start', lane.tier)} onStop={() => void act('stop', lane.tier)} />
           ))}
-          {!state && <div className="text-[12px] text-(--ui-text-tertiary)">읽는 중…</div>}
+          {!state && <div className="text-[12px] text-(--ui-text-tertiary)">{t('읽는 중…')}</div>}
         </div>
         {allowNeeded && (
           <div className="mt-2 rounded-lg border border-(--ui-stroke-tertiary) px-3 py-2 text-[11.5px] text-(--ui-text-secondary)">
-            권한 모드가 dontAsk 인데 이 프로젝트에 lane 허용 목록이 없습니다.
+            {t('권한 모드가 dontAsk 인데 이 프로젝트에 lane 허용 목록이 없습니다.')}
             <Button
               size="xs"
               className="mt-1.5"
               onClick={() =>
                 void api.applyLaneAllow(project.id).then(result => {
-                  toast(`허용 규칙 ${result.added}개를 추가했습니다.`)
+                  toast(t('허용 규칙 {count}개를 추가했습니다.', { count: result.added }))
                   refresh()
                 })
               }
             >
-              허용 목록 적용
+              {t('허용 목록 적용')}
             </Button>
           </div>
         )}
       </Section>
 
       {state && (
-        <Section title="비용">
+        <Section title={t('비용')}>
           <div className="grid grid-cols-2 gap-2 rounded-lg bg-(--ui-bg-quaternary) px-3 py-2.5 text-[12px]">
             <div>
-              <div className="text-[11px] text-(--ui-text-tertiary)">오늘 lane 비용</div>
+              <div className="text-[11px] text-(--ui-text-tertiary)">{t('오늘 lane 비용')}</div>
               <div className="font-semibold tabular-nums">{formatUsd(state.today.cost) || '$0'}</div>
             </div>
             <div>
-              <div className="text-[11px] text-(--ui-text-tertiary)">메인에서 했을 때보다 아낀 돈 (누적)</div>
+              <div className="text-[11px] text-(--ui-text-tertiary)">{t('메인에서 했을 때보다 아낀 돈 (누적)')}</div>
               <div className="font-semibold text-(--ui-accent-text) tabular-nums">{formatUsd(saved) || '$0'}</div>
             </div>
           </div>
-          <div className="mt-1 text-[10.5px] text-(--ui-text-tertiary)">lanes 가 기록한 API 정가 기준 추정치</div>
+          <div className="mt-1 text-[10.5px] text-(--ui-text-tertiary)">{t('lanes 가 기록한 API 정가 기준 추정치')}</div>
         </Section>
       )}
 
       {state && (
-        <Section title="최근 작업">
-          {!state.tasks.length && <div className="text-[12px] text-(--ui-text-tertiary)">아직 lane 에 넘긴 일이 없습니다. 메인 Claude 에서 /lane 으로 넘기거나 메인이 알아서 넘깁니다.</div>}
+        <Section title={t('최근 작업')}>
+          {!state.tasks.length && <div className="text-[12px] text-(--ui-text-tertiary)">{t('아직 lane 에 넘긴 일이 없습니다. 메인 Claude 에서 /lane 으로 넘기거나 메인이 알아서 넘깁니다.')}</div>}
           <ul className="space-y-1">
             {state.tasks.slice(0, 15).map(task => (
               <li key={`${task.lane}-${task.id}`}>
@@ -194,7 +195,7 @@ export function LanesPanel() {
                   <div className="flex items-center gap-1.5 text-[11.5px]">
                     <span className="font-mono font-medium">{task.id}</span>
                     <span className="text-(--ui-text-tertiary)">{task.lane}</span>
-                    <Badge tone={verdictTone(task.verdict)}>{task.verdict || (task.ended ? '끝' : '진행 중')}</Badge>
+                    <Badge tone={verdictTone(task.verdict)}>{task.verdict || (task.ended ? t('끝') : t('진행 중'))}</Badge>
                     <span className="flex-1" />
                     <span className="text-(--ui-text-tertiary) tabular-nums">{formatUsd(task.cost)}</span>
                     <span className="text-(--ui-text-tertiary)">{ago(task.started)}</span>

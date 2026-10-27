@@ -7,6 +7,7 @@ import { execFile } from 'node:child_process'
 import fs from 'node:fs'
 import path from 'node:path'
 
+import { t } from '../shared/i18n'
 import type { AccountProfile, AccountStatus } from '../shared/types'
 import { newId } from '../shared/util'
 
@@ -48,16 +49,16 @@ async function claudeStatus(profile: AccountProfile, dir: string): Promise<Accou
   const oauth = creds?.claudeAiOauth
 
   if (oauth) {
-    status.method = 'Claude 계정 (OAuth)'
+    status.method = t('Claude 계정 (OAuth)')
     status.plan = [oauth.subscriptionType, oauth.rateLimitTier].filter(Boolean).join(' · ') || null
     status.expiresAt = typeof oauth.expiresAt === 'number' ? oauth.expiresAt : null
     const refreshExpiry = typeof oauth.refreshTokenExpiresAt === 'number' ? oauth.refreshTokenExpiresAt : null
     // The CLI refreshes access tokens itself; only an expired refresh token needs a re-login.
     status.loggedIn = refreshExpiry ? refreshExpiry > Date.now() : true
-    status.detail = refreshExpiry ? `재로그인 필요 시점: ${new Date(refreshExpiry).toLocaleDateString()}` : undefined
+    status.detail = refreshExpiry ? t('재로그인 필요 시점: {date}', { date: new Date(refreshExpiry).toLocaleDateString() }) : undefined
   } else if (isMac && profile.configDir === null) {
     status.loggedIn = await claudeKeychainHasCredentials()
-    status.method = status.loggedIn ? 'macOS 키체인' : undefined
+    status.method = status.loggedIn ? t('macOS 키체인') : undefined
   } else {
     status.loggedIn = false
   }
@@ -75,7 +76,7 @@ async function claudeStatus(profile: AccountProfile, dir: string): Promise<Accou
 
   if (process.env.ANTHROPIC_API_KEY && profile.configDir === null && !oauth) {
     status.loggedIn = true
-    status.method = 'ANTHROPIC_API_KEY 환경변수'
+    status.method = t('ANTHROPIC_API_KEY 환경변수')
   }
 
   return status
@@ -100,13 +101,13 @@ function codexStatus(profile: AccountProfile, dir: string): AccountStatus {
     const claims = decodeJwtPayload(auth.tokens.id_token)
     const openai = (claims?.['https://api.openai.com/auth'] || {}) as Record<string, unknown>
     status.loggedIn = true
-    status.method = 'ChatGPT 계정'
+    status.method = t('ChatGPT 계정')
     status.email = typeof claims?.email === 'string' ? claims.email : null
     status.plan = typeof openai.chatgpt_plan_type === 'string' ? openai.chatgpt_plan_type : null
     status.lastRefresh = auth.last_refresh ? Date.parse(auth.last_refresh) || null : null
   } else if (auth.OPENAI_API_KEY) {
     status.loggedIn = true
-    status.method = 'OpenAI API 키'
+    status.method = t('OpenAI API 키')
   }
 
   if (auth.auth_mode && !status.method) status.method = auth.auth_mode
@@ -119,7 +120,7 @@ export function allProfiles(): AccountProfile[] {
   const config = getConfig()
   const defaults: AccountProfile[] = config.agents
     .filter(agent => agent.enabled && (agent.profileEnv || agent.id === 'agy'))
-    .map(agent => ({ id: `default:${agent.id}`, agentId: agent.id, label: '기본', configDir: null }))
+    .map(agent => ({ id: `default:${agent.id}`, agentId: agent.id, label: t('기본'), configDir: null }))
 
   return [...defaults, ...config.profiles]
 }
@@ -147,8 +148,8 @@ export async function accountStatuses(): Promise<AccountStatus[]> {
           configDir: agyDir(),
           exists: fs.existsSync(agyDir()),
           loggedIn,
-          method: loggedIn ? 'Google 계정' : undefined,
-          detail: loggedIn === false ? 'cli.log 기준 로그인되어 있지 않음 — agy 를 실행해 로그인하세요.' : undefined
+          method: loggedIn ? t('Google 계정') : undefined,
+          detail: loggedIn === false ? t('cli.log 기준 로그인되어 있지 않음 — agy 를 실행해 로그인하세요.') : undefined
         })
       } else {
         out.push({ profileId: profile.id, agentId: agent.id, label: profile.label, configDir: dir, exists: fs.existsSync(dir), loggedIn: null })
@@ -214,7 +215,7 @@ export function installStatuslineTap(): { ok: boolean; message: string } {
   const statusLine = (settings.statusLine || {}) as { type?: string; command?: string; refreshInterval?: number }
 
   if (statusLine.command?.includes('statusline-tap')) {
-    return { ok: true, message: '이미 연동되어 있습니다.' }
+    return { ok: true, message: t('이미 연동되어 있습니다.') }
   }
 
   fs.mkdirSync(path.dirname(file), { recursive: true })
@@ -232,7 +233,7 @@ export function installStatuslineTap(): { ok: boolean; message: string } {
   writeJsonAtomic(file, settings)
   writeJsonAtomic(path.join(dataDir(), 'statusline-original.json'), { command: original })
 
-  return { ok: true, message: `연동 완료 (백업: ${file}.hera-backup)` }
+  return { ok: true, message: t('연동 완료 (백업: {file}.hera-backup)', { file }) }
 }
 
 export function uninstallStatuslineTap(): { ok: boolean; message: string } {
@@ -241,7 +242,7 @@ export function uninstallStatuslineTap(): { ok: boolean; message: string } {
   const statusLine = settings?.statusLine as { command?: string } | undefined
 
   if (!settings || !statusLine?.command?.includes('statusline-tap')) {
-    return { ok: true, message: '연동되어 있지 않습니다.' }
+    return { ok: true, message: t('연동되어 있지 않습니다.') }
   }
 
   const original = statusLine.command.split(' -- ').slice(1).join(' -- ').trim()
@@ -254,5 +255,5 @@ export function uninstallStatuslineTap(): { ok: boolean; message: string } {
 
   writeJsonAtomic(file, settings)
 
-  return { ok: true, message: '연동을 해제했습니다.' }
+  return { ok: true, message: t('연동을 해제했습니다.') }
 }

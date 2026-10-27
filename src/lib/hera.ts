@@ -5,7 +5,9 @@ import type {
   AgentUsage,
   AppMetrics,
   BusMessage,
+  CliExtensions,
   CreateSessionRequest,
+  DirListing,
   HeraConfig,
   HistoryHit,
   LaneProjectState,
@@ -15,6 +17,7 @@ import type {
   ProjectInsight,
   SessionInfo,
   TerminalImport,
+  ToolPackages,
   UpdateInfo
 } from '../../shared/types'
 
@@ -48,8 +51,15 @@ export const writePty = bridge.write
 export const pathForFile = bridge.pathForFile
 
 export const api = {
-  update: (action: 'state' | 'check') => call<UpdateInfo>('app:update', action),
+  update: (action: 'state' | 'check' | 'download' | 'install') => call<UpdateInfo>('app:update', action),
   terminalImport: () => call<TerminalImport | null>('terminal:import'),
+  listDir: (projectId: string, rel: string) => call<DirListing>('files:list', projectId, rel),
+  openPath: (projectId: string, rel: string, mode: 'open' | 'reveal') => call<boolean>('files:open', projectId, rel, mode),
+  absPath: (projectId: string, rel: string) => call<string | null>('files:path', projectId, rel),
+  gitStatus: (projectId: string) => call<Record<string, string>>('files:git', projectId),
+  toolPackages: (force?: boolean) => call<ToolPackages>('tools:packages', Boolean(force)),
+  toolExtensions: (projectId: string | null) => call<CliExtensions[]>('tools:extensions', projectId),
+  updateTools: (ids: string[], projectId: string | null) => call<SessionInfo | null>('tools:update', ids, projectId),
   shells: () => call<{ value: string; label: string }[]>('shells:list'),
   info: () => call<{ platform: string; version: string; dataDir: string; pendingReveal: { sessionId: string | null } | null }>('app:info'),
   metrics: () => call<AppMetrics>('app:metrics'),

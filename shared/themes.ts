@@ -1,3 +1,5 @@
+import { t } from './i18n'
+
 // Color themes shared by main (window background, caption buttons) and the
 // renderer (CSS tokens, xterm palette). A theme only seeds the base colors;
 // text/stroke tints are derived in styles.css by mixing `text` over the surface.
@@ -97,7 +99,9 @@ const LIGHT_ANSI: AnsiPalette = {
 export const THEME_PRESETS: ThemeDef[] = [
   {
     id: 'hera-dark',
-    name: 'HERA 다크',
+    get name() {
+      return t('HERA 다크')
+    },
     mode: 'dark',
     colors: {
       accent: '#d4a72c',
@@ -114,7 +118,9 @@ export const THEME_PRESETS: ThemeDef[] = [
   },
   {
     id: 'hera-dim',
-    name: 'HERA 딤 (밝은 다크)',
+    get name() {
+      return t('HERA 딤 (밝은 다크)')
+    },
     mode: 'dark',
     colors: {
       accent: '#e2b648',
@@ -131,7 +137,9 @@ export const THEME_PRESETS: ThemeDef[] = [
   },
   {
     id: 'midnight',
-    name: '미드나잇',
+    get name() {
+      return t('미드나잇')
+    },
     mode: 'dark',
     colors: {
       accent: '#6ea8fe',
@@ -148,7 +156,9 @@ export const THEME_PRESETS: ThemeDef[] = [
   },
   {
     id: 'graphite',
-    name: '그라파이트',
+    get name() {
+      return t('그라파이트')
+    },
     mode: 'dark',
     colors: {
       accent: '#fb923c',
@@ -165,7 +175,9 @@ export const THEME_PRESETS: ThemeDef[] = [
   },
   {
     id: 'aurora',
-    name: '오로라',
+    get name() {
+      return t('오로라')
+    },
     mode: 'dark',
     colors: {
       accent: '#c792ff',
@@ -182,7 +194,9 @@ export const THEME_PRESETS: ThemeDef[] = [
   },
   {
     id: 'hera-light',
-    name: 'HERA 라이트',
+    get name() {
+      return t('HERA 라이트')
+    },
     mode: 'light',
     colors: {
       accent: '#b8860b',
@@ -199,7 +213,9 @@ export const THEME_PRESETS: ThemeDef[] = [
   },
   {
     id: 'white',
-    name: '화이트',
+    get name() {
+      return t('화이트')
+    },
     mode: 'light',
     colors: {
       accent: '#2563eb',
@@ -216,7 +232,9 @@ export const THEME_PRESETS: ThemeDef[] = [
   },
   {
     id: 'sepia',
-    name: '세피아 (눈 편한)',
+    get name() {
+      return t('세피아 (눈 편한)')
+    },
     mode: 'light',
     colors: {
       accent: '#a0522d',
@@ -233,7 +251,9 @@ export const THEME_PRESETS: ThemeDef[] = [
   },
   {
     id: 'sky',
-    name: '스카이',
+    get name() {
+      return t('스카이')
+    },
     mode: 'light',
     colors: {
       accent: '#0e7490',
@@ -380,7 +400,7 @@ export function sanitizeCustomThemes(raw: unknown): ThemeDef[] {
     for (const key of COLOR_KEYS) if (isHexColor(theme.colors?.[key])) colors[key] = theme.colors![key]
     for (const key of ANSI_KEYS) if (isHexColor(theme.ansi?.[key])) ansi[key] = theme.ansi![key]
 
-    out.push({ id: theme.id, name: typeof theme.name === 'string' && theme.name.trim() ? theme.name.slice(0, 40) : '내 테마', mode, colors, ansi, custom: true })
+    out.push({ id: theme.id, name: typeof theme.name === 'string' && theme.name.trim() ? theme.name.slice(0, 40) : t('내 테마'), mode, colors, ansi, custom: true })
   }
 
   return out

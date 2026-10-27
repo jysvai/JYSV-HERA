@@ -2,7 +2,7 @@
 
 # Session memory
 
-<img src="../images/features/session-memory.jpg" alt="" width="120" align="right">
+<img src="../images/features/session-memory.jpg" alt="">
 
 HERA remembers which tabs you had open, so a crash, an update or a reboot does not cost you your setup.
 

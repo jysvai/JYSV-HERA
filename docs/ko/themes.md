@@ -2,7 +2,7 @@
 
 # 테마
 
-<img src="../images/features/themes.jpg" alt="" width="120" align="right">
+<img src="../images/features/themes.jpg" alt="">
 
 사이드바의 **테마 · 색상** 을 엽니다. 바꾸면 바로 적용됩니다. 제목 표시줄의 ☀/☾ 버튼으로 언제든 라이트와 다크를 바꿀 수 있습니다.
 

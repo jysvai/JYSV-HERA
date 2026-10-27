@@ -19,9 +19,11 @@ import { Terminal as HeadlessTerminal } from '@xterm/headless'
 import * as nodePty from 'node-pty'
 
 import { GENERIC_APPROVAL, GENERIC_BUSY } from '../shared/defaults'
+import { t } from '../shared/i18n'
 import type { AgentDef, CreateSessionRequest, SessionInfo, SessionStatus } from '../shared/types'
 import { newId, safeRegex } from '../shared/util'
 
+import { codexBootCommand } from './codex'
 import { binDir, dataPath, expandHome, home, isWin, readJson, writeJsonAtomic } from './paths'
 import { cwdFromOsc, cwdFromPrompt, detectConversations, isDir, newConversationId, withId, type ConversationClaim, type ConversationRef } from './resume'
 import { buildShellSpec, type ShellSpec } from './shell'
@@ -419,7 +421,7 @@ function spawn(session: Session, spec: ShellSpec) {
     }
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error)
-    session.term.write(`\r\n\x1b[31m[HERA] 셸을 시작하지 못했습니다: ${message}\x1b[0m\r\n`)
+    session.term.write(`\r\n\x1b[31m[HERA] ${t('셸을 시작하지 못했습니다: {reason}', { reason: message })}\x1b[0m\r\n`)
     session.status = 'exited'
     session.exitCode = -1
 
@@ -442,7 +444,7 @@ function spawn(session: Session, spec: ShellSpec) {
     session.exitCode = exitCode
     clearTimeout(session.bootTimer ?? undefined)
     setStatus(session, 'exited')
-    session.term.write(`\r\n\x1b[2m[프로세스 종료 · code ${exitCode}]\x1b[0m\r\n`, () => flushNow(session))
+    session.term.write(`\r\n\x1b[2m[${t('프로세스 종료 · code {code}', { code: exitCode })}]\x1b[0m\r\n`, () => flushNow(session))
   })
 
   if (session.bootCommand) {
@@ -462,6 +464,19 @@ function runBoot(session: Session) {
   clearTimeout(session.bootTimer ?? undefined)
   session.bootTimer = null
   if (session.agentId) session.agentStartedAt = Date.now()
+
+  if (session.agentId === 'codex' && getConfig().settings.codexOwnServer) {
+    // See codex.ts: a server of its own keeps the login the tab already had.
+    // The probe can take seconds: type only into the same pty, never one a revive started meanwhile.
+    const target = session.pty
+    void codexBootCommand(command)
+      .catch(() => command)
+      .then(line => {
+        if (session.pty === target && sessions.get(session.id) === session) target.write(`${line}\r`)
+      })
+    return
+  }
+
   session.pty.write(`${command}\r`)
 }
 
@@ -923,7 +938,7 @@ export function revive(id: string, resume = true, auto = false): SessionInfo | n
   session.shellKind = spec.kind
   if (!isDir(session.cwd)) session.cwd = safeCwd(projectById(session.projectId)?.path)
   // Keep the previous screen above; the restarted shell continues below it.
-  session.term.write(`\r\n\x1b[2m── ${auto ? '재부팅/재시작 후 이어서 실행' : '다시 시작'} · ${new Date().toLocaleString()} ──\x1b[0m\r\n`)
+  session.term.write(`\r\n\x1b[2m── ${auto ? t('재부팅/재시작 후 이어서 실행') : t('다시 시작함')} · ${new Date().toLocaleString()} ──\x1b[0m\r\n`)
   spawn(session, spec)
 
   if (session.attached) {
@@ -1081,8 +1096,8 @@ export function restoreSessions() {
   for (const entry of saved) {
     const id = newId('s_')
     const { term, serializer } = headlessTerminal(120, 32, config.settings.scrollback)
-    const when = entry.savedAt ? ` · ${new Date(entry.savedAt).toLocaleString()} 저장` : ''
-    const revive = `${entry.snapshot}\r\n\x1b[2m── 이전 실행에서 복원된 화면${when} ──\x1b[0m\r\n`
+    const when = entry.savedAt ? ` · ${t('{when} 저장', { when: new Date(entry.savedAt).toLocaleString() })}` : ''
+    const revive = `${entry.snapshot}\r\n\x1b[2m── ${t('이전 실행에서 복원된 화면')}${when} ──\x1b[0m\r\n`
     term.write(revive)
     const projectId = entry.projectId && config.projects.some(project => project.id === entry.projectId) ? entry.projectId : null
     const session: Session = {

@@ -5,7 +5,7 @@ import path from 'node:path'
 import type { HistoryHit } from '../shared/types'
 import { clip } from '../shared/util'
 
-import { agyDir, claudeConfigDirs, codexHomes } from './agent-data'
+import { agyDir, claudeConfigDirs, codexHomes, codexSessionIndex } from './agent-data'
 import { home, readTail } from './paths'
 
 interface Source {
@@ -16,6 +16,13 @@ interface Source {
 
 function sources(): Source[] {
   const out: Source[] = []
+  // Codex's history.jsonl has no folder, only the session id; its session files know the cwd.
+  let codexCwd: Map<string, string> | null = null
+  const cwdOfCodexSession = (id: unknown): string | null => {
+    codexCwd ??= new Map(codexSessionIndex(codexHomes()).flatMap(entry => (entry.sessionId && entry.cwd ? [[entry.sessionId, entry.cwd] as [string, string]] : [])))
+
+    return typeof id === 'string' ? codexCwd.get(id) || null : null
+  }
 
   for (const dir of claudeConfigDirs()) {
     out.push({
@@ -43,7 +50,7 @@ function sources(): Source[] {
       file: path.join(dir, 'history.jsonl'),
       map: row =>
         typeof row.text === 'string'
-          ? { agentId: 'codex', t: (Number(row.ts) || 0) * (Number(row.ts) > 1e12 ? 1 : 1000), text: row.text, project: null }
+          ? { agentId: 'codex', t: (Number(row.ts) || 0) * (Number(row.ts) > 1e12 ? 1 : 1000), text: row.text, project: cwdOfCodexSession(row.session_id) }
           : null
     })
   }
@@ -65,7 +72,8 @@ function sources(): Source[] {
   return out
 }
 
-export function searchHistory(query: string, limit = 80): HistoryHit[] {
+/** Newest first. The page groups them by folder, so it asks for a long list. */
+export function searchHistory(query: string, limit = 1500): HistoryHit[] {
   const needle = query.trim().toLowerCase()
   const hits: HistoryHit[] = []
 

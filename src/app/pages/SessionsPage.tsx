@@ -2,6 +2,7 @@ import { useStore } from '@nanostores/react'
 import { IconArrowRight, IconEye, IconSend, IconX } from '@tabler/icons-react'
 import { useEffect, useMemo, useState } from 'react'
 
+import { t } from '../../../shared/i18n'
 import type { SessionInfo } from '../../../shared/types'
 import { relTime } from '../../../shared/util'
 import { Badge, Button, Dialog, Input, PageHeader, Section, StatusDot } from '../../components/ui/primitives'
@@ -10,11 +11,11 @@ import { $config, $sessions, closeSession, focusSession, toast } from '../../sto
 import { AgentGlyph } from '../workspace/launch'
 
 const STATUS_TEXT: Record<string, string> = {
-  busy: '작업중',
-  idle: '대기',
-  waiting: '승인 대기',
-  starting: '시작중',
-  exited: '종료됨'
+  busy: t('작업중'),
+  idle: t('대기'),
+  waiting: t('승인 대기'),
+  starting: t('시작중'),
+  exited: t('종료됨')
 }
 
 function PeekDialog({ session, onClose }: { session: SessionInfo; onClose: () => void }) {
@@ -33,9 +34,9 @@ function PeekDialog({ session, onClose }: { session: SessionInfo; onClose: () =>
   }, [session.id])
 
   return (
-    <Dialog open onClose={onClose} width={860} title={`${session.name} 화면 · ${STATUS_TEXT[session.status] || session.status}`}>
+    <Dialog open onClose={onClose} width={860} title={t('{name} 화면 · {status}', { name: session.name, status: STATUS_TEXT[session.status] || session.status })}>
       <pre className="max-h-[56vh] overflow-auto rounded-md bg-(--term-bg) p-3 font-mono text-[11.5px] leading-snug whitespace-pre-wrap text-(--ui-text-secondary) select-text">
-        {lines.join('\n') || '(빈 화면)'}
+        {lines.join('\n') || t('(빈 화면)')}
       </pre>
     </Dialog>
   )
@@ -52,21 +53,21 @@ function SessionRow({ session, selected, onToggle }: { session: SessionInfo; sel
     if (!message.trim()) return
     await api.send([session.id], message, true)
     setMessage('')
-    toast(`${session.name} 에 보냈습니다.`)
+    toast(t('{name} 에 보냈습니다.', { name: session.name }))
   }
 
   return (
     <div className="group grid grid-cols-[20px_minmax(180px,1.2fr)_minmax(160px,1fr)_minmax(220px,1.4fr)_auto] items-center gap-3 border-b border-(--ui-stroke-tertiary) py-2.5">
-      <input type="checkbox" checked={selected} onChange={onToggle} className="accent-(--ui-accent)" aria-label="선택" />
+      <input type="checkbox" checked={selected} onChange={onToggle} className="accent-(--ui-accent)" aria-label={t('선택')} />
       <div className="flex min-w-0 items-center gap-2">
         <StatusDot status={session.dormant ? 'exited' : session.status} />
         <AgentGlyph agent={agent} size={16} />
         <div className="min-w-0">
           <div className="truncate text-[13px] font-medium">
-            {session.name} {session.role && <Badge tone={session.role === 'main' ? 'accent' : 'muted'}>{session.role === 'main' ? '메인' : '보조'}</Badge>}
+            {session.name} {session.role && <Badge tone={session.role === 'main' ? 'accent' : 'muted'}>{session.role === 'main' ? t('메인') : t('보조')}</Badge>}
           </div>
           <div className="truncate text-[11px] text-(--ui-text-tertiary)">
-            {STATUS_TEXT[session.dormant ? 'exited' : session.status]} · 출력 {relTime(session.lastOutputAt)}
+            {STATUS_TEXT[session.dormant ? 'exited' : session.status]} · {t('출력 {time}', { time: relTime(session.lastOutputAt) })}
           </div>
         </div>
       </div>
@@ -81,11 +82,11 @@ function SessionRow({ session, selected, onToggle }: { session: SessionInfo; sel
           onKeyDown={event => {
             if (event.key === 'Enter' && !event.nativeEvent.isComposing) void send()
           }}
-          placeholder="메시지 입력 후 Enter"
+          placeholder={t('메시지 입력 후 Enter')}
           className="h-7 text-[12px]"
           disabled={session.dormant || session.status === 'exited'}
         />
-        <Button size="icon-sm" variant="ghost" aria-label="보내기" onClick={() => void send()}>
+        <Button size="icon-sm" variant="ghost" aria-label={t('보내기')} onClick={() => void send()}>
           <IconSend />
         </Button>
       </div>
@@ -100,13 +101,13 @@ function SessionRow({ session, selected, onToggle }: { session: SessionInfo; sel
             </Button>
           </>
         )}
-        <Button size="icon-sm" variant="ghost" aria-label="화면 보기" onClick={() => setPeek(true)}>
+        <Button size="icon-sm" variant="ghost" aria-label={t('화면 보기')} onClick={() => setPeek(true)}>
           <IconEye />
         </Button>
-        <Button size="icon-sm" variant="ghost" aria-label="열기" onClick={() => focusSession(session)}>
+        <Button size="icon-sm" variant="ghost" aria-label={t('열기')} onClick={() => focusSession(session)}>
           <IconArrowRight />
         </Button>
-        <Button size="icon-sm" variant="ghost" aria-label="종료" onClick={() => void closeSession(session.id)}>
+        <Button size="icon-sm" variant="ghost" aria-label={t('세션 닫기')} onClick={() => void closeSession(session.id)}>
           <IconX />
         </Button>
       </div>
@@ -140,28 +141,28 @@ export function SessionsPage() {
   return (
     <div className="h-full overflow-y-auto px-8 py-6">
       <PageHeader
-        title="세션 현황"
-        description={`열린 세션 ${live.length}개 · 작업중 ${counts.busy} · 승인 대기 ${counts.waiting} · 대기 ${counts.idle}`}
+        title={t('세션 현황')}
+        description={t('열린 세션 {live}개 · 작업중 {busy} · 승인 대기 {waiting} · 대기 {idle}', { live: live.length, busy: counts.busy, waiting: counts.waiting, idle: counts.idle })}
       />
       {selected.size > 0 && (
         <div className="mb-3 flex items-center gap-2 rounded-lg bg-(--ui-bg-quaternary) px-3 py-2">
-          <span className="shrink-0 text-[12px] text-(--ui-text-secondary)">{selected.size}개 선택</span>
+          <span className="shrink-0 text-[12px] text-(--ui-text-secondary)">{t('{count}개 선택', { count: selected.size })}</span>
           <Input
             value={broadcast}
             onChange={event => setBroadcast(event.target.value)}
-            placeholder="선택한 세션 모두에게 같은 메시지 보내기"
+            placeholder={t('선택한 세션 모두에게 같은 메시지 보내기')}
             className="h-7"
             onKeyDown={event => {
               if (event.key === 'Enter' && broadcast.trim() && !event.nativeEvent.isComposing) {
                 void api.send([...selected], broadcast, true).then(() => {
-                  toast(`${selected.size}개 세션에 보냈습니다.`)
+                  toast(t('{count}개 세션에 보냈습니다.', { count: selected.size }))
                   setBroadcast('')
                 })
               }
             }}
           />
           <Button size="sm" variant="text" onClick={() => setSelected(new Set())}>
-            선택 해제
+            {t('선택 해제')}
           </Button>
         </div>
       )}
@@ -182,10 +183,10 @@ export function SessionsPage() {
           />
         ))
       ) : (
-        <div className="py-10 text-center text-[12.5px] text-(--ui-text-tertiary)">열린 세션이 없습니다.</div>
+        <div className="py-10 text-center text-[12.5px] text-(--ui-text-tertiary)">{t('열린 세션이 없습니다.')}</div>
       )}
 
-      <Section title="이 PC 의 모든 Claude Code 세션 (Claude 레지스트리 기준, HERA 밖 포함)" className="mt-6">
+      <Section title={t('이 PC 의 모든 Claude Code 세션 (Claude 레지스트리 기준, HERA 밖 포함)')} className="mt-6">
         {external.length ? (
           <div className="space-y-1">
             {external.map(entry => (
@@ -200,7 +201,7 @@ export function SessionsPage() {
               ))}
           </div>
         ) : (
-          <div className="text-[12px] text-(--ui-text-tertiary)">없음 (Claude Code 의 세션 레지스트리 기준).</div>
+          <div className="text-[12px] text-(--ui-text-tertiary)">{t('없음 (Claude Code 의 세션 레지스트리 기준).')}</div>
         )}
       </Section>
     </div>

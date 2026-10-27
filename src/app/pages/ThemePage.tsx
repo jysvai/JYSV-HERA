@@ -2,6 +2,7 @@ import { useStore } from '@nanostores/react'
 import { IconCheck, IconCopy, IconDeviceDesktop, IconMinus, IconMoon, IconPlus, IconSun, IconTrash } from '@tabler/icons-react'
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 
+import { t } from '../../../shared/i18n'
 import { ACCENT_SWATCHES, allThemes, ANSI_KEYS, COLOR_KEYS, isHexColor, type AnsiKey, type ThemeColors, type ThemeDef } from '../../../shared/themes'
 import type { Settings } from '../../../shared/types'
 import { newId } from '../../../shared/util'
@@ -11,34 +12,34 @@ import { $config, updateConfig } from '../../store/app'
 import { $systemDark, $theme, $themePreview } from '../../store/theme'
 
 const COLOR_LABELS: Record<keyof ThemeColors, { label: string; hint: string }> = {
-  accent: { label: '강조색', hint: '버튼 · 선택 · 커서' },
-  text: { label: '글자', hint: '흐린 글자와 구분선도 이 색에서 만들어집니다' },
-  chrome: { label: '상단 · 하단 바', hint: '제목 표시줄, 상태 표시줄' },
-  sidebar: { label: '사이드바 · 패널', hint: '프로젝트 목록, 오른쪽 패널' },
-  editor: { label: '본문 배경', hint: '페이지 바탕' },
-  elevated: { label: '카드 · 메뉴', hint: '선택된 줄, 메뉴, 대화상자' },
-  input: { label: '입력칸', hint: '' },
-  terminal: { label: '터미널 배경', hint: '' },
-  terminalText: { label: '터미널 글자', hint: '' }
+  accent: { label: t('강조색'), hint: t('버튼 · 선택 · 커서') },
+  text: { label: t('글자'), hint: t('흐린 글자와 구분선도 이 색에서 만들어집니다') },
+  chrome: { label: t('상단 · 하단 바'), hint: t('제목 표시줄, 상태 표시줄') },
+  sidebar: { label: t('사이드바 · 패널'), hint: t('프로젝트 목록, 오른쪽 패널') },
+  editor: { label: t('본문 배경'), hint: t('페이지 바탕') },
+  elevated: { label: t('카드 · 메뉴'), hint: t('선택된 줄, 메뉴, 대화상자') },
+  input: { label: t('입력칸'), hint: '' },
+  terminal: { label: t('터미널 배경'), hint: '' },
+  terminalText: { label: t('터미널 글자'), hint: '' }
 }
 
 const ANSI_LABELS: Record<AnsiKey, string> = {
-  black: '검정',
-  red: '빨강',
-  green: '초록',
-  yellow: '노랑',
-  blue: '파랑',
-  magenta: '자주',
-  cyan: '청록',
-  white: '흰색',
-  brightBlack: '회색',
-  brightRed: '밝은 빨강',
-  brightGreen: '밝은 초록',
-  brightYellow: '밝은 노랑',
-  brightBlue: '밝은 파랑',
-  brightMagenta: '밝은 자주',
-  brightCyan: '밝은 청록',
-  brightWhite: '밝은 흰색'
+  black: t('검정'),
+  red: t('빨강'),
+  green: t('초록'),
+  yellow: t('노랑'),
+  blue: t('파랑'),
+  magenta: t('자주'),
+  cyan: t('청록'),
+  white: t('흰색'),
+  brightBlack: t('회색'),
+  brightRed: t('밝은 빨강'),
+  brightGreen: t('밝은 초록'),
+  brightYellow: t('밝은 노랑'),
+  brightBlue: t('밝은 파랑'),
+  brightMagenta: t('밝은 자주'),
+  brightCyan: t('밝은 청록'),
+  brightWhite: t('밝은 흰색')
 }
 
 function setSetting<K extends keyof Settings>(key: K, value: Settings[K]) {
@@ -71,11 +72,11 @@ function ThemePreview({ theme }: { theme: ThemeDef }) {
             <span style={{ color: ansi.blue }}>)</span>
           </div>
           <div>
-            claude <span style={{ color: ansi.yellow }}>"리팩터링"</span>
+            claude <span style={{ color: ansi.yellow }}>"{t('리팩터링')}"</span>
           </div>
-          <div style={{ color: ansi.brightBlack }}>● 작업 중…</div>
+          <div style={{ color: ansi.brightBlack }}>● {t('작업 중…')}</div>
           <div>
-            <span style={{ color: ansi.magenta }}>✓</span> 완료 <span style={{ color: colors.accent }}>▍</span>
+            <span style={{ color: ansi.magenta }}>✓</span> {t('완료')} <span style={{ color: colors.accent }}>▍</span>
           </div>
         </div>
       </div>
@@ -96,7 +97,7 @@ function ThemeCard({ theme, selected, onSelect }: { theme: ThemeDef; selected: b
       <ThemePreview theme={theme} />
       <div className="flex items-center gap-1.5 px-1 pt-1.5 pb-0.5">
         <span className="truncate text-[12.5px] font-medium">{theme.name}</span>
-        {theme.custom && <Badge>내 테마</Badge>}
+        {theme.custom && <Badge>{t('내 테마')}</Badge>}
         {selected && <IconCheck size={14} className="ml-auto shrink-0 text-(--ui-accent-text)" />}
       </div>
     </button>
@@ -171,7 +172,7 @@ function AccentPicker({ accent, themeAccent }: { accent: string; themeAccent: st
         )}
       >
         <span className="size-3.5 rounded-full" style={{ background: themeAccent }} />
-        테마 기본
+        {t('테마 기본')}
       </button>
       {ACCENT_SWATCHES.map(color => (
         <button
@@ -184,7 +185,7 @@ function AccentPicker({ accent, themeAccent }: { accent: string; themeAccent: st
         />
       ))}
       <span className="mx-1 h-5 w-px bg-(--ui-stroke-secondary)" />
-      <ColorInput value={current} label="강조색 직접 고르기" onChange={next => setSetting('accent', next)} size="sm" />
+      <ColorInput value={current} label={t('강조색 직접 고르기')} onChange={next => setSetting('accent', next)} size="sm" />
       <HexInput value={current} onCommit={next => setSetting('accent', next)} />
     </div>
   )
@@ -250,15 +251,15 @@ function CustomThemeEditor({ theme }: { theme: ThemeDef }) {
           onKeyDown={event => event.key === 'Enter' && (event.target as HTMLInputElement).blur()}
           className="h-7 w-56"
         />
-        <Badge>{theme.mode === 'dark' ? '다크' : '라이트'}</Badge>
+        <Badge>{theme.mode === 'dark' ? t('다크') : t('라이트')}</Badge>
         <Button size="sm" variant="destructive" className="ml-auto" onClick={remove}>
-          <IconTrash /> 삭제
+          <IconTrash /> {t('삭제')}
         </Button>
       </div>
 
       {accentOverride && (
         <div className="mb-3 text-[11.5px] text-(--ui-text-tertiary)">
-          위의 강조색 설정이 우선 적용 중입니다. 이 테마의 강조색을 쓰려면 강조색을 “테마 기본”으로 두세요.
+          {t('위의 강조색 설정이 우선 적용 중입니다. 이 테마의 강조색을 쓰려면 강조색을 “테마 기본”으로 두세요.')}
         </div>
       )}
 
@@ -275,7 +276,7 @@ function CustomThemeEditor({ theme }: { theme: ThemeDef }) {
         ))}
       </div>
 
-      <div className="mt-5 mb-2 text-[11px] font-semibold tracking-wide text-(--ui-text-tertiary)">터미널 16색 (프로그램 출력 색)</div>
+      <div className="mt-5 mb-2 text-[11px] font-semibold tracking-wide text-(--ui-text-tertiary)">{t('터미널 16색 (프로그램 출력 색)')}</div>
       <div className="grid grid-cols-8 gap-2">
         {ANSI_KEYS.map(key => (
           <label key={key} className="flex flex-col items-center gap-1">
@@ -315,7 +316,7 @@ export function ThemePage() {
     const copy: ThemeDef = {
       ...structuredClone(source),
       id: newId('theme_'),
-      name: `${activeDef.name.replace(/ 사본( \d+)?$/, '')} 사본`,
+      name: t('{name} 사본', { name: activeDef.name.replace(/ (사본|copy)( \d+)?$/, '') }), // i18n-ignore
       custom: true
     }
 
@@ -328,9 +329,9 @@ export function ThemePage() {
   }
 
   const slotHint = (mode: 'dark' | 'light') => {
-    if (settings.theme === 'system') return systemDark === (mode === 'dark') ? '지금 사용 중 (시스템 설정)' : `윈도우/맥이 ${mode === 'dark' ? '다크' : '라이트'}일 때 사용`
+    if (settings.theme === 'system') return systemDark === (mode === 'dark') ? t('지금 사용 중 (시스템 설정)') : mode === 'dark' ? t('윈도우/맥이 다크일 때 사용') : t('윈도우/맥이 라이트일 때 사용')
 
-    return settings.theme === mode ? '지금 사용 중' : '고르면 이 모드로 바뀝니다'
+    return settings.theme === mode ? t('지금 사용 중') : t('고르면 이 모드로 바뀝니다')
   }
 
   const grid = (mode: 'dark' | 'light') => (
@@ -346,49 +347,49 @@ export function ThemePage() {
   return (
     <div className="h-full overflow-y-auto px-8 py-6">
       <div className="max-w-5xl">
-        <PageHeader title="테마 · 색상" description="고르는 즉시 화면 전체와 터미널 색에 적용됩니다. 제목 표시줄의 ☀/☾ 버튼으로도 바로 바꿀 수 있습니다." />
+        <PageHeader title={t('테마 · 색상')} description={t('고르는 즉시 화면 전체와 터미널 색에 적용됩니다. 제목 표시줄의 ☀/☾ 버튼으로도 바로 바꿀 수 있습니다.')} />
 
-        <Section title="밝기">
+        <Section title={t('밝기')}>
           <div className="flex gap-3">
-            <ModeButton active={settings.theme === 'dark'} icon={<IconMoon />} label="다크" hint="어두운 바탕" onClick={() => setSetting('theme', 'dark')} />
-            <ModeButton active={settings.theme === 'light'} icon={<IconSun />} label="라이트" hint="밝은 바탕" onClick={() => setSetting('theme', 'light')} />
+            <ModeButton active={settings.theme === 'dark'} icon={<IconMoon />} label={t('다크')} hint={t('어두운 바탕')} onClick={() => setSetting('theme', 'dark')} />
+            <ModeButton active={settings.theme === 'light'} icon={<IconSun />} label={t('라이트')} hint={t('밝은 바탕')} onClick={() => setSetting('theme', 'light')} />
             <ModeButton
               active={settings.theme === 'system'}
               icon={<IconDeviceDesktop />}
-              label="시스템 따라가기"
-              hint={`지금은 ${systemDark ? '다크' : '라이트'}`}
+              label={t('시스템 따라가기')}
+              hint={systemDark ? t('지금은 다크') : t('지금은 라이트')}
               onClick={() => setSetting('theme', 'system')}
             />
           </div>
         </Section>
 
-        <Section title={`라이트 테마 · ${slotHint('light')}`}>{grid('light')}</Section>
-        <Section title={`다크 테마 · ${slotHint('dark')}`}>{grid('dark')}</Section>
+        <Section title={t('라이트 테마 · {hint}', { hint: slotHint('light') })}>{grid('light')}</Section>
+        <Section title={t('다크 테마 · {hint}', { hint: slotHint('dark') })}>{grid('dark')}</Section>
 
-        <Section title="강조색">
+        <Section title={t('강조색')}>
           <AccentPicker accent={settings.accent} themeAccent={activeDef.colors.accent} />
         </Section>
 
-        <Section title="읽기 편하게">
-          <Row label="글자 선명하게" description="흐린 글자(설명, 시간, 경로)와 구분선을 더 진하게 표시합니다.">
-            <Switch checked={settings.highContrast} onChange={next => setSetting('highContrast', next)} label="글자 선명하게" />
+        <Section title={t('읽기 편하게')}>
+          <Row label={t('글자 선명하게')} description={t('흐린 글자(설명, 시간, 경로)와 구분선을 더 진하게 표시합니다.')}>
+            <Switch checked={settings.highContrast} onChange={next => setSetting('highContrast', next)} label={t('글자 선명하게')} />
           </Row>
-          <Row label="터미널 글자 크기" description="설정 페이지의 글꼴 설정과 같은 값입니다.">
-            <Button size="icon-sm" variant="outline" aria-label="작게" onClick={() => setSetting('fontSize', Math.max(8, settings.fontSize - 1))}>
+          <Row label={t('터미널 글자 크기')} description={t('설정 페이지의 글꼴 설정과 같은 값입니다.')}>
+            <Button size="icon-sm" variant="outline" aria-label={t('작게')} onClick={() => setSetting('fontSize', Math.max(8, settings.fontSize - 1))}>
               <IconMinus />
             </Button>
             <span className="w-8 text-center text-[13px] tabular-nums">{settings.fontSize}</span>
-            <Button size="icon-sm" variant="outline" aria-label="크게" onClick={() => setSetting('fontSize', Math.min(28, settings.fontSize + 1))}>
+            <Button size="icon-sm" variant="outline" aria-label={t('크게')} onClick={() => setSetting('fontSize', Math.min(28, settings.fontSize + 1))}>
               <IconPlus />
             </Button>
           </Row>
         </Section>
 
         <Section
-          title="내 색상 만들기"
+          title={t('내 색상 만들기')}
           action={
             <Button size="sm" onClick={createFromCurrent}>
-              <IconCopy /> 지금 테마를 복제해서 만들기
+              <IconCopy /> {t('지금 테마를 복제해서 만들기')}
             </Button>
           }
         >
@@ -396,12 +397,12 @@ export function ThemePage() {
             <CustomThemeEditor key={activeDef.id} theme={activeDef} />
           ) : (
             <div className="rounded-xl bg-(--ui-bg-quaternary) px-4 py-3 text-[12.5px] leading-relaxed text-(--ui-text-secondary)">
-              지금 쓰는 “{activeDef.name}”을 복제하면 배경 · 글자 · 강조색 · 터미널 16색을 하나하나 바꿀 수 있습니다. 바꾸는 동안 화면에 바로 미리 보입니다.
+              {t('지금 쓰는 “{name}”을 복제하면 배경 · 글자 · 강조색 · 터미널 16색을 하나하나 바꿀 수 있습니다. 바꾸는 동안 화면에 바로 미리 보입니다.', { name: activeDef.name })}
               {customs.length > 0 && (
                 <div className="mt-3 flex flex-wrap gap-2">
                   {customs.map(entry => (
                     <Button key={entry.id} size="sm" variant="outline" onClick={() => choose(entry)}>
-                      {entry.name} 편집
+                      {t('{name} 편집', { name: entry.name })}
                     </Button>
                   ))}
                 </div>

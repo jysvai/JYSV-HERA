@@ -2,6 +2,7 @@ import { useStore } from '@nanostores/react'
 import { IconChartBar, IconCommand, IconMoon, IconSearch, IconSun } from '@tabler/icons-react'
 import { useEffect, useState } from 'react'
 
+import { t } from '../../../shared/i18n'
 import type { AgentUsage, AppMetrics } from '../../../shared/types'
 import { formatBytesKB } from '../../../shared/util'
 import { Button, Kbd, Tip } from '../../components/ui/primitives'
@@ -28,17 +29,17 @@ export function Titlebar() {
         className="no-drag mx-auto flex h-6 w-80 max-w-[40vw] items-center gap-2 rounded-md bg-(--ui-bg-quaternary) px-2.5 text-[12px] text-(--ui-text-tertiary) hover:text-(--ui-text-secondary)"
       >
         <IconSearch size={13} />
-        <span className="flex-1 text-left">검색 · 실행</span>
+        <span className="flex-1 text-left">{t('검색 · 실행')}</span>
         <Kbd>{isMac ? '⌘K' : 'Ctrl+K'}</Kbd>
       </button>
       <div className="no-drag flex w-24 items-center justify-end gap-0.5">
-        <Tip label="사용량 패널">
-          <Button size="icon-sm" variant="ghost" aria-label="사용량 패널" onClick={() => toggleRightTab('usage')}>
+        <Tip label={t('사용량 패널')}>
+          <Button size="icon-sm" variant="ghost" aria-label={t('사용량 패널')} onClick={() => toggleRightTab('usage')}>
             <IconChartBar />
           </Button>
         </Tip>
-        <Tip label={mode === 'dark' ? '라이트 모드로' : '다크 모드로'}>
-          <Button size="icon-sm" variant="ghost" aria-label="다크/라이트 전환" onClick={toggleThemeMode}>
+        <Tip label={mode === 'dark' ? t('라이트 모드로') : t('다크 모드로')}>
+          <Button size="icon-sm" variant="ghost" aria-label={t('다크/라이트 전환')} onClick={toggleThemeMode}>
             {mode === 'dark' ? <IconSun /> : <IconMoon />}
           </Button>
         </Tip>
@@ -87,15 +88,15 @@ export function Statusbar() {
   return (
     <footer className="flex h-6 shrink-0 items-center gap-4 border-t border-(--ui-stroke-tertiary) bg-(--ui-bg-chrome) px-3 text-[11px] text-(--ui-text-tertiary)">
       <button type="button" className="flex items-center gap-1.5 hover:text-(--ui-text-secondary)" onClick={() => $view.set('sessions')}>
-        <span className="status-dot status-idle" /> 세션 {live.length}
+        <span className="status-dot status-idle" /> {t('세션 {count}', { count: live.length })}
         {busy > 0 && (
           <>
-            <span className="status-dot status-busy ml-1" /> 작업중 {busy}
+            <span className="status-dot status-busy ml-1" /> {t('작업중 {count}', { count: busy })}
           </>
         )}
         {waiting > 0 && (
           <span className="flex items-center gap-1.5 text-(--status-waiting)">
-            <span className="status-dot status-waiting ml-1" /> 승인 대기 {waiting}
+            <span className="status-dot status-waiting ml-1" /> {t('승인 대기 {count}', { count: waiting })}
           </span>
         )}
       </button>

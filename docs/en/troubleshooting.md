@@ -36,7 +36,7 @@ Otherwise lanes opens its own window by design.
 
 ## An AI CLI does not appear in the launch menus
 
-The tool must be found on the PATH that HERA sees. Check in a HERA terminal: `where claude` (Windows) or `which claude`. If it is installed in a folder that only your shell profile adds to PATH, make sure **Load shell profile** is on (Settings, Terminal), or add the folder to the system PATH and restart HERA. If the command is installed under a different name, add it as a custom agent with the exact command ([Agents](agents.md#add-your-own-agent)). Tools that are not installed are listed under "N other supported AI CLIs" with an install hint.
+The tool must be found on the PATH that HERA sees. On macOS and Linux, a HERA started from the Dock, Finder or a desktop launcher asks your login shell (`zsh -il`, `bash -il`, fish) for its PATH since 0.2.3, and adds the usual install folders (Homebrew, npm, bun, `~/.local/bin`). Check in a HERA terminal: `where claude` (Windows) or `which claude`. If it is installed in a folder that only your shell profile adds to PATH, make sure **Load shell profile** is on (Settings, Terminal), or add the folder to the system PATH and restart HERA. If the command is installed under a different name, add it as a custom agent with the exact command ([Agents](agents.md#add-your-own-agent)). Tools that are not installed are listed under "N other supported AI CLIs" with an install hint.
 
 ## The status dot is wrong (stuck on working, or never shows waiting)
 
@@ -49,6 +49,14 @@ On Windows HERA sets `PYTHONUTF8=1` for the terminals it starts, and starts Powe
 ## A shell I typed (WSL, a custom command) does not start
 
 Run the same command line by hand in a HERA terminal. A command line is split on spaces; wrap paths that contain spaces in double quotes. If HERA cannot find the program, it opens your default shell instead. For WSL, `wsl.exe -d <name>` needs the exact distribution name from `wsl -l`.
+
+## Codex asks me to sign in again after HERA restarts
+
+Check that *Settings → Terminal → Keep Codex signed in* is on (it is by default): HERA then starts Codex tabs with `--no-daemon`. If the login screen still appears, `auth.json` itself is signed out; sign in once and it stays across restarts. See [Agents → Keeping the Codex login](agents.md#keeping-the-codex-login).
+
+## The in-app update fails
+
+Settings, Version · Update shows the reason. A checksum mismatch or a broken download installs nothing; press the button again or download from the **Release page**. An all-users Windows install needs you to allow the admin prompt, and on macOS the folder holding the app must be writable.
 
 ## Reset settings
 

@@ -12,6 +12,7 @@ import {
 } from '@tabler/icons-react'
 import { useEffect, useRef, useState } from 'react'
 
+import { t } from '../../../shared/i18n'
 import type { ProjectInsight } from '../../../shared/types'
 import { newId, relTime } from '../../../shared/util'
 import { Badge, Button, Section, Tip } from '../../components/ui/primitives'
@@ -58,7 +59,7 @@ function NotesEditor({ projectId, value }: { projectId: string; value: string })
     <textarea
       value={text}
       spellCheck={false}
-      placeholder="이 프로젝트 메모 (자동 저장)"
+      placeholder={t('이 프로젝트 메모 (자동 저장)')}
       onChange={event => {
         const next = event.target.value
         setText(next)
@@ -96,22 +97,22 @@ export function BacklogPanel() {
             <span className="truncate">{project.path}</span>
           </button>
         </div>
-        <Tip label="새로고침">
-          <Button size="icon-xs" variant="ghost" aria-label="새로고침" onClick={reload} disabled={loading}>
+        <Tip label={t('새로고침')}>
+          <Button size="icon-xs" variant="ghost" aria-label={t('새로고침')} onClick={reload} disabled={loading}>
             <IconRefresh className={loading ? 'animate-spin' : undefined} />
           </Button>
         </Tip>
-        <Tip label="프로젝트 설정">
-          <Button size="icon-xs" variant="ghost" aria-label="프로젝트 설정" onClick={() => $editProjectId.set(project.id)}>
+        <Tip label={t('프로젝트 설정')}>
+          <Button size="icon-xs" variant="ghost" aria-label={t('프로젝트 설정')} onClick={() => $editProjectId.set(project.id)}>
             <IconSettings />
           </Button>
         </Tip>
       </div>
 
       <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-6">
-        {insight && !insight.exists && <div className="mb-2 rounded-md bg-(--status-waiting)/12 px-3 py-2 text-[12px] text-(--status-waiting)">폴더를 찾을 수 없습니다.</div>}
+        {insight && !insight.exists && <div className="mb-2 rounded-md bg-(--status-waiting)/12 px-3 py-2 text-[12px] text-(--status-waiting)">{t('폴더를 찾을 수 없습니다.')}</div>}
 
-        <Section title="마지막 실행">
+        <Section title={t('마지막 실행')}>
           {insight?.lastLaunch ? (
             <div className="text-[12.5px]">
               <span className="font-medium">{relTime(insight.lastLaunch.t)}</span>
@@ -119,17 +120,17 @@ export function BacklogPanel() {
               <div className="mt-0.5 text-[11px] text-(--ui-text-tertiary)">{new Date(insight.lastLaunch.t).toLocaleString()}</div>
             </div>
           ) : (
-            <div className="text-[12px] text-(--ui-text-tertiary)">HERA 에서 아직 실행한 적이 없습니다.</div>
+            <div className="text-[12px] text-(--ui-text-tertiary)">{t('HERA 에서 아직 실행한 적이 없습니다.')}</div>
           )}
           {live.length > 0 && (
             <div className="mt-2 text-[11.5px] text-(--ui-text-secondary)">
-              지금 열린 세션 {live.length}개 · 작업중 {live.filter(session => session.status === 'busy').length}
-              {live.some(session => session.status === 'waiting') && <span className="text-(--status-waiting)"> · 승인 대기 있음</span>}
+              {t('지금 열린 세션 {count}개 · 작업중 {busy}', { count: live.length, busy: live.filter(session => session.status === 'busy').length })}
+              {live.some(session => session.status === 'waiting') && <span className="text-(--status-waiting)"> · {t('승인 대기 있음')}</span>}
             </div>
           )}
         </Section>
 
-        <Section title="마지막 변경">
+        <Section title={t('마지막 변경')}>
           {insight?.git ? (
             <div className="space-y-2 text-[12.5px]">
               <div className="flex items-center gap-1.5 text-(--ui-text-secondary)">
@@ -137,7 +138,7 @@ export function BacklogPanel() {
                 <span className="font-mono text-[12px]">{insight.git.branch || '?'}</span>
                 {insight.git.ahead > 0 && <Badge tone="accent">↑{insight.git.ahead}</Badge>}
                 {insight.git.behind > 0 && <Badge tone="warn">↓{insight.git.behind}</Badge>}
-                {insight.git.changed > 0 ? <Badge tone="warn">변경 {insight.git.changed}</Badge> : <Badge tone="ok">깨끗함</Badge>}
+                {insight.git.changed > 0 ? <Badge tone="warn">{t('변경 {count}', { count: insight.git.changed })}</Badge> : <Badge tone="ok">{t('깨끗함')}</Badge>}
               </div>
               {insight.git.lastCommit && (
                 <div className="flex gap-1.5">
@@ -159,7 +160,7 @@ export function BacklogPanel() {
                     </li>
                   ))}
                   {insight.git.changed > insight.git.changedSample.length && (
-                    <li className="text-(--ui-text-tertiary)">… 외 {insight.git.changed - insight.git.changedSample.length}개</li>
+                    <li className="text-(--ui-text-tertiary)">{t('… 외 {count}개', { count: insight.git.changed - insight.git.changedSample.length })}</li>
                   )}
                 </ul>
               )}
@@ -174,15 +175,15 @@ export function BacklogPanel() {
               ))}
             </ul>
           ) : (
-            <div className="text-[12px] text-(--ui-text-tertiary)">{insight ? '변경 기록이 없습니다.' : '불러오는 중…'}</div>
+            <div className="text-[12px] text-(--ui-text-tertiary)">{insight ? t('변경 기록이 없습니다.') : t('불러오는 중…')}</div>
           )}
         </Section>
 
-        <Section title="토큰 사용량">
+        <Section title={t('토큰 사용량')}>
           <ProjectUsageSection projectId={project.id} />
         </Section>
 
-        <Section title="AI 작업 기록">
+        <Section title={t('AI 작업 기록')}>
           {insight?.activity.length ? (
             <div className="space-y-3">
               {insight.activity.map(entry => {
@@ -194,7 +195,7 @@ export function BacklogPanel() {
                       <AgentGlyph agent={agent} size={15} />
                       <span className="font-medium">{agent?.name || entry.agentId}</span>
                       <span className="text-[11px] text-(--ui-text-tertiary)">
-                        {relTime(entry.lastAt)} · 세션 {entry.sessions}
+                        {relTime(entry.lastAt)} · {t('세션 {count}', { count: entry.sessions })}
                       </span>
                       {agent?.continueArgs && (
                         <Button
@@ -203,7 +204,7 @@ export function BacklogPanel() {
                           className="ml-auto opacity-0 group-hover:opacity-100"
                           onClick={() => void launch({ projectId: project.id, agentId: entry.agentId, resume: true })}
                         >
-                          <IconPlayerPlay /> 이어하기
+                          <IconPlayerPlay /> {t('이어하기')}
                         </Button>
                       )}
                     </div>
@@ -213,17 +214,17 @@ export function BacklogPanel() {
               })}
             </div>
           ) : (
-            <div className="text-[12px] text-(--ui-text-tertiary)">{insight ? 'Claude · Codex · Antigravity 기록이 없습니다.' : '불러오는 중…'}</div>
+            <div className="text-[12px] text-(--ui-text-tertiary)">{insight ? t('Claude · Codex · Antigravity 기록이 없습니다.') : t('불러오는 중…')}</div>
           )}
         </Section>
 
-        <Section title={`할 일 ${project.todos.filter(item => !item.done).length || ''}`}>
+        <Section title={`${t('할 일')} ${project.todos.filter(item => !item.done).length || ''}`}>
           <div className="space-y-1">
             {project.todos.map(item => (
               <div key={item.id} className="group flex items-start gap-2 text-[12.5px]">
                 <button
                   type="button"
-                  aria-label={item.done ? '완료 취소' : '완료'}
+                  aria-label={item.done ? t('완료 취소') : t('완료')}
                   onClick={() =>
                     updateProject(project.id, draft => {
                       const target = draft.todos.find(entry => entry.id === item.id)
@@ -237,7 +238,7 @@ export function BacklogPanel() {
                 <span className={`flex-1 leading-snug ${item.done ? 'text-(--ui-text-tertiary) line-through' : ''}`}>{item.text}</span>
                 <button
                   type="button"
-                  aria-label="삭제"
+                  aria-label={t('삭제')}
                   onClick={() => updateProject(project.id, draft => void (draft.todos = draft.todos.filter(entry => entry.id !== item.id)))}
                   className="opacity-0 group-hover:opacity-100 text-(--ui-text-tertiary) hover:text-(--status-waiting)"
                 >
@@ -259,19 +260,19 @@ export function BacklogPanel() {
               <input
                 value={todo}
                 onChange={event => setTodo(event.target.value)}
-                placeholder="할 일 추가"
+                placeholder={t('할 일 추가')}
                 className="h-7 flex-1 bg-transparent text-[12.5px] outline-none placeholder:text-(--ui-text-tertiary)"
               />
             </form>
           </div>
         </Section>
 
-        <Section title="메모">
+        <Section title={t('메모')}>
           <NotesEditor projectId={project.id} value={project.notes} />
         </Section>
 
         {insight && insight.launches.length > 1 && (
-          <Section title="실행 기록">
+          <Section title={t('실행 기록')}>
             <ul className="space-y-1 text-[11.5px]">
               {insight.launches.slice(0, 12).map(record => (
                 <li key={record.t} className="flex justify-between gap-2">

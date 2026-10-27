@@ -2,7 +2,7 @@
 
 # Terminal
 
-<img src="../images/features/terminal.jpg" alt="" width="120" align="right">
+<img src="../images/features/terminal.jpg" alt="">
 
 HERA keeps your usual shell and adds project tabs, split view and the things agents need around it.
 
@@ -24,7 +24,9 @@ In split view a bar at the bottom lists the sessions as chips. Switch on the one
 | Copy selection | `Ctrl+C` when text is selected, or `Ctrl+Shift+C` | `⌘C` |
 | Paste | `Ctrl+V` | `⌘V` |
 
-With nothing selected, `Ctrl+C` is sent to the program as usual (interrupt). ### Paste an image
+With nothing selected, `Ctrl+C` is sent to the program as usual (interrupt).
+
+### Paste an image
 
 A terminal can only receive text, so when the clipboard holds an image (a screenshot, say) and no text, `Ctrl+V` (`⌘V` on macOS) saves it as a PNG and pastes the file's path. Claude Code, Codex and other agent CLIs attach an image whose path is pasted into their prompt; in a plain shell you get a path you can pass to any command. The files go to `jysv-hera-paste` in your temp folder and are removed after a week.
 
@@ -39,6 +41,10 @@ Set the number of lines in Settings, Performance and memory (500 to 20,000, defa
 ## Fonts
 
 HERA ships **Cascadia Mono**, so the default look is the same on every PC. The default font list is `"Cascadia Mono", "D2Coding", Consolas, "Malgun Gothic", monospace` (on macOS `"SF Mono", Menlo, "D2Coding", "Apple SD Gothic Neo", monospace`). Edit the list in Settings, Terminal, Font. Font size (8 to 28) and line spacing (1.0 to 2.0) are next to it. Changing any of these reopens the terminal view; running programs keep running.
+
+### Zoom
+
+`Ctrl` + `+` / `-` makes the text of every terminal one step larger or smaller, and `Ctrl` + `0` goes back to the size in Settings. `Ctrl` + mouse wheel works too; on macOS use `⌘` or a trackpad pinch. The zoom is kept for the next start, and running programs redraw at the new size. `Ctrl+Shift+-` is left alone as the shell's undo.
 
 ## Cursor
 

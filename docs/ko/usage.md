@@ -2,7 +2,7 @@
 
 # 사용량
 
-<img src="../images/features/usage.jpg" alt="" width="120" align="right">
+<img src="../images/features/usage.jpg" alt="">
 
 HERA 는 AI 구독을 얼마나 쓰고 있는지 — 한도, 토큰, 추정 비용 — 를 에이전트별 · 프로젝트별로 보여 줍니다. 모든 계산은 각 도구가 이미 남겨 둔 로그 파일을 이 PC 에서 읽어서 합니다. 이를 위해 HERA 가 어디에도 데이터를 보내지 않으며, 터미널이 느려지지 않도록 별도 프로세스에서 처리합니다.
 

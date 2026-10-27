@@ -1,6 +1,7 @@
 import { useStore } from '@nanostores/react'
 import { useEffect } from 'react'
 
+import { t } from '../../../shared/i18n'
 import { formatTokens } from '../../../shared/util'
 import { cn } from '../../lib/cn'
 import { formatUsd, overallTotals, projectTotals, rankedProjects, unassignedTotal, type PeriodTotals } from '../../lib/usage'
@@ -26,11 +27,11 @@ export function OverallTotals({ className }: { className?: string }) {
 
   return (
     <div className={cn('rounded-lg bg-(--ui-bg-quaternary) px-3 py-3', className)}>
-      <div className="mb-2 text-[12.5px] font-semibold">전체 합계 · 모든 AI</div>
+      <div className="mb-2 text-[12.5px] font-semibold">{t('전체 합계 · 모든 AI')}</div>
       <div className="grid grid-cols-3 gap-2">
-        <Cell label="오늘" value={totals.today} sub={formatUsd(totals.costToday)} strong />
-        <Cell label="7일" value={totals.last7} strong />
-        <Cell label="30일" value={totals.last30} sub={formatUsd(totals.cost30)} strong />
+        <Cell label={t('오늘')} value={totals.today} sub={formatUsd(totals.costToday)} strong />
+        <Cell label={t('7일')} value={totals.last7} strong />
+        <Cell label={t('30일')} value={totals.last30} sub={formatUsd(totals.cost30)} strong />
       </div>
     </div>
   )
@@ -50,10 +51,10 @@ export function ProjectRanking({ limit, className }: { limit?: number; className
   return (
     <div className={cn('rounded-lg bg-(--ui-bg-quaternary) px-3 py-3', className)}>
       <div className="mb-2 flex items-baseline justify-between">
-        <span className="text-[12.5px] font-semibold">프로젝트별 (30일)</span>
-        <span className="text-[10.5px] text-(--ui-text-tertiary)">오늘 · 30일 · 전체 대비</span>
+        <span className="text-[12.5px] font-semibold">{t('프로젝트별 (30일)')}</span>
+        <span className="text-[10.5px] text-(--ui-text-tertiary)">{t('오늘 · 30일 · 전체 대비')}</span>
       </div>
-      {!shown.length && <div className="py-2 text-[11.5px] text-(--ui-text-tertiary)">등록된 프로젝트에서 쓴 기록이 아직 없습니다.</div>}
+      {!shown.length && <div className="py-2 text-[11.5px] text-(--ui-text-tertiary)">{t('등록된 프로젝트에서 쓴 기록이 아직 없습니다.')}</div>}
       <ul className="space-y-2">
         {shown.map(({ project, totals }) => {
           const share = Math.round((totals.last30 / total) * 100)
@@ -84,8 +85,8 @@ export function ProjectRanking({ limit, className }: { limit?: number; className
           )
         })}
       </ul>
-      {ranked.length > shown.length && <div className="mt-2 text-[11px] text-(--ui-text-tertiary)">외 {ranked.length - shown.length}개 프로젝트 — “자세히”에서 전체 보기</div>}
-      {outside > 0 && <div className="mt-2 text-[11px] text-(--ui-text-tertiary)">등록 안 된 폴더: {formatTokens(outside)} (30일)</div>}
+      {ranked.length > shown.length && <div className="mt-2 text-[11px] text-(--ui-text-tertiary)">{t('외 {count}개 프로젝트 — “자세히”에서 전체 보기', { count: ranked.length - shown.length })}</div>}
+      {outside > 0 && <div className="mt-2 text-[11px] text-(--ui-text-tertiary)">{t('등록 안 된 폴더: {tokens} (30일)', { tokens: formatTokens(outside) })}</div>}
     </div>
   )
 }
@@ -99,28 +100,28 @@ export function ProjectUsageSection({ projectId }: { projectId: string }) {
     if (!$usage.get()) void loadUsage(false).catch(() => undefined)
   }, [])
 
-  if (!usages) return <div className="text-[12px] text-(--ui-text-tertiary)">사용량을 집계하는 중…</div>
+  if (!usages) return <div className="text-[12px] text-(--ui-text-tertiary)">{t('사용량을 집계하는 중…')}</div>
 
   const totals = projectTotals(usages, projectId)
   const all = overallTotals(usages).last30 || 1
   const agentOf = (id: string) => config?.agents.find(agent => agent.id === id) || null
 
-  if (!totals.last30) return <div className="text-[12px] text-(--ui-text-tertiary)">최근 30일 동안 이 프로젝트에서 AI 토큰 사용 기록이 없습니다.</div>
+  if (!totals.last30) return <div className="text-[12px] text-(--ui-text-tertiary)">{t('최근 30일 동안 이 프로젝트에서 AI 토큰 사용 기록이 없습니다.')}</div>
 
   return (
     <div className="space-y-2">
       <div className="grid grid-cols-3 gap-2">
-        <Cell label="오늘" value={totals.today} sub={formatUsd(totals.costToday)} strong />
-        <Cell label="7일" value={totals.last7} strong />
-        <Cell label="30일" value={totals.last30} sub={formatUsd(totals.cost30)} strong />
+        <Cell label={t('오늘')} value={totals.today} sub={formatUsd(totals.costToday)} strong />
+        <Cell label={t('7일')} value={totals.last7} strong />
+        <Cell label={t('30일')} value={totals.last30} sub={formatUsd(totals.cost30)} strong />
       </div>
       <table className="w-full text-[11.5px] tabular-nums">
         <thead>
           <tr className="text-(--ui-text-tertiary)">
             <th className="py-0.5 text-left font-normal">AI</th>
-            <th className="py-0.5 text-right font-normal">오늘</th>
-            <th className="py-0.5 text-right font-normal">7일</th>
-            <th className="py-0.5 text-right font-normal">30일</th>
+            <th className="py-0.5 text-right font-normal">{t('오늘')}</th>
+            <th className="py-0.5 text-right font-normal">{t('7일')}</th>
+            <th className="py-0.5 text-right font-normal">{t('30일')}</th>
           </tr>
         </thead>
         <tbody>
@@ -140,7 +141,7 @@ export function ProjectUsageSection({ projectId }: { projectId: string }) {
         </tbody>
       </table>
       <div className="text-[11px] text-(--ui-text-tertiary)">
-        전체 AI 사용량(30일)의 {Math.round((totals.last30 / all) * 100)}% · 하위 폴더 포함 · 토큰은 캐시 읽기 포함
+        {t('전체 AI 사용량(30일)의 {percent}% · 하위 폴더 포함 · 토큰은 캐시 읽기 포함', { percent: Math.round((totals.last30 / all) * 100) })}
       </div>
     </div>
   )

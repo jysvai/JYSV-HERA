@@ -8,6 +8,7 @@ import fs from 'node:fs'
 import net from 'node:net'
 import path from 'node:path'
 
+import { t } from '../shared/i18n'
 import type { BusMessage, CreateSessionRequest, SessionInfo, WireRequest, WireResponse } from '../shared/types'
 import { HOST_PASSED_ENV, newId } from '../shared/util'
 
@@ -72,7 +73,7 @@ export function resolveTarget(target: string, caller: SessionInfo | null): Sessi
   const all = liveSessions()
 
   if (!key) {
-    throw new Error('대상(target)이 비어 있습니다. `hera list` 로 이름을 확인하세요.')
+    throw new Error(t('대상(target)이 비어 있습니다. `hera list` 로 이름을 확인하세요.'))
   }
 
   const exact = all.find(session => session.id === key || session.name.toLowerCase() === key.toLowerCase())
@@ -110,10 +111,10 @@ export function resolveTarget(target: string, caller: SessionInfo | null): Sessi
   }
 
   if (!pool.length) {
-    throw new Error(`'${key}' 세션을 찾지 못했습니다. \`hera list\` 로 확인하거나 \`hera spawn ${key}\` 로 새로 띄우세요.`)
+    throw new Error(t("'{key}' 세션을 찾지 못했습니다. `hera list` 로 확인하거나 `hera spawn {key}` 로 새로 띄우세요.", { key }))
   }
 
-  throw new Error(`'${key}' 후보가 여러 개입니다: ${pool.map(session => session.name).join(', ')} — 이름으로 지정하세요.`)
+  throw new Error(t("'{key}' 후보가 여러 개입니다: {names} — 이름으로 지정하세요.", { key, names: pool.map(session => session.name).join(', ') }))
 }
 
 function displayName(session: SessionInfo | null): string {
@@ -132,7 +133,7 @@ function deliver(
   let file: string | undefined
 
   if (!body) {
-    throw new Error('보낼 메시지가 비어 있습니다.')
+    throw new Error(t('보낼 메시지가 비어 있습니다.'))
   }
 
   if (body.length > INLINE_LIMIT) {
@@ -146,11 +147,11 @@ function deliver(
 
   if (!raw) {
     if (kind === 'send') {
-      const content = file ? `내용이 길어 파일로 전달합니다: ${file} (읽고 수행하세요)` : body
-      const replyHint = caller ? ` — 끝나면 \`hera reply ${from} "<결과 요약>"\` 로 회신해 주세요.` : ''
+      const content = file ? `내용이 길어 파일로 전달합니다: ${file} (읽고 수행하세요)` : body // i18n-ignore
+      const replyHint = caller ? ` — 끝나면 \`hera reply ${from} "<결과 요약>"\` 로 회신해 주세요.` : '' // i18n-ignore
       body = `[HERA msg from ${from}] ${content}${replyHint}`
     } else {
-      body = `[HERA reply from ${from}] ${file ? `결과가 길어 파일로 전달합니다: ${file}` : body}`
+      body = `[HERA reply from ${from}] ${file ? `결과가 길어 파일로 전달합니다: ${file}` : body}` // i18n-ignore
     }
   } else if (file) {
     body = `${file}`
@@ -161,7 +162,7 @@ function deliver(
   const typeIt = !(kind === 'reply' && !target.activeAgentId)
 
   if (typeIt && !typeMessage(target.id, body, { enter: opts.enter !== false })) {
-    throw new Error(`${target.name} 세션이 종료되어 있어 보낼 수 없습니다.`)
+    throw new Error(t('{name} 세션이 종료되어 있어 보낼 수 없습니다.', { name: target.name }))
   }
 
   const message: BusMessage = {
@@ -352,7 +353,7 @@ const handlers: Record<string, Handler> = {
     const agent = config.agents.find(entry => entry.id === agentId)
 
     if (agentId && !agent) {
-      throw new Error(`알 수 없는 에이전트 '${agentId}'. 등록된 것: ${config.agents.map(entry => entry.id).join(', ')}`)
+      throw new Error(t("알 수 없는 에이전트 '{agentId}'. 등록된 것: {known}", { agentId, known: config.agents.map(entry => entry.id).join(', ') }))
     }
 
     const projectId = str(params.project) ? findProject(str(params.project))?.id || null : caller?.projectId || null
@@ -373,7 +374,7 @@ const handlers: Record<string, Handler> = {
       fromName: displayName(caller),
       to: info.id,
       toName: info.name,
-      text: `${agent?.name || 'shell'} 세션 생성`,
+      text: t('{agent} 세션 생성', { agent: agent?.name || 'shell' }),
       projectId: info.projectId
     }
     recordBus(message)
@@ -398,10 +399,10 @@ const handlers: Record<string, Handler> = {
       return hostLane({ cwd, lane, run: str(params.run), env, check: params.check === true })
     }
 
-    if (lane) throw new Error(`알 수 없는 lane '${lane}'`)
+    if (lane) throw new Error(t("알 수 없는 lane '{lane}'", { lane }))
 
     const project = cwd ? projectForPath(path.resolve(cwd)) : null
-    if (!project) throw new Error(`HERA 에 등록된 프로젝트가 아닙니다: ${cwd || '(폴더 없음)'}`)
+    if (!project) throw new Error(t('HERA 에 등록된 프로젝트가 아닙니다: {cwd}', { cwd: cwd || t('(폴더 없음)') }))
     if (params.check === true) return { id: null, name: '', project: project.name }
 
     const command = str(params.command).trim()
@@ -417,7 +418,7 @@ const handlers: Record<string, Handler> = {
     const dir = path.resolve(str(params.path) || process.cwd())
 
     if (!fs.existsSync(dir)) {
-      throw new Error(`폴더가 없습니다: ${dir}`)
+      throw new Error(t('폴더가 없습니다: {dir}', { dir }))
     }
 
     const project = addProject(dir, str(params.name) || undefined)
@@ -429,7 +430,7 @@ const handlers: Record<string, Handler> = {
     const project = findProject(str(params.project))
 
     if (!project) {
-      throw new Error(`프로젝트 '${str(params.project)}' 를 찾지 못했습니다. \`hera projects\` 로 확인하세요.`)
+      throw new Error(t("프로젝트 '{project}' 를 찾지 못했습니다. `hera projects` 로 확인하세요.", { project: str(params.project) }))
     }
 
     const agentId = str(params.agent) || null
@@ -476,7 +477,7 @@ function findProject(query: string) {
 
 async function handle(request: WireRequest): Promise<WireResponse> {
   if (request.token !== token) {
-    return { id: request.id, ok: false, error: 'unauthorized (HERA 토큰 불일치)' }
+    return { id: request.id, ok: false, error: t('unauthorized (HERA 토큰 불일치)') }
   }
 
   const handler = handlers[request.method]

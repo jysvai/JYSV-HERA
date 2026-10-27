@@ -2,7 +2,7 @@
 
 # The `hera` CLI
 
-<img src="../images/features/hera-cli.jpg" alt="" width="120" align="right">
+<img src="../images/features/hera-cli.jpg" alt="">
 
 Every terminal opened in HERA has a `hera` command on its PATH. Agents use it to hand work to each other; you can use it too. It talks to the running HERA app over a local named pipe (a Unix socket on macOS and Linux), protected by a token file in the data folder. It does not work from a terminal outside HERA, and it makes no network requests.
 

@@ -14,7 +14,7 @@
 
 **English** · [한국어](README.ko.md)
 
-[Download](#install) · [What's new](#whats-new-in-021) · [Features](#features) · [Docs](#documentation) · [hera CLI](#multi-agent-collaboration-the-hera-cli) · [lanes](#works-great-with-lanes) · [Patch notes](docs/patch-notes/README.md)
+[Download](#install) · [Features](#features) · [Docs](#documentation) · [hera CLI](#multi-agent-collaboration-the-hera-cli) · [lanes](#works-great-with-lanes) · [Patch notes](docs/patch-notes/README.md)
 
 </div>
 
@@ -35,35 +35,14 @@ HERA keeps the shell you already use (PowerShell, cmd, Git Bash, bash, zsh, fish
 
 ![JYSV HERA workspace: two terminals side by side and the project backlog](docs/images/workspace-dark.png)
 
-## What's new in 0.2.1
-
-Terminals now behave like Windows Terminal, and lanes stay inside HERA. Full notes: [docs/patch-notes](docs/patch-notes/README.md) · [v0.2.1](docs/patch-notes/en/v0.2.1.md).
-
-<table>
-<tr>
-<td width="50%"><img src="docs/images/tui-wheel.gif" alt="The mouse wheel scrolling inside a full-screen program"></td>
-<td width="50%"><img src="docs/images/lanes-tab.gif" alt="A lane opening as a HERA tab"></td>
-</tr>
-<tr>
-<td><b>The wheel works in full-screen programs.</b> HERA ships Windows Terminal's console engine (ConPTY), so Claude Code's full-screen mode, vim and htop scroll with the mouse instead of getting arrow keys. Tab switches keep the mouse mode, cursor and scroll region.</td>
-<td><b>Every lane opens as a HERA tab.</b> With lanes 0.3.13, a lane the main Claude opens by itself asks HERA for a tab (<code>hera host --lane</code>). Only projects registered in HERA are taken over; anything else opens as before.</td>
-</tr>
-</table>
-
-<p align="center"><img src="docs/images/wt-import.gif" alt="Importing Windows Terminal settings into HERA" width="860"></p>
-
-- **Your old terminal's settings come along.** *Settings → Terminal* imports Windows Terminal's font, cursor, scrollback, default shell and color scheme, item by item.
-- **Paste screenshots into agents.** With an image on the clipboard, `Ctrl+V` saves it and pastes its path, which Claude Code and Codex attach as an image.
-- **Any shell.** PowerShell, PowerShell 7, cmd, Git Bash, WSL, or any command line such as `wsl.exe -d Ubuntu`. Cursor shape and blink are settings now, and Cascadia Mono ships with HERA.
-- **Fixed:** double paste, screens that broke after a tab switch or resize, rows that stayed stale until you scrolled, and lane replies lost after a restart (a lane's conversation was resumed in the main tab).
-
 ## Features
 
 | | |
 |---|---|
-| **Project launcher** | Sidebar of registered projects (or scan a parent folder to add them all). Start screen per project with a terminal, every installed AI and team presets. Double-click = terminal. |
-| **Tabs and split view** | Tabs, up to 4 terminals side by side, broadcast one prompt to several agents at once. Drag a file onto a terminal to paste its quoted path. |
+| **Project launcher** | Sidebar of registered projects: drag folders onto it, pick them, or scan a parent folder to add them all. Start screen per project with a terminal, every installed AI and team presets. Double-click = terminal. |
+| **Tabs and split view** | Tabs, up to 4 terminals side by side, broadcast one prompt to several agents at once. Drag a file onto a terminal to paste its quoted path. `Ctrl` `+` / `-` / `0` or `Ctrl` + wheel zooms the terminals (`⌘` on macOS). |
 | **Live status** | Working / idle / waiting-for-approval detected per session; desktop notifications when an agent finishes or needs you. |
+| **Folder tree** | A *Folders* tab beside the terminals shows the project's files with git changes; open a file, show it in Explorer / Finder, copy its path or drag it into a terminal. |
 | **Backlog panel** | Last run (when and with what), git branch, last commit and changed files, each AI's last prompt, todos and notes per project. |
 | **Multi-agent bus** | `hera ask / send / reply / peek / key / spawn` between sessions; every message is logged on the *Agent conversations* page. |
 | **Session memory** | Autosave every 45 s and on every change; exact conversation resume for Claude Code (`--session-id` / `--resume <id>`) and Codex (`resume <id>`); optional launch at login. |
@@ -73,7 +52,9 @@ Terminals now behave like Windows Terminal, and lanes stay inside HERA. Full not
 | **32 agent CLIs built in** | See the list below; add any other command (for example `ollama run <model>`) on the Agents page. |
 | **lanes integration** | Run [lanes](https://github.com/jysvai/lanes) mid/low helper sessions inside HERA tabs, with model routing, permissions and per-project instructions in one settings page. |
 | **Feels like your old terminal** | Ships Windows Terminal's console engine (ConPTY) and font (Cascadia Mono), so mouse and wheel work in full-screen TUIs such as Claude Code's, vim and htop. Takes over Windows Terminal's font, cursor, scrollback, color scheme and default shell on request. Any shell: PowerShell, pwsh, cmd, Git Bash, WSL or a command line you type. |
-| **Version check** | The sidebar shows the installed version and turns into an update button when a newer release is out (`hera --version` in a terminal). |
+| **Updates in the app** | The sidebar shows the installed version. When a release is out, the update button downloads it, checks its SHA-256 against GitHub's and restarts into it; your terminals come back (`hera --version` in a terminal). |
+| **Extensions & updates** | One page for your AI CLIs' new versions (npm, Homebrew, uv, pipx or their own updater) and the plugins, MCP servers and skills inside each CLI; update one or all from HERA. |
+| **English and Korean** | The UI follows your OS language, or pick English / 한국어 in *Settings → Language*. |
 
 <table>
 <tr>
@@ -110,16 +91,20 @@ One page per feature, in [English](docs/en/README.md) and [Korean](docs/ko/READM
 
 <table>
 <tr>
-<td align="center" width="25%"><a href="docs/en/projects.md"><img src="docs/images/features/projects.jpg" width="96" alt=""><br><b>Projects</b></a></td>
-<td align="center" width="25%"><a href="docs/en/terminal.md"><img src="docs/images/features/terminal.jpg" width="96" alt=""><br><b>Terminal</b></a></td>
-<td align="center" width="25%"><a href="docs/en/agents.md"><img src="docs/images/features/agents.jpg" width="96" alt=""><br><b>Agents</b></a></td>
-<td align="center" width="25%"><a href="docs/en/hera-cli.md"><img src="docs/images/features/hera-cli.jpg" width="96" alt=""><br><b>hera CLI</b></a></td>
+<td width="50%" valign="top"><a href="docs/en/projects.md"><img src="docs/images/features/projects.jpg" alt="Projects"></a><br><a href="docs/en/projects.md"><b>Projects</b></a><br>Register a folder once, then open its terminal, an agent or a team with one click, the tray or a hotkey.</td>
+<td width="50%" valign="top"><a href="docs/en/terminal.md"><img src="docs/images/features/terminal.jpg" alt="Terminal"></a><br><a href="docs/en/terminal.md"><b>Terminal</b></a><br>Tabs, up to four panes, one prompt to several agents, copy and paste, screenshots pasted as files.</td>
 </tr>
 <tr>
-<td align="center" width="25%"><a href="docs/en/lanes.md"><img src="docs/images/features/lanes.jpg" width="96" alt=""><br><b>lanes</b></a></td>
-<td align="center" width="25%"><a href="docs/en/session-memory.md"><img src="docs/images/features/session-memory.jpg" width="96" alt=""><br><b>Session memory</b></a></td>
-<td align="center" width="25%"><a href="docs/en/usage.md"><img src="docs/images/features/usage.jpg" width="96" alt=""><br><b>Usage</b></a></td>
-<td align="center" width="25%"><a href="docs/en/themes.md"><img src="docs/images/features/themes.jpg" width="96" alt=""><br><b>Themes</b></a></td>
+<td width="50%" valign="top"><a href="docs/en/agents.md"><img src="docs/images/features/agents.jpg" alt="Agents"></a><br><a href="docs/en/agents.md"><b>Agents</b></a><br>32 AI CLIs found on your PATH, working / waiting / approval detection, alerts and account profiles.</td>
+<td width="50%" valign="top"><a href="docs/en/hera-cli.md"><img src="docs/images/features/hera-cli.jpg" alt="hera CLI"></a><br><a href="docs/en/hera-cli.md"><b>hera CLI</b></a><br>One agent hands a task to another and gets the result back: <code>hera ask</code>, <code>send</code>, <code>reply</code>.</td>
+</tr>
+<tr>
+<td width="50%" valign="top"><a href="docs/en/lanes.md"><img src="docs/images/features/lanes.jpg" alt="lanes"></a><br><a href="docs/en/lanes.md"><b>lanes</b></a><br>Claude's side work goes to cheaper mid and low lanes, and every lane runs in a HERA tab.</td>
+<td width="50%" valign="top"><a href="docs/en/session-memory.md"><img src="docs/images/features/session-memory.jpg" alt="Session memory"></a><br><a href="docs/en/session-memory.md"><b>Session memory</b></a><br>After a reboot, shells come back in their last folder and Claude Code / Codex in the same conversation.</td>
+</tr>
+<tr>
+<td width="50%" valign="top"><a href="docs/en/usage.md"><img src="docs/images/features/usage.jpg" alt="Usage"></a><br><a href="docs/en/usage.md"><b>Usage</b></a><br>5-hour and weekly limits, tokens and cost per agent and per project, computed from local logs.</td>
+<td width="50%" valign="top"><a href="docs/en/themes.md"><img src="docs/images/features/themes.jpg" alt="Themes"></a><br><a href="docs/en/themes.md"><b>Themes</b></a><br>Dark, light or system, nine presets, accent colors and an editor down to the 16 terminal colors.</td>
 </tr>
 </table>
 
@@ -243,7 +228,7 @@ Verified end to end: a main Claude in HERA sent `/lane low …`, the low lane ru
 
 ## Privacy
 
-- **One network request, and you can turn it off.** A few times a day HERA asks GitHub for the latest release of this repository, to show the update button. *Settings → Version · Update → Check for new versions* turns it off; then HERA connects to nothing.
+- **One background request, and you can turn it off.** A few times a day HERA asks GitHub for the latest release of this repository, to show the update button. The update itself is downloaded only when you press that button. *Settings → Version · Update → Check for new versions* turns the check off; then HERA connects to nothing on its own.
 - **No telemetry.** Usage numbers come from the logs the CLIs already write on your machine.
 - **No secrets read.** Account pages show only non-secret fields such as plan, email and expiry; token values are never read.
 - **Your data stays local.** It lives in `%APPDATA%\JYSV HERA` (macOS `~/Library/Application Support/JYSV HERA`, Linux `~/.config/JYSV HERA`). Set `HERA_HOME` to use another folder; that also runs a separate, independent instance.

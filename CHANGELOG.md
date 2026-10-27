@@ -2,6 +2,25 @@
 
 Full patch notes, one file per release in English and Korean: [docs/patch-notes](docs/patch-notes/README.md).
 
+## 0.2.3 — 2026-10-27
+
+### Fixed
+
+- **Codex login lost after a HERA restart or update:** Codex tabs start with `--no-daemon` (when the installed Codex supports it), so a shared Codex daemon holding a stale login cannot sign them out. Setting: *Keep Codex signed in*.
+- **macOS / Linux launcher PATH:** HERA takes the login shell's PATH, so CLIs installed with Homebrew, npm, bun or the Claude installer are found and lanes can start `claude`.
+- lanes "open all" reports the failure instead of saying it opens.
+
+### Added
+
+- In-app update: download, SHA-256 check against GitHub's asset digest, restart into the installer (NSIS per user / all users, macOS app, AppImage, deb, rpm).
+- Extensions & updates page: AI CLIs and global npm / Homebrew / uv / pipx tools with installed and latest versions, plus each CLI's plugins, MCP servers and skills (Claude Code, Codex, Gemini CLI, Qwen, OpenCode, Copilot, Cursor, Kiro, Droid, Kimi, Amp, Crush, Hermes, `~/.agents/skills`); updates run in a terminal tab.
+- English UI with an Auto / 한국어 / English setting.
+- Prompt history grouped by folder.
+- Folder tree in the right panel (`Ctrl+Shift+E` / `⌘E`) with git status, open, reveal, copy path, insert or drag a path into a terminal.
+- Drop folders on the sidebar to add projects.
+- Terminal zoom: `Ctrl`/`⌘` `+` `-` `0` and `Ctrl`/`⌘` + wheel.
+- New app icon (gold `>_` under a crown).
+
 ## 0.2.2 — 2026-10-27
 
 ### Fixed

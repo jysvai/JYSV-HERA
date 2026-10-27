@@ -4,6 +4,7 @@
 import fs from 'node:fs'
 import path from 'node:path'
 
+import { t } from '../shared/i18n'
 import type { AnsiPalette } from '../shared/themes'
 import type { TerminalImport } from '../shared/types'
 
@@ -136,7 +137,7 @@ function shellFor(profile: Record<string, unknown>): { shell: string; label: str
 
   if (exe === 'powershell.exe' || exe === 'powershell') return { shell: 'powershell', label: 'Windows PowerShell' }
   if (exe === 'pwsh.exe' || exe === 'pwsh') return { shell: 'pwsh', label: 'PowerShell 7 (pwsh)' }
-  if (exe === 'cmd.exe' || exe === 'cmd') return { shell: 'cmd', label: '명령 프롬프트 (cmd)' }
+  if (exe === 'cmd.exe' || exe === 'cmd') return { shell: 'cmd', label: t('명령 프롬프트 (cmd)') }
 
   return { shell: commandline, label: name || commandline }
 }
@@ -201,13 +202,13 @@ export function availableShells(): { value: string; label: string }[] {
   const shells = [
     { value: 'powershell', label: 'Windows PowerShell 5.1' },
     { value: 'pwsh', label: 'PowerShell 7 (pwsh)', present: Boolean(findOnPath('pwsh.exe')) },
-    { value: 'cmd', label: '명령 프롬프트 (cmd)' },
+    { value: 'cmd', label: t('명령 프롬프트 (cmd)') },
     {
       value: 'gitbash',
       label: 'Git Bash',
       present: [path.join(process.env.ProgramFiles || 'C:\\Program Files', 'Git', 'bin', 'bash.exe'), path.join(process.env.LOCALAPPDATA || '', 'Programs', 'Git', 'bin', 'bash.exe')].some(file => fs.existsSync(file))
     },
-    { value: 'wsl.exe', label: 'WSL (기본 배포판)', present: fs.existsSync(path.join(process.env.SystemRoot || 'C:\\Windows', 'System32', 'wsl.exe')) }
+    { value: 'wsl.exe', label: t('WSL (기본 배포판)'), present: fs.existsSync(path.join(process.env.SystemRoot || 'C:\\Windows', 'System32', 'wsl.exe')) }
   ]
 
   return shells.filter(entry => entry.present !== false).map(({ value, label }) => ({ value, label }))

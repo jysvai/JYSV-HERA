@@ -14,7 +14,7 @@
 
 [English](README.md) · **한국어**
 
-[다운로드](#설치) · [달라진 점](#021-에서-달라진-점) · [기능](#기능) · [문서](#문서) · [hera CLI](#멀티-에이전트-협업-hera-cli) · [lanes](#lanes-와-같이-쓰기) · [패치노트](docs/patch-notes/README.md)
+[다운로드](#설치) · [기능](#기능) · [문서](#문서) · [hera CLI](#멀티-에이전트-협업-hera-cli) · [lanes](#lanes-와-같이-쓰기) · [패치노트](docs/patch-notes/README.md)
 
 </div>
 
@@ -35,35 +35,14 @@ HERA 는 원래 쓰던 셸(PowerShell, cmd, Git Bash, bash, zsh, fish)을 그대
 
 ![JYSV HERA 작업 화면: 터미널 두 개를 나란히 띄우고 오른쪽에 프로젝트 백로그](docs/images/workspace-dark.png)
 
-## 0.2.1 에서 달라진 점
-
-터미널이 Windows Terminal 처럼 동작하고, lanes 가 HERA 밖으로 나가지 않습니다. 전체 내용: [docs/patch-notes](docs/patch-notes/README.md) · [v0.2.1](docs/patch-notes/ko/v0.2.1.md).
-
-<table>
-<tr>
-<td width="50%"><img src="docs/images/tui-wheel.gif" alt="전체 화면 프로그램에서 마우스 휠로 스크롤하는 모습"></td>
-<td width="50%"><img src="docs/images/lanes-tab.gif" alt="lane 이 HERA 탭으로 열리는 모습"></td>
-</tr>
-<tr>
-<td><b>전체 화면 프로그램에서 휠이 됩니다.</b> Windows Terminal 의 콘솔 엔진(ConPTY)을 함께 넣어, Claude Code 전체 화면 모드 · vim · htop 이 화살표 키 대신 마우스 휠로 스크롤됩니다. 탭을 바꿔도 마우스 모드 · 커서 · 스크롤 영역이 유지됩니다.</td>
-<td><b>모든 lane 이 HERA 탭으로 열립니다.</b> lanes 0.3.13 부터 메인 Claude 가 스스로 여는 lane 도 HERA 에 탭을 요청합니다(<code>hera host --lane</code>). HERA 에 등록한 프로젝트만 받고, 나머지는 예전처럼 열립니다.</td>
-</tr>
-</table>
-
-<p align="center"><img src="docs/images/wt-import.gif" alt="Windows Terminal 설정을 HERA 로 가져오는 모습" width="860"></p>
-
-- **쓰던 터미널 설정을 그대로.** *설정 → 터미널* 에서 Windows Terminal 의 글꼴 · 커서 · 스크롤백 · 기본 셸 · 색 구성을 항목별로 가져옵니다.
-- **에이전트에 스크린샷 붙여넣기.** 클립보드에 이미지가 있으면 `Ctrl+V` 가 파일로 저장하고 경로를 붙여 넣어, Claude Code · Codex 가 이미지로 첨부합니다.
-- **어떤 셸이든.** PowerShell, PowerShell 7, cmd, Git Bash, WSL, 또는 `wsl.exe -d Ubuntu` 같은 명령줄. 커서 모양과 깜빡임도 설정할 수 있고, Cascadia Mono 글꼴이 들어 있습니다.
-- **고친 것:** 붙여넣기가 두 번 되던 문제, 탭 전환 · 크기 조절 뒤 화면이 깨지던 문제, 스크롤해야 고쳐지던 화면, 재시작 뒤 lane 회신이 사라지던 문제(lane 의 대화가 메인 탭에서 이어 열리던 문제).
-
 ## 기능
 
 | | |
 |---|---|
-| **프로젝트 런처** | 등록한 프로젝트 사이드바 (상위 폴더를 고르면 하위 프로젝트를 찾아 한 번에 등록). 프로젝트마다 터미널 · 설치된 AI · 팀 버튼이 있는 시작 화면. 더블클릭 = 바로 터미널. |
-| **탭 · 분할** | 탭, 최대 4개 나란히 보기, 한 질문을 여러 AI 에게 동시에 보내기. 파일을 끌어다 놓으면 셸에 맞게 따옴표 처리된 경로 입력. |
+| **프로젝트 런처** | 등록한 프로젝트 사이드바 (폴더를 끌어다 놓거나, 고르거나, 상위 폴더에서 하위 프로젝트를 찾아 한 번에 등록). 프로젝트마다 터미널 · 설치된 AI · 팀 버튼이 있는 시작 화면. 더블클릭 = 바로 터미널. |
+| **탭 · 분할** | 탭, 최대 4개 나란히 보기, 한 질문을 여러 AI 에게 동시에 보내기. 파일을 끌어다 놓으면 셸에 맞게 따옴표 처리된 경로 입력. `Ctrl` `+` / `-` / `0` 또는 `Ctrl` + 휠로 터미널 확대 · 축소 (macOS 는 `⌘`). |
 | **실시간 상태** | 세션마다 작업 중 / 대기 / 승인 대기를 판정하고, AI 가 끝났거나 내가 필요할 때 알림. |
+| **폴더 트리** | 터미널 옆 *폴더* 탭에 프로젝트 파일과 git 변경 표시. 파일 열기, 탐색기 · Finder 에서 보기, 경로 복사, 터미널로 끌어다 경로 입력. |
 | **백로그 패널** | 마지막 실행(언제 · 무엇으로), git 브랜치 · 마지막 커밋 · 변경 파일, AI 별 마지막 지시, 할 일과 메모. |
 | **멀티 에이전트 버스** | 세션 사이의 `hera ask / send / reply / peek / key / spawn`. 모든 메시지는 *에이전트 대화* 페이지에 기록. |
 | **세션 기억** | 45초마다 · 변경 때마다 자동 저장, Claude Code(`--session-id` / `--resume <id>`)와 Codex(`resume <id>`)는 정확히 그 대화로 재개, 로그인 시 자동 실행. |
@@ -73,7 +52,9 @@ HERA 는 원래 쓰던 셸(PowerShell, cmd, Git Bash, bash, zsh, fish)을 그대
 | **AI CLI 32종 내장** | 아래 목록 참고. 그 밖의 명령(예: `ollama run <모델>`)은 에이전트 페이지에서 추가. |
 | **lanes 연동** | [lanes](https://github.com/jysvai/lanes) 의 mid / low 보조 세션을 HERA 탭에서 돌리고, 모델 라우팅 · 권한 · 프로젝트별 지시를 한 설정 페이지에서. |
 | **쓰던 터미널 그대로** | Windows Terminal 의 콘솔 엔진(ConPTY)과 글꼴(Cascadia Mono)을 함께 넣어, Claude Code 전체 화면 모드 · vim · htop 에서도 마우스와 휠이 동작합니다. 원하면 Windows Terminal 의 글꼴 · 커서 · 스크롤백 · 색 구성 · 기본 셸을 가져옵니다. 셸은 PowerShell · pwsh · cmd · Git Bash · WSL, 또는 직접 적은 명령줄 무엇이든. |
-| **버전 확인** | 사이드바 아래에 설치된 버전이 표시되고, 새 릴리스가 나오면 업데이트 버튼으로 바뀝니다 (터미널에서는 `hera --version`). |
+| **앱 안에서 업데이트** | 사이드바 아래에 설치된 버전이 표시됩니다. 새 릴리스가 나오면 업데이트 버튼이 파일을 받아 GitHub 의 SHA-256 과 맞춰 보고, 다시 시작해서 설치합니다. 터미널은 그대로 돌아옵니다 (터미널에서는 `hera --version`). |
+| **확장 · 업데이트** | AI CLI 의 새 버전(npm · Homebrew · uv · pipx · 자체 업데이트)과 각 CLI 안의 플러그인 · MCP 서버 · 스킬을 한 페이지에서 보고, 하나씩 또는 한꺼번에 HERA 에서 업데이트합니다. |
+| **한국어 · 영어** | 운영체제 언어를 따르거나, *설정 → 언어* 에서 한국어 / English 를 고릅니다. |
 
 <table>
 <tr>
@@ -110,16 +91,20 @@ Google 의 Gemini CLI 는 Google 계정 사용자에게 Antigravity 로 대체�
 
 <table>
 <tr>
-<td align="center" width="25%"><a href="docs/ko/projects.md"><img src="docs/images/features/projects.jpg" width="96" alt=""><br><b>프로젝트</b></a></td>
-<td align="center" width="25%"><a href="docs/ko/terminal.md"><img src="docs/images/features/terminal.jpg" width="96" alt=""><br><b>터미널</b></a></td>
-<td align="center" width="25%"><a href="docs/ko/agents.md"><img src="docs/images/features/agents.jpg" width="96" alt=""><br><b>에이전트</b></a></td>
-<td align="center" width="25%"><a href="docs/ko/hera-cli.md"><img src="docs/images/features/hera-cli.jpg" width="96" alt=""><br><b>hera CLI</b></a></td>
+<td width="50%" valign="top"><a href="docs/ko/projects.md"><img src="docs/images/features/projects.jpg" alt="프로젝트"></a><br><a href="docs/ko/projects.md"><b>프로젝트</b></a><br>폴더를 한 번 등록하면 클릭 · 트레이 · 단축키로 그 프로젝트의 터미널, AI, 팀을 엽니다.</td>
+<td width="50%" valign="top"><a href="docs/ko/terminal.md"><img src="docs/images/features/terminal.jpg" alt="터미널"></a><br><a href="docs/ko/terminal.md"><b>터미널</b></a><br>탭과 최대 4분할, 여러 AI 에게 한꺼번에 보내기, 복사 · 붙여넣기, 스크린샷 붙여넣기.</td>
 </tr>
 <tr>
-<td align="center" width="25%"><a href="docs/ko/lanes.md"><img src="docs/images/features/lanes.jpg" width="96" alt=""><br><b>lanes</b></a></td>
-<td align="center" width="25%"><a href="docs/ko/session-memory.md"><img src="docs/images/features/session-memory.jpg" width="96" alt=""><br><b>세션 기억</b></a></td>
-<td align="center" width="25%"><a href="docs/ko/usage.md"><img src="docs/images/features/usage.jpg" width="96" alt=""><br><b>사용량</b></a></td>
-<td align="center" width="25%"><a href="docs/ko/themes.md"><img src="docs/images/features/themes.jpg" width="96" alt=""><br><b>테마</b></a></td>
+<td width="50%" valign="top"><a href="docs/ko/agents.md"><img src="docs/images/features/agents.jpg" alt="에이전트"></a><br><a href="docs/ko/agents.md"><b>에이전트</b></a><br>PATH 에서 찾는 AI CLI 32종, 작업 중 · 대기 · 승인 대기 판정과 알림, 계정 프로필.</td>
+<td width="50%" valign="top"><a href="docs/ko/hera-cli.md"><img src="docs/images/features/hera-cli.jpg" alt="hera CLI"></a><br><a href="docs/ko/hera-cli.md"><b>hera CLI</b></a><br>AI 가 다른 AI 에게 일을 넘기고 결과를 받아 옵니다: <code>hera ask</code>, <code>send</code>, <code>reply</code>.</td>
+</tr>
+<tr>
+<td width="50%" valign="top"><a href="docs/ko/lanes.md"><img src="docs/images/features/lanes.jpg" alt="lanes"></a><br><a href="docs/ko/lanes.md"><b>lanes</b></a><br>Claude 의 곁일을 더 싼 mid · low lane 에 맡기고, 모든 lane 을 HERA 탭에서 돌립니다.</td>
+<td width="50%" valign="top"><a href="docs/ko/session-memory.md"><img src="docs/images/features/session-memory.jpg" alt="세션 기억"></a><br><a href="docs/ko/session-memory.md"><b>세션 기억</b></a><br>재부팅해도 셸은 마지막 폴더에서, Claude Code · Codex 는 하던 대화 그대로 돌아옵니다.</td>
+</tr>
+<tr>
+<td width="50%" valign="top"><a href="docs/ko/usage.md"><img src="docs/images/features/usage.jpg" alt="사용량"></a><br><a href="docs/ko/usage.md"><b>사용량</b></a><br>5시간 · 주간 한도, AI 별 · 프로젝트별 토큰과 비용을 로컬 기록으로 계산합니다.</td>
+<td width="50%" valign="top"><a href="docs/ko/themes.md"><img src="docs/images/features/themes.jpg" alt="테마"></a><br><a href="docs/ko/themes.md"><b>테마</b></a><br>다크 · 라이트 · 시스템, 프리셋 9개, 강조색, 터미널 16색까지 바꾸는 색상 편집기.</td>
 </tr>
 </table>
 
@@ -243,7 +228,7 @@ lanes 는 Claude Code 프롬프트에서 한 번 설치하고, *Lanes → HERA �
 
 ## 개인정보
 
-- **네트워크 요청은 하나, 그마저 끌 수 있음.** 업데이트 버튼을 띄우려고 하루 몇 번 GitHub 에 이 저장소의 최신 릴리스만 물어봅니다. *설정 → 버전 · 업데이트 → 새 버전 자동 확인* 을 끄면 아무 데도 접속하지 않습니다.
+- **백그라운드 요청은 하나, 그마저 끌 수 있음.** 업데이트 버튼을 띄우려고 하루 몇 번 GitHub 에 이 저장소의 최신 릴리스만 물어봅니다. 업데이트 파일은 그 버튼을 눌렀을 때만 받습니다. *설정 → 버전 · 업데이트 → 새 버전 자동 확인* 을 끄면 HERA 는 스스로 아무 데도 접속하지 않습니다.
 - **원격 수집 없음.** 사용량은 각 CLI 가 이미 이 컴퓨터에 남긴 기록에서 계산합니다.
 - **비밀 값은 읽지 않음.** 계정 화면은 플랜 · 이메일 · 만료일처럼 비밀이 아닌 값만 보여 주고, 토큰 값은 읽지 않습니다.
 - **데이터는 내 컴퓨터에.** `%APPDATA%\JYSV HERA`(macOS `~/Library/Application Support/JYSV HERA`, Linux `~/.config/JYSV HERA`)에 있습니다. `HERA_HOME` 환경변수로 다른 폴더를 지정하면 그 폴더를 쓰는 별도 인스턴스로 실행됩니다.

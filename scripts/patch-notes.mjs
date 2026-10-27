@@ -37,8 +37,15 @@ function versions() {
   })
 }
 
-/** The notes without their own `# title` line (the release has its title already). */
-const body = text => text.replace(/^# .*\n+/, '')
+/**
+ * The notes without their own `# title` line (the release has its title already).
+ * Paths relative to docs/patch-notes/<lang>/ become absolute, since a release page has no folder.
+ */
+const body = text =>
+  text
+    .replace(/^# .*\n+/, '')
+    .replace(/(src="|\]\()\.\.\/\.\.\/images\//g, `$1https://raw.githubusercontent.com/jysvai/JYSV-HERA/main/docs/images/`)
+    .replace(/(href="|\]\()\.\.\/\.\.\/(en|ko)\//g, `$1${REPO}/blob/main/docs/$2/`)
 
 function downloads(version) {
   const v = version.slice(1)
@@ -79,7 +86,10 @@ function releaseBody(version) {
     '',
     '## 한국어',
     '',
-    body(ko),
+    // The English part already shows the pictures; a release page should not load them twice.
+    body(ko)
+      .replace(/<table>(?:(?!<\/table>)[\s\S])*?<img[\s\S]*?<\/table>\n*/g, '')
+      .replace(/^<p align="center"><img [^\n]*<\/p>\n*/gm, ''),
     '',
     '---',
     '',

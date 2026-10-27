@@ -7,9 +7,10 @@ import { Terminal } from '@xterm/xterm'
 import { IconPlayerPlay, IconRefresh } from '@tabler/icons-react'
 import { useEffect, useRef } from 'react'
 
+import { t } from '../../../shared/i18n'
 import { Button } from '../../components/ui/primitives'
 import { api, isMac, isWin, osBuild, pathForFile, writePty } from '../../lib/hera'
-import { $config, $sessions } from '../../store/app'
+import { $config, $sessions, $termZoom, zoomTerminals } from '../../store/app'
 import { $terminalPalette, $theme } from '../../store/theme'
 import { registerTerminal, unregisterTerminal } from './registry'
 
@@ -18,7 +19,9 @@ export function isAppChord(event: KeyboardEvent): boolean {
   const mod = isMac ? event.metaKey : event.ctrlKey && event.shiftKey
   const key = event.key.toLowerCase()
 
-  if (isMac && event.metaKey && ['k', 't', 'w', 'b', 'u', 'j', ','].includes(key)) return true
+  if (isMac && event.metaKey && ['k', 't', 'w', 'b', 'u', 'j', 'e', ','].includes(key)) return true
+  // Zoom: Ctrl / ⌘ with + (=), - and 0, as in Windows Terminal. Ctrl+Shift+- stays readline's undo.
+  if ((isMac ? event.metaKey : event.ctrlKey) && !event.altKey && ['=', '+', '-', '0'].includes(event.key)) return true
   if (!isMac && mod && ['p', 't', 'w', 'b', 'u', 'j', 'e'].includes(key)) return true
   if (event.ctrlKey && key === 'tab') return true
   if (event.altKey && !event.ctrlKey && /^[1-9]$/.test(event.key)) return true
@@ -27,8 +30,9 @@ export function isAppChord(event: KeyboardEvent): boolean {
 }
 
 /** Quote a dropped path for the session's shell (PowerShell expands `$` inside "…"). */
-function quotePath(p: string, shell: string | undefined) {
-  if (/^[A-Za-z0-9_./:\\-]+$/.test(p)) return p
+export function quotePath(p: string, shell: string | undefined) {
+  const native = shell === 'powershell' || shell === 'pwsh' || shell === 'cmd'
+  if (native ? /^[A-Za-z0-9_./:\\-]+$/.test(p) : /^[A-Za-z0-9_./:-]+$/.test(p)) return p
 
   if (shell === 'powershell' || shell === 'pwsh') return `'${p.replace(/['\u2018\u2019\u201A\u201B]/g, quote => quote + quote)}'`
   if (shell === 'cmd') return `"${p.replace(/"/g, '')}"`
@@ -37,7 +41,7 @@ function quotePath(p: string, shell: string | undefined) {
 }
 
 /** Agent prompts take a path as a terminal drop types it: bare, or in double quotes. */
-function quoteForAgent(p: string) {
+export function quoteForAgent(p: string) {
   return /^[A-Za-z0-9_./:\\-]+$/.test(p) ? p : `"${p}"`
 }
 
@@ -56,6 +60,10 @@ export function TerminalView({ sessionId, focused, onFocus }: { sessionId: strin
   const contrast = useStore($theme)?.custom ? 3 : 4.5
   const contrastRef = useRef(contrast)
   contrastRef.current = contrast
+  const zoom = useStore($termZoom)
+  const zoomRef = useRef(zoom)
+  zoomRef.current = zoom
+  const refitRef = useRef<(() => void) | null>(null)
 
   useEffect(() => {
     const element = host.current
@@ -64,7 +72,7 @@ export function TerminalView({ sessionId, focused, onFocus }: { sessionId: strin
 
     const term = new Terminal({
       fontFamily: settings.fontFamily,
-      fontSize: settings.fontSize,
+      fontSize: settings.fontSize + zoomRef.current,
       lineHeight: settings.lineHeight,
       scrollback: Math.min(settings.scrollback, 5000),
       allowProposedApi: true,
@@ -189,6 +197,20 @@ export function TerminalView({ sessionId, focused, onFocus }: { sessionId: strin
 
     const observer = new ResizeObserver(refit)
     observer.observe(element)
+    refitRef.current = refit
+
+    // Ctrl / ⌘ + wheel (and a trackpad pinch, which arrives as Ctrl + wheel) zooms instead of scrolling.
+    let wheelZoom = 0
+    const onWheel = (event: WheelEvent) => {
+      if (!(event.ctrlKey || (isMac && event.metaKey))) return
+      event.preventDefault()
+      event.stopPropagation()
+      wheelZoom += event.deltaY
+      if (Math.abs(wheelZoom) < (event.deltaMode === 0 ? 60 : 1)) return
+      zoomTerminals(wheelZoom < 0 ? 1 : -1)
+      wheelZoom = 0
+    }
+    element.addEventListener('wheel', onWheel, { capture: true, passive: false })
 
     // Size first, then attach so the snapshot is serialized at our size.
     let disposed = false
@@ -214,6 +236,8 @@ export function TerminalView({ sessionId, focused, onFocus }: { sessionId: strin
       clearTimeout(resizeTimer)
       observer.disconnect()
       element.removeEventListener('paste', onPaste, true)
+      element.removeEventListener('wheel', onWheel, true)
+      refitRef.current = null
       void api.detach(sessionId)
       unregisterTerminal(sessionId, term)
       webgl?.dispose()
@@ -223,6 +247,15 @@ export function TerminalView({ sessionId, focused, onFocus }: { sessionId: strin
     // Recreate on appearance-affecting settings only.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sessionId, settings?.fontFamily, settings?.fontSize, settings?.lineHeight, settings?.gpu])
+
+  // Zoom changes the font size in place, then the grid refits and the pty follows.
+  useEffect(() => {
+    const term = termRef.current
+    if (!term || !settings) return
+    term.options.fontSize = settings.fontSize + zoom
+    refitRef.current?.()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [zoom])
 
   // Colors change in place — no re-attach, no lost scroll position.
   useEffect(() => {
@@ -253,24 +286,27 @@ export function TerminalView({ sessionId, focused, onFocus }: { sessionId: strin
       onDrop={event => {
         event.preventDefault()
         const paths = [...event.dataTransfer.files].map(file => pathForFile(file)).filter(Boolean)
+        // An entry dragged from the folder tree (right panel) carries its path as data.
+        const fromTree = event.dataTransfer.getData('application/x-hera-path')
+        if (!paths.length && fromTree) paths.push(fromTree)
 
-        if (paths.length) writePty(sessionId, paths.map(entry => quotePath(entry, session?.shell)).join(' '))
+        if (paths.length) writePty(sessionId, paths.map(entry => (session?.activeAgentId ? quoteForAgent(entry) : quotePath(entry, session?.shell))).join(' '))
       }}
     >
       <div ref={host} className="absolute inset-0" />
       {exited && (
         <div className="absolute inset-x-0 bottom-0 flex items-center justify-between gap-3 border-t border-(--ui-stroke-tertiary) bg-(--ui-bg-elevated)/95 px-4 py-2 text-[12.5px]">
           <span className="text-(--ui-text-secondary)">
-            {session.dormant ? '이전 실행에서 복원된 세션입니다.' : `세션이 종료되었습니다 (code ${session.exitCode ?? '?'}).`}
+            {session.dormant ? t('이전 실행에서 복원된 세션입니다.') : t('세션이 종료되었습니다 (code {code}).', { code: session.exitCode ?? '?' })}
           </span>
           <div className="flex gap-2">
             {session.agentId && (
               <Button size="sm" variant="default" onClick={() => void api.revive(sessionId, true)}>
-                <IconPlayerPlay /> 이어하기
+                <IconPlayerPlay /> {t('이어하기')}
               </Button>
             )}
             <Button size="sm" onClick={() => void api.revive(sessionId, false)}>
-              <IconRefresh /> 다시 시작
+              <IconRefresh /> {t('다시 시작')}
             </Button>
           </div>
         </div>

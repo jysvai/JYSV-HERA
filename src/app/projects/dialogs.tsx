@@ -1,6 +1,7 @@
 import { useStore } from '@nanostores/react'
 import { useEffect, useState } from 'react'
 
+import { t } from '../../../shared/i18n'
 import type { Shortcut } from '../../../shared/types'
 import { relTime } from '../../../shared/util'
 import { ShellPicker } from '../../components/ShellPicker'
@@ -84,38 +85,38 @@ export function ProjectDialog() {
     <Dialog
       open
       onClose={close}
-      title="프로젝트 설정"
+      title={t('프로젝트 설정')}
       footer={
         <>
           {confirmDelete ? (
             <Button variant="destructive" onClick={remove} className="mr-auto">
-              정말 목록에서 제거 (폴더는 그대로)
+              {t('정말 목록에서 제거 (폴더는 그대로)')}
             </Button>
           ) : (
             <Button variant="text" onClick={() => setConfirmDelete(true)} className="mr-auto">
-              목록에서 제거
+              {t('목록에서 제거')}
             </Button>
           )}
           <Button variant="text" onClick={close}>
-            취소
+            {t('취소')}
           </Button>
           <Button variant="default" onClick={save}>
-            저장
+            {t('저장')}
           </Button>
         </>
       }
     >
       <div className="space-y-3">
         <label className="block">
-          <div className="mb-1 text-[12px] text-(--ui-text-secondary)">이름</div>
+          <div className="mb-1 text-[12px] text-(--ui-text-secondary)">{t('이름')}</div>
           <Input value={name} onChange={event => setName(event.target.value)} />
         </label>
         <label className="block">
-          <div className="mb-1 text-[12px] text-(--ui-text-secondary)">경로</div>
+          <div className="mb-1 text-[12px] text-(--ui-text-secondary)">{t('경로')}</div>
           <Input value={dir} onChange={event => setDir(event.target.value)} className="font-mono text-[12px]" />
         </label>
         <div>
-          <div className="mb-1 text-[12px] text-(--ui-text-secondary)">색상</div>
+          <div className="mb-1 text-[12px] text-(--ui-text-secondary)">{t('색상')}</div>
           <div className="flex gap-1.5">
             {COLORS.map(entry => (
               <button
@@ -130,11 +131,11 @@ export function ProjectDialog() {
           </div>
         </div>
         <label className="block">
-          <div className="mb-1 text-[12px] text-(--ui-text-secondary)">셸</div>
-          <ShellPicker value={shell} onChange={setShell} autoLabel="기본값 따르기" className="w-full" />
+          <div className="mb-1 text-[12px] text-(--ui-text-secondary)">{t('셸')}</div>
+          <ShellPicker value={shell} onChange={setShell} autoLabel={t('기본값 따르기')} className="w-full" />
         </label>
         <label className="block">
-          <div className="mb-1 text-[12px] text-(--ui-text-secondary)">프로젝트 명령 (한 줄에 하나: 이름 = 명령)</div>
+          <div className="mb-1 text-[12px] text-(--ui-text-secondary)">{t('프로젝트 명령 (한 줄에 하나: 이름 = 명령)')}</div>
           <Textarea
             value={commands}
             onChange={event => setCommands(event.target.value)}
@@ -143,8 +144,8 @@ export function ProjectDialog() {
           />
         </label>
         <div className="flex items-center justify-between">
-          <span className="text-[13px]">사이드바 상단 고정</span>
-          <Switch checked={pinned} onChange={setPinned} label="상단 고정" />
+          <span className="text-[13px]">{t('사이드바 상단 고정')}</span>
+          <Switch checked={pinned} onChange={setPinned} label={t('상단 고정')} />
         </div>
       </div>
     </Dialog>
@@ -170,11 +171,11 @@ export function ScanDialog() {
       open
       onClose={close}
       width={600}
-      title={`프로젝트 찾기 · ${result.parent}`}
+      title={t('프로젝트 찾기 · {parent}', { parent: result.parent })}
       footer={
         <>
           <Button variant="text" onClick={close}>
-            취소
+            {t('취소')}
           </Button>
           <Button
             variant="default"
@@ -184,7 +185,7 @@ export function ScanDialog() {
               close()
             }}
           >
-            {selected.size}개 등록
+            {t('{count}개 등록', { count: selected.size })}
           </Button>
         </>
       }
@@ -211,7 +212,7 @@ export function ScanDialog() {
               />
               <div className="min-w-0 flex-1">
                 <div className="text-[13px]">
-                  {entry.name} {already && <span className="text-[11px] text-(--ui-text-tertiary)">(등록됨)</span>}
+                  {entry.name} {already && <span className="text-[11px] text-(--ui-text-tertiary)">{t('(등록됨)')}</span>}
                 </div>
                 <div className="truncate text-[11px] text-(--ui-text-tertiary)">{entry.markers.join(' · ')}</div>
               </div>

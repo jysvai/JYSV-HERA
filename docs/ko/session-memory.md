@@ -2,7 +2,7 @@
 
 # 세션 기억
 
-<img src="../images/features/session-memory.jpg" alt="" width="120" align="right">
+<img src="../images/features/session-memory.jpg" alt="">
 
 HERA 는 열어 둔 탭을 기억해서, 다운 · 업데이트 · 재부팅이 있어도 작업 환경을 잃지 않게 합니다.
 

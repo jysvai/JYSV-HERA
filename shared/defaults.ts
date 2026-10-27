@@ -1,3 +1,4 @@
+import { t } from './i18n'
 import { DEFAULT_THEME, THEME_PRESETS, isHexColor, sanitizeCustomThemes } from './themes'
 import type { AgentDef, HeraConfig, LanesSettings, Settings, Shortcut, TeamPreset } from './types'
 
@@ -400,20 +401,20 @@ export const BUILTIN_AGENTS: AgentDef[] = [
   }
 ]
 
-export const DEFAULT_SHORTCUTS: Shortcut[] = [
+export const defaultShortcuts = (): Shortcut[] => [
   { name: 'cc', command: 'claude', description: 'Claude Code' },
-  { name: 'ccr', command: 'claude --continue', description: '마지막 Claude 대화 이어하기' },
+  { name: 'ccr', command: 'claude --continue', description: t('마지막 Claude 대화 이어하기') },
   { name: 'cx', command: 'codex', description: 'Codex' },
-  { name: 'cxr', command: 'codex resume --last', description: '마지막 Codex 세션 이어하기' },
-  { name: 'gst', command: 'git status -sb', description: 'git 상태 요약' },
-  { name: 'glog', command: 'git log --oneline -15', description: '최근 커밋 15개' },
-  { name: 'hl', command: 'hera list', description: '실행 중인 AI 세션 목록' }
+  { name: 'cxr', command: 'codex resume --last', description: t('마지막 Codex 세션 이어하기') },
+  { name: 'gst', command: 'git status -sb', description: t('git 상태 요약') },
+  { name: 'glog', command: 'git log --oneline -15', description: t('최근 커밋 15개') },
+  { name: 'hl', command: 'hera list', description: t('실행 중인 AI 세션 목록') }
 ]
 
-export const DEFAULT_TEAMS: TeamPreset[] = [
+export const defaultTeams = (): TeamPreset[] => [
   {
     id: 'claude-codex',
-    name: 'Claude 메인 + Codex 보조',
+    name: t('Claude 메인 + Codex 보조'),
     brief: true,
     panes: [
       { agentId: 'claude', role: 'main' },
@@ -422,7 +423,7 @@ export const DEFAULT_TEAMS: TeamPreset[] = [
   },
   {
     id: 'claude-codex-agy',
-    name: 'Claude 메인 + Codex·Antigravity 보조',
+    name: t('Claude 메인 + Codex·Antigravity 보조'),
     brief: true,
     panes: [
       { agentId: 'claude', role: 'main' },
@@ -446,6 +447,7 @@ export function defaultSettings(platform: string): Settings {
     scrollback: 3000,
     gpu: false,
     conptyDll: true,
+    codexOwnServer: true,
     cursorStyle: 'bar',
     cursorBlink: false,
     lowMemory: true,
@@ -467,7 +469,7 @@ export function defaultSettings(platform: string): Settings {
     externalTerminal: 'auto',
     lanes: { ...DEFAULT_LANES, allowRules: [...DEFAULT_LANES.allowRules] },
     usageWarnPercent: 80,
-    language: 'ko'
+    uiLanguage: 'auto'
   }
 }
 
@@ -476,9 +478,9 @@ export function defaultConfig(platform: string): HeraConfig {
     version: 1,
     projects: [],
     agents: BUILTIN_AGENTS.map(agent => ({ ...agent })),
-    shortcuts: DEFAULT_SHORTCUTS.map(shortcut => ({ ...shortcut })),
+    shortcuts: defaultShortcuts(),
     profiles: [],
-    teams: DEFAULT_TEAMS.map(team => ({ ...team, panes: team.panes.map(pane => ({ ...pane })) })),
+    teams: defaultTeams(),
     settings: defaultSettings(platform)
   }
 }
@@ -555,6 +557,8 @@ function normalizeSettings(base: Settings, raw: Partial<Settings> | undefined): 
   settings.launchAtLogin = settings.launchAtLogin !== false
   settings.checkUpdates = settings.checkUpdates !== false
   settings.conptyDll = settings.conptyDll !== false
+  settings.codexOwnServer = settings.codexOwnServer !== false
+  if (!['auto', 'ko', 'en'].includes(settings.uiLanguage)) settings.uiLanguage = 'auto'
   if (!['bar', 'block', 'underline'].includes(settings.cursorStyle)) settings.cursorStyle = 'bar'
   settings.cursorBlink = settings.cursorBlink === true
   if (settings.restoreMode !== 'manual') settings.restoreMode = 'resume'

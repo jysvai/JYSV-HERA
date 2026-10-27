@@ -2,7 +2,7 @@
 
 # Usage
 
-<img src="../images/features/usage.jpg" alt="" width="120" align="right">
+<img src="../images/features/usage.jpg" alt="">
 
 HERA shows how much of your AI plans you are using: limits, tokens, and an estimated cost, per agent and per project. Everything is computed on your PC from the log files each tool already writes. HERA sends nothing anywhere to do this, and it works in a separate process so the terminals stay responsive.
 

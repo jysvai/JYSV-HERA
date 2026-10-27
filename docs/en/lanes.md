@@ -2,7 +2,7 @@
 
 # Lanes
 
-<img src="../images/features/lanes.jpg" alt="" width="120" align="right">
+<img src="../images/features/lanes.jpg" alt="">
 
 [lanes](https://github.com/jysvai/lanes) is a Claude Code plugin that lets your main Claude session hand side work to two cheaper helper sessions: **mid** (work that needs judgement) and **low** (mechanical work). HERA can run those helpers as tabs next to your main session and manages the plugin's settings from one page.
 

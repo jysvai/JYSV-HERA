@@ -110,7 +110,8 @@
 ## Version check
 
 - `electron/update.ts` asks `api.github.com/repos/jysvai/JYSV-HERA/releases/latest` 20 s after start and then every few hours, at most once per 6 hours (the Settings button forces it). The answer is kept in `update.json`; a failed attempt keeps the last good answer.
-- Versions compare as x.y.z. The sidebar shows `vX.Y.Z` and turns into an update button that opens the release page when a newer one exists. `settings.checkUpdates = false` stops every request; it is HERA's only network traffic.
+- Versions compare as x.y.z. The sidebar shows `vX.Y.Z` and turns into an update button when a newer one exists. `settings.checkUpdates = false` stops the background check; it is HERA's only traffic of its own.
+- In-app update (only on the user's press): `installKind()` tells an NSIS install (an `Uninstall *.exe` beside the exe), a macOS bundle in a writable folder, `$APPIMAGE`, or a deb / rpm package (with `pkexec`) from portable copies. `downloadUpdate` streams the matching release asset to the temp folder, hashing as it goes, and refuses it unless the SHA-256 equals the asset's GitHub `digest` (or `SHA256SUMS.txt`). `installUpdate` then runs the NSIS installer with `/S --updated --force-run /allusers|/currentuser` (mode from the HKLM `InstallLocation` of the app GUID), swaps the `.app` / AppImage from a detached script that waits for HERA's pid, or runs `pkexec dpkg -i` / `rpm -U`, and quits through the normal `before-quit` path so sessions are saved.
 - `hera --version` prints the version baked into the CLI at build time.
 
 ## Release pipeline
@@ -142,7 +143,11 @@
 | `electron/pty-host.ts` | session lifecycle, attach protocol, status detection, key/message input, autosave/restore, conout worker cap |
 | `electron/resume.ts` | session memory: shell folder tracking, agent conversation ids |
 | `electron/lanes.ts` | lanes integration |
-| `electron/update.ts`, `smoke.ts` | release check, self-test mode for CI |
+| `electron/update.ts`, `smoke.ts` | release check, in-app download / install, self-test mode for CI |
+| `electron/extensions.ts` | Extensions & updates page: CLI / global package versions (npm, Homebrew, uv, pipx, self-updaters) and each CLI's plugins, MCP servers and skills; update commands run in a terminal tab, built here from ids |
+| `electron/files.ts` | folder tree of a project (listing, open / reveal, git status) |
+| `electron/codex.ts` | `--no-daemon` for HERA's Codex tabs |
+| `shared/i18n.ts`, `shared/i18n/` | UI language: Korean source strings as keys, English dictionaries |
 | `electron/bus.ts` | hera pipe server and handlers |
 | `electron/shell.ts` | shell discovery, boot script, alias files |
 | `electron/insight.ts`, `agent-data.ts` | backlog data (git, Claude/Codex/agy activity) |

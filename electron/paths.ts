@@ -1,3 +1,4 @@
+import { execFile } from 'node:child_process'
 import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
@@ -157,4 +158,75 @@ export function readHead(file: string, bytes: number): string {
       fs.closeSync(fd)
     }
   }
+}
+
+// ---------------------------------------------------------------- login PATH
+
+/** Folders agent CLIs are commonly installed to, for when the login shell cannot be asked. */
+const USUAL_BIN_DIRS = [
+  '/opt/homebrew/bin',
+  '/opt/homebrew/sbin',
+  '/usr/local/bin',
+  '/home/linuxbrew/.linuxbrew/bin',
+  '~/.local/bin',
+  '~/.npm-global/bin',
+  '~/.bun/bin',
+  '~/.volta/bin',
+  '~/.cargo/bin',
+  '~/.deno/bin',
+  '~/.claude/local',
+  '~/bin'
+]
+
+let loginPath: Promise<void> | null = null
+
+function mergePath(dirs: string[]) {
+  const seen = new Set<string>()
+  const merged: string[] = []
+
+  for (const dir of dirs) {
+    if (!dir || seen.has(dir)) continue
+    seen.add(dir)
+    merged.push(dir)
+  }
+
+  process.env.PATH = merged.join(path.delimiter)
+}
+
+/**
+ * macOS / Linux: an app started from the Dock, Finder or a desktop launcher gets the
+ * session's minimal PATH (/usr/bin:/bin:...), not the one the shell profile builds.
+ * Agent CLIs installed with Homebrew, npm, bun or the Claude installer then look
+ * missing, and lanes.sh cannot find `claude`. Ask the login shell once for its PATH
+ * and add it (and the usual install folders that exist) in front of ours.
+ */
+export function hydrateLoginPath(): Promise<void> {
+  if (loginPath) return loginPath
+  if (isWin) return (loginPath = Promise.resolve())
+
+  const current = (process.env.PATH || '').split(path.delimiter)
+  const usual = USUAL_BIN_DIRS.map(expandHome).filter(dir => fs.existsSync(dir))
+  // Usable right away; the login shell's answer refines the order when it arrives.
+  mergePath([...current, ...usual])
+
+  loginPath = new Promise<void>(resolve => {
+    const shell = process.env.SHELL && fs.existsSync(process.env.SHELL) ? process.env.SHELL : isMac ? '/bin/zsh' : '/bin/bash'
+    const fish = path.basename(shell) === 'fish'
+    const mark = '__HERA_PATH__'
+    const script = fish ? `printf '${mark}%s${mark}' (string join : $PATH)` : `printf '${mark}%s${mark}' "$PATH"`
+
+    // -i so ~/.zshrc / ~/.bashrc run too (nvm, Homebrew shellenv and npm prefixes often live there).
+    execFile(
+      shell,
+      ['-ilc', script],
+      { timeout: 8000, maxBuffer: 1 << 20, env: { ...process.env, DISABLE_AUTO_UPDATE: 'true', ZSH_DISABLE_COMPFIX: 'true' } },
+      (_error, stdout) => {
+        const found = new RegExp(`${mark}(.*?)${mark}`, 's').exec(String(stdout || ''))?.[1]?.trim()
+        if (found) mergePath([...found.split(':'), ...current, ...usual])
+        resolve()
+      }
+    )
+  })
+
+  return loginPath
 }

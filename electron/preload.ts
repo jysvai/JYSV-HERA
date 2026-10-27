@@ -52,6 +52,13 @@ const INVOKE = new Set([
   'accounts:statusline',
   'agents:availability',
   'app:update',
+  'files:list',
+  'files:open',
+  'files:path',
+  'files:git',
+  'tools:packages',
+  'tools:extensions',
+  'tools:update',
   'terminal:import',
   'shells:list'
 ])

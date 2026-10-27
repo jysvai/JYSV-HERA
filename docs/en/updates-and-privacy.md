@@ -8,12 +8,25 @@ The installed version is shown at the bottom of the sidebar and at the top of Se
 
 ## Update check
 
-HERA never updates itself. It only tells you that a newer release exists.
-
 - About 20 seconds after startup, and then every few hours, HERA asks GitHub for the latest release of `jysvai/JYSV-HERA` (one request to the public releases API). It does not repeat the request if the last answer is less than 6 hours old.
-- If a newer version exists, the version label in the sidebar becomes an update button, and Settings shows "A new version vX.Y.Z is out" with **Open release page** (릴리스 페이지 열기). You download and install it yourself.
+- If a newer version exists, the version label in the sidebar becomes an update button, and Settings shows the same button next to **Release page**.
 - **Check now** (지금 확인) forces a check. A failed check keeps the last good answer and shows the error.
-- Switch **Automatic update check** (새 버전 자동 확인) off in Settings to stop it. It is the only network request HERA makes. With it off, HERA contacts nothing.
+- Switch **Check for new versions** off in Settings to stop it. It is the only network request HERA makes on its own. With it off, HERA contacts nothing until you press an update button.
+- Opening *Agents → Extensions & updates* runs `npm outdated -g` (and `brew outdated` for the formulas your AI CLIs come from), which ask the npm registry and Homebrew for the latest versions. Nothing else from that page goes online until you press an update button.
+
+## Updating from inside the app
+
+1. Press **Update**. HERA downloads this OS's package from the GitHub release; the button shows the progress.
+2. The file's SHA-256 is compared with the digest GitHub publishes for it (or the release's `SHA256SUMS.txt`). If they differ, nothing is installed.
+3. The button becomes **Restart to install**. Pressing it saves your sessions, closes HERA, installs the new version and starts it again. Terminals come back through [session memory](session-memory.md), but running work stops, so pick your moment.
+
+| Installed as | Update |
+|---|---|
+| Windows installer (per user or all users) | Runs the installer silently. For an all-users install Windows asks once for admin rights. Same folder, data kept. |
+| macOS app | Replaces `JYSV HERA.app` and opens it again. The folder holding the app must be writable. |
+| AppImage | Replaces that AppImage file. |
+| deb, rpm | Installs the package through `pkexec` (asks for your password). |
+| Windows portable zip, tar.gz, dev build | Opens the release page. |
 
 The **Patch notes** (패치노트) button opens the notes of your version (or of the newer one, if there is one) on GitHub. The files are in `docs/patch-notes/en` and `docs/patch-notes/ko` of the repository.
 

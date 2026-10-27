@@ -2,7 +2,7 @@
 
 # Lanes
 
-<img src="../images/features/lanes.jpg" alt="" width="120" align="right">
+<img src="../images/features/lanes.jpg" alt="">
 
 [lanes](https://github.com/jysvai/lanes) 는 메인 Claude 세션이 일을 더 저렴한 보조 세션 둘에게 넘기게 해 주는 Claude Code 플러그인입니다. **mid** (판단이 필요한 일) 와 **low** (기계적인 일) 가 있습니다. HERA 는 이 보조 세션을 메인 옆의 탭으로 돌려 주고, 플러그인 설정을 한 페이지에서 관리합니다.
 

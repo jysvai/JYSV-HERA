@@ -24,18 +24,21 @@ import {
   Tray
 } from 'electron'
 
+import { resolveLanguage, setLanguage, t } from '../shared/i18n'
 import { resolveTheme } from '../shared/themes'
-import type { BusMessage, CreateSessionRequest, HeraConfig, LaneTier, SessionInfo, TeamPreset } from '../shared/types'
+import type { BusMessage, CreateSessionRequest, HeraConfig, LaneTier, SessionInfo, TeamPreset, UpdateInfo } from '../shared/types'
 
 import { accountStatuses, createProfile, installStatuslineTap, removeProfile, statuslineTapState, uninstallStatuslineTap } from './accounts'
 import { claudeLiveSessions } from './agent-data'
 import { resolveTarget, sendFromUser, startBus, stopBus } from './bus'
+import { scanExtensions, toolPackages, toolUpdateLine } from './extensions'
 import { openExternalTerminal, scanForProjects } from './external'
+import { listProjectDir, openProjectPath, projectAbsPath, projectGitStatus } from './files'
 import { searchHistory } from './history'
 import { invalidateInsight, projectActivityTimes, projectInsight } from './insight'
 import { applyLaneAllowlist, laneMainArgs, laneProject, lanesInfo, saveLaneRole, setLaneOptions, setLaneTabs, startLanes, stopLanes } from './lanes'
 import { saveClipboardImage } from './paste-image'
-import { dataPath, findOnPath, isMac, isWin, readJson, writeJsonAtomic } from './paths'
+import { dataPath, findOnPath, hydrateLoginPath, isMac, isWin, readJson, writeJsonAtomic } from './paths'
 import * as pty from './pty-host'
 import { quoteArg, resolveShell, writeShortcutFiles } from './shell'
 import {
@@ -52,7 +55,7 @@ import {
 } from './store'
 import { runSmoke } from './smoke'
 import { availableShells, detectTerminalImport } from './terminal-import'
-import { checkForUpdate, updateState } from './update'
+import { checkForUpdate, cleanUpdateDownloads, downloadUpdate, installUpdate, updateState } from './update'
 import { getUsage } from './usage'
 
 const DEV_URL = process.env.HERA_DEV_SERVER
@@ -362,11 +365,11 @@ function buildTrayMenu() {
   const waiting = sessions.filter(entry => entry.status === 'waiting').length
 
   return Menu.buildFromTemplate([
-    { label: 'JYSV HERA 열기', click: showWindow },
+    { label: t('JYSV HERA 열기'), click: showWindow },
     { type: 'separator' },
-    { label: `세션 ${sessions.length}개 · 작업중 ${busy} · 승인대기 ${waiting}`, enabled: false },
+    { label: t('세션 {count}개 · 작업중 {busy} · 승인대기 {waiting}', { count: sessions.length, busy, waiting }), enabled: false },
     {
-      label: '프로젝트 터미널',
+      label: t('프로젝트 터미널'),
       submenu: recent.length
         ? recent.map(project => ({
             label: project.name,
@@ -375,11 +378,11 @@ function buildTrayMenu() {
               reveal(info.id)
             }
           }))
-        : [{ label: '등록된 프로젝트 없음', enabled: false }]
+        : [{ label: t('등록된 프로젝트 없음'), enabled: false }]
     },
     { type: 'separator' },
     {
-      label: '종료',
+      label: t('종료'),
       click: () => {
         quitting = true
         app.quit()
@@ -444,7 +447,7 @@ function launch(request: CreateSessionRequest): SessionInfo {
       t: Date.now(),
       projectId: info.projectId,
       agentId: info.agentId,
-      label: req.command ? req.command : agent ? `${agent.name}${req.resume ? ' (이어하기)' : ''}` : '터미널'
+      label: req.command ? req.command : agent ? `${agent.name}${req.resume ? t(' (이어하기)') : ''}` : t('터미널')
     })
     invalidateInsight(info.projectId)
   }
@@ -468,14 +471,14 @@ function teamBrief(team: TeamPreset, helpers: SessionInfo[]): string {
     .join(', ')
 
   return [
-    `너는 JYSV HERA 팀 '${team.name}'의 메인 에이전트다.`,
-    `같은 프로젝트에 보조 에이전트 세션이 떠 있다: ${roster}.`,
-    '셸에서 hera CLI로 협업한다:',
-    "hera list (세션 목록·상태) / hera ask <이름> '작업' (맡기고 끝날 때까지 기다려 화면 결과를 받음) /",
-    "hera send <이름> '작업' (비동기로 맡김; 결과는 [HERA reply ...] 메시지로 네 입력창에 도착) /",
-    'hera peek <이름> (상대 화면 보기) / hera key <이름> enter (승인 프롬프트 응답) / hera spawn <에이전트> (보조 추가).',
-    '서로 독립적인 하위 작업을 각 보조의 강점에 맞게 나눠 맡기고, 돌아온 결과는 직접 검증한 뒤 반영해라.',
-    '긴 지시는 파일로 자동 전달되니 그대로 보내도 된다.'
+    `너는 JYSV HERA 팀 '${team.name}'의 메인 에이전트다.`, // i18n-ignore
+    `같은 프로젝트에 보조 에이전트 세션이 떠 있다: ${roster}.`, // i18n-ignore
+    '셸에서 hera CLI로 협업한다:', // i18n-ignore
+    "hera list (세션 목록·상태) / hera ask <이름> '작업' (맡기고 끝날 때까지 기다려 화면 결과를 받음) /", // i18n-ignore
+    "hera send <이름> '작업' (비동기로 맡김; 결과는 [HERA reply ...] 메시지로 네 입력창에 도착) /", // i18n-ignore
+    'hera peek <이름> (상대 화면 보기) / hera key <이름> enter (승인 프롬프트 응답) / hera spawn <에이전트> (보조 추가).', // i18n-ignore
+    '서로 독립적인 하위 작업을 각 보조의 강점에 맞게 나눠 맡기고, 돌아온 결과는 직접 검증한 뒤 반영해라.', // i18n-ignore
+    '긴 지시는 파일로 자동 전달되니 그대로 보내도 된다.' // i18n-ignore
   ].join(' ')
 }
 
@@ -528,9 +531,9 @@ pty.ptyEvents.on('status', (info, previous, busyMs) => {
 
   if (!watching) {
     if (info.status === 'waiting' && settings.notifyOnApproval) {
-      notify(`⏳ ${info.name} 승인 대기`, `${project} — 응답이 필요합니다.`, info.id)
+      notify(t('⏳ {name} 승인 대기', { name: info.name }), t('{project} — 응답이 필요합니다.', { project }), info.id)
     } else if (previous === 'busy' && info.status === 'idle' && busyMs > 8000 && settings.notifyOnDone) {
-      notify(`✅ ${info.name} 작업 완료`, `${project} · ${Math.round(busyMs / 1000)}초 작업`, info.id)
+      notify(t('✅ {name} 작업 완료', { name: info.name }), t('{project} · {seconds}초 작업', { project, seconds: Math.round(busyMs / 1000) }), info.id)
     }
   }
 
@@ -542,7 +545,7 @@ function trayTooltip(): string {
   const busy = sessions.filter(entry => entry.status === 'busy').length
   const waiting = sessions.filter(entry => entry.status === 'waiting').length
 
-  return `JYSV HERA · 세션 ${sessions.length} · 작업중 ${busy}${waiting ? ` · 승인대기 ${waiting}` : ''}`
+  return `JYSV HERA · ${t('세션 {count}', { count: sessions.length })} · ${t('작업중 {busy}', { busy })}${waiting ? ` · ${t('승인대기 {waiting}', { waiting })}` : ''}`
 }
 
 pty.ptyEvents.on('data', (id, data) => send('pty:data', id, data))
@@ -590,7 +593,18 @@ function registerIpc() {
     pendingReveal
   }))
   handle('app:metrics', metrics)
-  handle('app:update', (action: 'state' | 'check') => (action === 'check' ? checkForUpdate(true) : updateState()))
+  handle('app:update', (action: 'state' | 'check' | 'download' | 'install') => {
+    const notify = (info: UpdateInfo) => send('app:update', info)
+    if (action === 'check') return checkForUpdate(true)
+    if (action === 'download') return downloadUpdate(notify)
+    if (action === 'install') {
+      return installUpdate(() => {
+        quitting = true
+        app.quit()
+      }, notify)
+    }
+    return updateState()
+  })
   handle('terminal:import', () => detectTerminalImport())
   handle('shells:list', () => availableShells())
   handle('app:quit', () => {
@@ -616,7 +630,7 @@ function registerIpc() {
   })
 
   handle('projects:pick', async () => {
-    const result = await dialog.showOpenDialog(win!, { properties: ['openDirectory', 'multiSelections'], title: '프로젝트 폴더 선택' })
+    const result = await dialog.showOpenDialog(win!, { properties: ['openDirectory', 'multiSelections'], title: t('프로젝트 폴더 선택') })
 
     return result.canceled ? [] : result.filePaths
   })
@@ -626,9 +640,27 @@ function registerIpc() {
       .map(dir => addProject(dir))
   )
   handle('projects:scan', async () => {
-    const result = await dialog.showOpenDialog(win!, { properties: ['openDirectory'], title: '프로젝트들이 들어있는 상위 폴더 선택' })
+    const result = await dialog.showOpenDialog(win!, { properties: ['openDirectory'], title: t('프로젝트들이 들어있는 상위 폴더 선택') })
 
     return result.canceled ? null : { parent: result.filePaths[0], found: scanForProjects(result.filePaths[0]) }
+  })
+  handle('files:list', (projectId: string, rel: string) => listProjectDir(String(projectId), String(rel || '')))
+  handle('files:open', (projectId: string, rel: string, mode: 'open' | 'reveal') => openProjectPath(String(projectId), String(rel || ''), mode === 'open' ? 'open' : 'reveal'))
+  handle('files:path', (projectId: string, rel: string) => projectAbsPath(String(projectId), String(rel || '')))
+  handle('files:git', (projectId: string) => projectGitStatus(String(projectId)))
+  handle('tools:packages', (force?: boolean) => toolPackages(Boolean(force)))
+  handle('tools:extensions', (projectId?: string | null) => scanExtensions(projectById(typeof projectId === 'string' ? projectId : null)?.path || null))
+  handle('tools:update', (ids: unknown, projectId?: string | null) => {
+    // Ids only: the commands come from the last scan, so the renderer cannot run anything else.
+    const project = projectById(typeof projectId === 'string' ? projectId : null)
+    const kind = resolveShell(project?.shell || getConfig().settings.defaultShell).kind
+    const update = toolUpdateLine(Array.isArray(ids) ? ids.map(String) : [], kind)
+    if (!update) return null
+
+    const info = pty.createSession({ projectId: project?.id || null, command: update.line, title: t('업데이트: {name}', { name: update.label }) })
+    reveal(info.id)
+
+    return info
   })
   handle('projects:activity', () => ({ agents: projectActivityTimes(), launches: lastLaunchByProject() }))
   handle('projects:insight', (projectId: string, force?: boolean) => projectInsight(projectId, Boolean(force)))
@@ -642,7 +674,7 @@ function registerIpc() {
     const agent = getConfig().agents.find(entry => entry.id === agentId)
 
     if (!project) return { ok: false, message: 'project not found' }
-    recordLaunch({ t: Date.now(), projectId, agentId: agent?.id || null, label: `${agent?.name || '터미널'} (외부)` })
+    recordLaunch({ t: Date.now(), projectId, agentId: agent?.id || null, label: t('{agent} (외부)', { agent: agent?.name || t('터미널') }) })
 
     return openExternalTerminal(project, agent?.command || null)
   })
@@ -704,7 +736,7 @@ function registerIpc() {
 
     if (!agent) return null
 
-    const info = launch({ agentId: agent.id, command: agent.loginCommand || agent.command, profileId: profile?.id || null, title: `${agent.name} 로그인` })
+    const info = launch({ agentId: agent.id, command: agent.loginCommand || agent.command, profileId: profile?.id || null, title: t('{agent} 로그인', { agent: agent.name }) })
     reveal(info.id)
 
     return info
@@ -713,14 +745,17 @@ function registerIpc() {
     action === 'install' ? installStatuslineTap() : action === 'uninstall' ? uninstallStatuslineTap() : statuslineTapState()
   )
 
-  handle('agents:availability', () =>
-    getConfig().agents.map(agent => {
+  handle('agents:availability', async () => {
+    // A Dock / Finder launch starts with a minimal PATH; wait for the login shell's.
+    await hydrateLoginPath()
+
+    return getConfig().agents.map(agent => {
       const exe = agent.command.trim().split(/\s+/)[0]
       const found = findOnPath(exe)
 
       return { agentId: agent.id, installed: Boolean(found), path: found }
     })
-  )
+  })
 }
 
 function scheduleUpdateCheck() {
@@ -733,6 +768,18 @@ function scheduleUpdateCheck() {
   setInterval(run, 3 * 60 * 60_000).unref()
 }
 
+/** Main-process text (notifications, tray, dialogs) in the UI language. */
+let appliedLanguage: string | null = null
+
+function applyLanguage() {
+  const setting = getConfig().settings.uiLanguage || 'auto'
+  setLanguage(resolveLanguage(setting, app.getPreferredSystemLanguages()[0] || app.getLocale()))
+  // The renderer builds its labels once, at load: redraw it (terminals keep running in this
+  // process). Done here, after the setting is saved, so the reload reads the new value.
+  if (appliedLanguage !== null && appliedLanguage !== setting) win?.webContents.reload()
+  appliedLanguage = setting
+}
+
 // ---------------------------------------------------------------- lifecycle
 
 app.on('second-instance', () => showWindow())
@@ -740,14 +787,20 @@ app.on('second-instance', () => showWindow())
 app.whenReady().then(() => {
   if (!gotLock) return
 
+  void hydrateLoginPath()
+  // What an earlier in-app update downloaded (the installer has finished by now).
+  setTimeout(cleanUpdateDownloads, 60_000)
+
   electronSession.defaultSession.setSpellCheckerEnabled(false)
   Menu.setApplicationMenu(isMac ? Menu.buildFromTemplate([{ role: 'appMenu' }, { role: 'editMenu' }, { role: 'windowMenu' }]) : null)
 
   const config = getConfig()
+  applyLanguage()
   writeShortcutFiles(config.shortcuts)
   pty.restoreSessions()
   registerIpc()
   onConfigChange(next => {
+    applyLanguage()
     send('config:changed', next)
     applyWindowTheme()
     applyLoginItem()

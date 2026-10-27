@@ -9,6 +9,7 @@ import {
 } from '@tabler/icons-react'
 import { useMemo, useState } from 'react'
 
+import { t } from '../../../shared/i18n'
 import type { SessionInfo } from '../../../shared/types'
 import { Button, EmptyState, StatusDot, Tip } from '../../components/ui/primitives'
 import { cn } from '../../lib/cn'
@@ -75,7 +76,7 @@ function SessionTab({
       )}
       <button
         type="button"
-        aria-label="세션 닫기"
+        aria-label={t('세션 닫기')}
         className="ml-auto flex size-5 shrink-0 items-center justify-center rounded text-(--ui-text-tertiary) opacity-0 group-hover:opacity-100 hover:bg-(--chrome-action-hover) hover:text-(--ui-text-primary)"
         onClick={event => {
           event.stopPropagation()
@@ -101,7 +102,7 @@ function BroadcastBar({ sessions }: { sessions: SessionInfo[] }) {
     if (!text.trim() || !ids.length) return
 
     await api.send(ids, text, true)
-    toast(`${ids.length}개 세션에 보냈습니다.`)
+    toast(t('{count}개 세션에 보냈습니다.', { count: ids.length }))
     setText('')
   }
 
@@ -138,10 +139,10 @@ function BroadcastBar({ sessions }: { sessions: SessionInfo[] }) {
             void submit()
           }
         }}
-        placeholder="선택한 세션들에 동시에 입력 (같은 질문을 여러 AI 에게)…"
+        placeholder={t('선택한 세션들에 동시에 입력 (같은 질문을 여러 AI 에게)…')}
         className="h-7 min-w-0 flex-1 bg-transparent text-[12.5px] outline-none placeholder:text-(--ui-text-tertiary)"
       />
-      <Button size="icon-sm" variant="ghost" aria-label="보내기" onClick={() => void submit()}>
+      <Button size="icon-sm" variant="ghost" aria-label={t('보내기')} onClick={() => void submit()}>
         <IconSend />
       </Button>
     </div>
@@ -165,13 +166,13 @@ export function Workspace() {
     return (
       <EmptyState
         icon={<IconFolderPlus />}
-        title="프로젝트를 등록하세요"
-        description="자주 작업하는 폴더를 등록해 두면 클릭 한 번으로 그 폴더의 터미널·AI 세션이 열립니다. 상위 폴더를 고르면 하위 프로젝트들을 한 번에 찾아 줍니다."
+        title={t('프로젝트를 등록하세요')}
+        description={t('자주 작업하는 폴더를 등록해 두면 클릭 한 번으로 그 폴더의 터미널·AI 세션이 열립니다. 상위 폴더를 고르면 하위 프로젝트들을 한 번에 찾아 줍니다.')}
       >
         <Button variant="default" onClick={() => void addProjectsFlow('pick')}>
-          폴더 추가
+          {t('폴더 추가')}
         </Button>
-        <Button onClick={() => void addProjectsFlow('scan')}>상위 폴더에서 찾기</Button>
+        <Button onClick={() => void addProjectsFlow('scan')}>{t('상위 폴더에서 찾기')}</Button>
       </EmptyState>
     )
   }
@@ -221,14 +222,14 @@ export function Workspace() {
           <LaunchMenu project={project} split={layout.mode === 'split'} />
         </div>
         {sessions.length > 1 && (
-          <Tip label={layout.mode === 'split' ? '한 화면 보기' : '분할 보기 (최대 4개)'}>
-            <Button size="icon-sm" variant="ghost" aria-label="분할 전환" onClick={toggleSplit}>
+          <Tip label={layout.mode === 'split' ? t('한 화면 보기') : t('분할 보기 (최대 4개)')}>
+            <Button size="icon-sm" variant="ghost" aria-label={t('분할 전환')} onClick={toggleSplit}>
               {layout.mode === 'split' ? <IconSquare /> : <IconLayoutColumns />}
             </Button>
           </Tip>
         )}
-        <Tip label="백로그 패널">
-          <Button size="icon-sm" variant="ghost" aria-label="백로그 패널" onClick={() => $rightPanel.set(!rightPanel)}>
+        <Tip label={t('백로그 패널')}>
+          <Button size="icon-sm" variant="ghost" aria-label={t('백로그 패널')} onClick={() => $rightPanel.set(!rightPanel)}>
             <IconLayoutSidebarRight />
           </Button>
         </Tip>
@@ -274,7 +275,7 @@ function PaneLabel({ session, focused }: { session: SessionInfo; focused: boolea
       <AgentGlyph agent={agent} size={12} />
       <span className="truncate">{session.title}</span>
       <span className="text-(--ui-text-tertiary)">{session.name}</span>
-      {session.role && <span className="rounded bg-(--ui-bg-quaternary) px-1 text-[10px]">{session.role === 'main' ? '메인' : '보조'}</span>}
+      {session.role && <span className="rounded bg-(--ui-bg-quaternary) px-1 text-[10px]">{session.role === 'main' ? t('메인') : t('보조')}</span>}
     </div>
   )
 }

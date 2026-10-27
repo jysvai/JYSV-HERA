@@ -8,6 +8,7 @@ import {
   IconUsersGroup
 } from '@tabler/icons-react'
 
+import { t } from '../../../shared/i18n'
 import { readableOn } from '../../../shared/themes'
 import type { AgentDef, Project } from '../../../shared/types'
 import { Button } from '../../components/ui/primitives'
@@ -46,7 +47,7 @@ export function LaunchMenu({ project, split = false }: { project: Project; split
       width={300}
       align="end"
       trigger={({ toggle }) => (
-        <Button size="icon-sm" variant="ghost" aria-label="새 세션" onClick={toggle}>
+        <Button size="icon-sm" variant="ghost" aria-label={t('새 세션')} onClick={toggle}>
           <IconPlus />
         </Button>
       )}
@@ -60,9 +61,9 @@ export function LaunchMenu({ project, split = false }: { project: Project; split
               void launch({ projectId: project.id }, { split })
             }}
           >
-            <IconTerminal2 /> 새 터미널
+            <IconTerminal2 /> {t('새 터미널')}
           </MenuItem>
-          {agents.length > 0 && <MenuLabel>AI 에이전트</MenuLabel>}
+          {agents.length > 0 && <MenuLabel>{t('AI 에이전트')}</MenuLabel>}
           {agents.map(agent => (
             <div key={agent.id} className="flex items-center gap-1">
               <MenuItem
@@ -83,12 +84,12 @@ export function LaunchMenu({ project, split = false }: { project: Project; split
                     void launch({ projectId: project.id, agentId: agent.id, resume: true }, { split })
                   }}
                 >
-                  이어하기
+                  {t('이어하기')}
                 </Button>
               )}
             </div>
           ))}
-          {!!config?.teams.length && <MenuLabel>팀 (멀티 에이전트)</MenuLabel>}
+          {!!config?.teams.length && <MenuLabel>{t('팀 (멀티 에이전트)')}</MenuLabel>}
           {config?.teams.map(team => (
             <MenuItem
               key={team.id}
@@ -97,10 +98,10 @@ export function LaunchMenu({ project, split = false }: { project: Project; split
                 void launchTeam(project.id, team.id)
               }}
             >
-              <IconUsersGroup /> {team.name}
+              <IconUsersGroup /> {t(team.name)}
             </MenuItem>
           ))}
-          {project.commands.length > 0 && <MenuLabel>프로젝트 명령</MenuLabel>}
+          {project.commands.length > 0 && <MenuLabel>{t('프로젝트 명령')}</MenuLabel>}
           {project.commands.map(command => (
             <MenuItem
               key={command.name}
@@ -120,7 +121,7 @@ export function LaunchMenu({ project, split = false }: { project: Project; split
               void api.openExternal(project.id, null).then(result => toast(result.message, result.ok ? 'info' : 'error'))
             }}
           >
-            <IconExternalLink /> 외부 터미널에서 열기
+            <IconExternalLink /> {t('외부 터미널에서 열기')}
           </MenuItem>
         </>
       )}
@@ -145,8 +146,8 @@ export function LaunchPad({ project }: { project: Project }) {
           >
             <IconTerminal2 size={20} className="text-(--ui-text-secondary)" />
             <div>
-              <div className="text-[13px] font-medium">터미널</div>
-              <div className="text-[11px] text-(--ui-text-tertiary)">기본 셸</div>
+              <div className="text-[13px] font-medium">{t('터미널')}</div>
+              <div className="text-[11px] text-(--ui-text-tertiary)">{t('기본 셸')}</div>
             </div>
           </button>
           {agents.map(agent => (
@@ -165,7 +166,7 @@ export function LaunchPad({ project }: { project: Project }) {
               {agent.continueArgs && (
                 <button
                   type="button"
-                  aria-label={`${agent.name} 이어하기`}
+                  aria-label={t('{name} 이어하기', { name: agent.name })}
                   className="flex items-center px-2.5 text-(--ui-text-tertiary) hover:bg-(--chrome-action-hover) hover:text-(--ui-accent-text)"
                   onClick={() => void launch({ projectId: project.id, agentId: agent.id, resume: true })}
                 >
@@ -177,11 +178,11 @@ export function LaunchPad({ project }: { project: Project }) {
         </div>
         {!!config?.teams.length && (
           <div className="mt-6">
-            <div className="mb-2 text-[11px] font-semibold tracking-wide text-(--ui-text-tertiary) uppercase">팀으로 시작</div>
+            <div className="mb-2 text-[11px] font-semibold tracking-wide text-(--ui-text-tertiary) uppercase">{t('팀으로 시작')}</div>
             <div className="flex flex-wrap gap-2">
               {config.teams.map(team => (
                 <Button key={team.id} variant="outline" onClick={() => void launchTeam(project.id, team.id)}>
-                  <IconUsersGroup /> {team.name}
+                  <IconUsersGroup /> {t(team.name)}
                 </Button>
               ))}
             </div>
@@ -189,7 +190,7 @@ export function LaunchPad({ project }: { project: Project }) {
         )}
         {project.commands.length > 0 && (
           <div className="mt-6">
-            <div className="mb-2 text-[11px] font-semibold tracking-wide text-(--ui-text-tertiary) uppercase">프로젝트 명령</div>
+            <div className="mb-2 text-[11px] font-semibold tracking-wide text-(--ui-text-tertiary) uppercase">{t('프로젝트 명령')}</div>
             <div className="flex flex-wrap gap-2">
               {project.commands.map(command => (
                 <Button key={command.name} variant="secondary" onClick={() => void launch({ projectId: project.id, command: command.command, title: command.name })}>
@@ -200,7 +201,7 @@ export function LaunchPad({ project }: { project: Project }) {
           </div>
         )}
         <div className="mt-6 text-[11.5px] text-(--ui-text-tertiary)">
-          ▶ 버튼은 마지막 대화를 이어서 엽니다. 에이전트 목록은 PATH 에 설치된 CLI 만 표시됩니다 (에이전트 페이지에서 추가/관리).
+          {t('▶ 버튼은 마지막 대화를 이어서 엽니다. 에이전트 목록은 PATH 에 설치된 CLI 만 표시됩니다 (에이전트 페이지에서 추가/관리).')}
         </div>
       </div>
     </div>

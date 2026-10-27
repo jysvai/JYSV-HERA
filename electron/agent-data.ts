@@ -4,6 +4,7 @@
 import fs from 'node:fs'
 import path from 'node:path'
 
+import { t } from '../shared/i18n'
 import type { RateWindow } from '../shared/types'
 import { clip } from '../shared/util'
 
@@ -266,10 +267,10 @@ export function readCodexLastPrompt(file: string): string | null {
 
 function windowLabel(minutes: number | null, fallback: string): string {
   if (!minutes) return fallback
-  if (minutes <= 300) return `${Math.round(minutes / 60)}시간`
-  if (minutes >= 10_000 && minutes <= 10_200) return '주간'
+  if (minutes <= 300) return t('{hours}시간', { hours: Math.round(minutes / 60) })
+  if (minutes >= 10_000 && minutes <= 10_200) return t('주간')
 
-  return `${Math.round(minutes / 1440)}일`
+  return t('{days}일', { days: Math.round(minutes / 1440) })
 }
 
 /** Latest Codex rate-limit snapshot (written by Codex into its rollout logs). */
@@ -297,8 +298,8 @@ export function codexRateLimits(homes: string[]): { limits: RateWindow[]; at: nu
           const windows: RateWindow[] = []
 
           for (const [key, fallback] of [
-            ['primary', '5시간'],
-            ['secondary', '주간']
+            ['primary', t('5시간')],
+            ['secondary', t('주간')]
           ] as const) {
             const entry = limits[key]
 
@@ -402,11 +403,13 @@ function tokenSaverCapsFile(): string {
   return path.join(home, '.config', 'claude-token-saver', 'last-caps.json')
 }
 
-const CLAUDE_WINDOW_LABELS: Record<string, string> = {
-  five_hour: '5시간',
-  seven_day: '주간',
-  seven_day_opus: '주간 (Opus)',
-  seven_day_sonnet: '주간 (Sonnet)'
+function claudeWindowLabels(): Record<string, string> {
+  return {
+    five_hour: t('5시간'),
+    seven_day: t('주간'),
+    seven_day_opus: t('주간 (Opus)'),
+    seven_day_sonnet: t('주간 (Sonnet)')
+  }
 }
 
 /**
@@ -431,7 +434,7 @@ export function claudeRateLimits(dataDirPath: string): { limits: RateWindow[]; a
     if (data.caps?.windows) {
       for (const window of data.caps.windows) {
         limits.push({
-          label: CLAUDE_WINDOW_LABELS[window.key] || window.key,
+          label: claudeWindowLabels()[window.key] || window.key,
           usedPercent: Number(window.usedPct) || 0,
           resetsAt: window.resetsAt ? window.resetsAt * 1000 : null,
           windowMinutes: window.key === 'five_hour' ? 300 : window.key.startsWith('seven_day') ? 10080 : null
@@ -440,7 +443,7 @@ export function claudeRateLimits(dataDirPath: string): { limits: RateWindow[]; a
     } else if (data.rate_limits) {
       for (const [key, window] of Object.entries(data.rate_limits)) {
         limits.push({
-          label: CLAUDE_WINDOW_LABELS[key] || key,
+          label: claudeWindowLabels()[key] || key,
           usedPercent: Number(window.used_percentage) || 0,
           resetsAt: window.resets_at ? window.resets_at * 1000 : null,
           windowMinutes: key === 'five_hour' ? 300 : key.startsWith('seven_day') ? 10080 : null

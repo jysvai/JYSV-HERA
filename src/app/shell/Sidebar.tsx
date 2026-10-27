@@ -2,27 +2,28 @@ import { useStore } from '@nanostores/react'
 import { IconActivityHeartbeat, IconChartBar, IconFolderPlus, IconFolderSearch, IconHistory, IconKeyboard, IconMessages, IconPalette, IconPin, IconRobot, IconRoute, IconSettings, IconUserCircle } from '@tabler/icons-react'
 import { useMemo, useState } from 'react'
 
+import { t } from '../../../shared/i18n'
 import type { Project } from '../../../shared/types'
 import { formatTokens, relTime } from '../../../shared/util'
 import { Menu, MenuItem, MenuSeparator } from '../../components/ui/menu'
 import { Button, SearchField, Tip } from '../../components/ui/primitives'
 import { cn } from '../../lib/cn'
-import { api } from '../../lib/hera'
+import { api, pathForFile } from '../../lib/hera'
 import { projectTotals } from '../../lib/usage'
-import { $activity, $config, $info, $projectBadges, $projectId, $update, $usage, $view, launch, updateProject, type View } from '../../store/app'
-import { $editProjectId, addProjectsFlow } from '../projects/flows'
+import { $activity, $config, $info, $projectBadges, $projectId, $update, $usage, $view, launch, runUpdate, updateLabel, updateProject, type View } from '../../store/app'
+import { $editProjectId, addPaths, addProjectsFlow } from '../projects/flows'
 
 const NAV: { view: View; label: string; icon: typeof IconChartBar }[] = [
-  { view: 'sessions', label: '세션 현황', icon: IconActivityHeartbeat },
-  { view: 'bus', label: '에이전트 대화', icon: IconMessages },
-  { view: 'usage', label: '사용량', icon: IconChartBar },
-  { view: 'accounts', label: '계정', icon: IconUserCircle },
-  { view: 'history', label: '프롬프트 기록', icon: IconHistory },
-  { view: 'agents', label: '에이전트', icon: IconRobot },
-  { view: 'shortcuts', label: '단축어', icon: IconKeyboard },
-  { view: 'theme', label: '테마 · 색상', icon: IconPalette },
-  { view: 'lanes', label: 'Lanes 연동', icon: IconRoute },
-  { view: 'settings', label: '설정', icon: IconSettings }
+  { view: 'sessions', label: t('세션 현황'), icon: IconActivityHeartbeat },
+  { view: 'bus', label: t('에이전트 대화'), icon: IconMessages },
+  { view: 'usage', label: t('사용량'), icon: IconChartBar },
+  { view: 'accounts', label: t('계정'), icon: IconUserCircle },
+  { view: 'history', label: t('프롬프트 기록'), icon: IconHistory },
+  { view: 'agents', label: t('에이전트'), icon: IconRobot },
+  { view: 'shortcuts', label: t('단축어'), icon: IconKeyboard },
+  { view: 'theme', label: t('테마 · 색상'), icon: IconPalette },
+  { view: 'lanes', label: t('Lanes 연동'), icon: IconRoute },
+  { view: 'settings', label: t('설정'), icon: IconSettings }
 ]
 
 function ProjectRow({ project, lastAt }: { project: Project; lastAt: number }) {
@@ -53,7 +54,7 @@ function ProjectRow({ project, lastAt }: { project: Project; lastAt: number }) {
         </div>
         <div className="truncate text-[11px] text-(--ui-text-tertiary)">
           {relTime(lastAt)}
-          {todayTokens > 0 && <span className="tabular-nums"> · 오늘 {formatTokens(todayTokens)}</span>}
+          {todayTokens > 0 && <span className="tabular-nums"> · {t('오늘 {tokens}', { tokens: formatTokens(todayTokens) })}</span>}
         </div>
       </div>
       {badges && (
@@ -70,7 +71,7 @@ function ProjectRow({ project, lastAt }: { project: Project; lastAt: number }) {
         trigger={({ toggle }) => (
           <button
             type="button"
-            aria-label="프로젝트 메뉴"
+            aria-label={t('프로젝트 메뉴')}
             onClick={event => {
               event.stopPropagation()
               toggle()
@@ -89,7 +90,7 @@ function ProjectRow({ project, lastAt }: { project: Project; lastAt: number }) {
                 void launch({ projectId: project.id })
               }}
             >
-              새 터미널
+              {t('새 터미널')}
             </MenuItem>
             <MenuItem
               onSelect={() => {
@@ -97,7 +98,7 @@ function ProjectRow({ project, lastAt }: { project: Project; lastAt: number }) {
                 void api.openFolder(project.id)
               }}
             >
-              폴더 열기
+              {t('폴더 열기')}
             </MenuItem>
             <MenuItem
               onSelect={() => {
@@ -107,7 +108,7 @@ function ProjectRow({ project, lastAt }: { project: Project; lastAt: number }) {
                 })
               }}
             >
-              {project.pinned ? '고정 해제' : '상단 고정'}
+              {project.pinned ? t('고정 해제') : t('상단 고정')}
             </MenuItem>
             <MenuSeparator />
             <MenuItem
@@ -116,7 +117,7 @@ function ProjectRow({ project, lastAt }: { project: Project; lastAt: number }) {
                 $editProjectId.set(project.id)
               }}
             >
-              프로젝트 설정…
+              {t('프로젝트 설정…')}
             </MenuItem>
           </>
         )}
@@ -132,31 +133,36 @@ function VersionTag() {
   if (!info) return null
 
   const newer = update?.newer && update.latest
+  const label = updateLabel(update)
   const tip = newer
-    ? `새 버전 v${update.latest} 이 나왔습니다. 눌러서 릴리스 페이지를 엽니다.`
+    ? update.installable
+      ? update.progress?.phase === 'ready'
+        ? t('v{version} 을 내려받았습니다. 누르면 HERA 를 다시 시작해서 설치합니다.', { version: update.latest })
+        : t('새 버전 v{version} 이 나왔습니다. 누르면 앱 안에서 내려받아 설치합니다.', { version: update.latest })
+      : t('새 버전 v{version} 이 나왔습니다. 눌러서 릴리스 페이지를 엽니다.', { version: update.latest })
     : update?.checkedAt
-      ? `최신 버전입니다 · ${relTime(update.checkedAt)} 확인`
-      : '설정 → 업데이트에서 새 버전을 확인할 수 있습니다.'
+      ? t('최신 버전입니다 · {time} 확인', { time: relTime(update.checkedAt) })
+      : t('설정 → 업데이트에서 새 버전을 확인할 수 있습니다.')
 
   return (
     <div className="flex items-center gap-1.5 border-t border-(--ui-stroke-tertiary) px-3 py-1.5 text-[10.5px] text-(--ui-text-tertiary)">
       <Tip label={tip} side="top">
         {newer ? (
-          <a
-            href={update.url}
-            target="_blank"
-            rel="noreferrer"
-            className="flex items-center gap-1 rounded-full bg-(--ui-accent) px-2 py-0.5 font-medium text-(--ui-accent-fg)"
+          <button
+            type="button"
+            onClick={() => void runUpdate()}
+            disabled={update.progress?.phase === 'downloading' || update.progress?.phase === 'installing'}
+            className="flex items-center gap-1 rounded-full bg-(--ui-accent) px-2 py-0.5 font-medium text-(--ui-accent-fg) disabled:opacity-80"
           >
-            v{info.version} → v{update.latest} 업데이트
-          </a>
+            {update.progress?.phase ? label : `v${info.version} → ${label}`}
+          </button>
         ) : (
           <button type="button" onClick={() => $view.set('settings')} className="rounded-full border border-(--ui-stroke-tertiary) px-2 py-0.5 font-mono tabular-nums hover:text-(--ui-text-primary)">
             v{info.version}
           </button>
         )}
       </Tip>
-      {!newer && update?.latest && !update.error ? <span>최신</span> : null}
+      {!newer && update?.latest && !update.error ? <span>{t('최신')}</span> : null}
     </div>
   )
 }
@@ -166,6 +172,8 @@ export function Sidebar() {
   const activity = useStore($activity)
   const view = useStore($view)
   const [query, setQuery] = useState('')
+  // Folders dragged in from Explorer / Finder become projects.
+  const [dropping, setDropping] = useState(false)
 
   const lastAt = (project: Project) => Math.max(activity.launches[project.id] || 0, activity.agents[project.id] || 0)
 
@@ -179,19 +187,44 @@ export function Sidebar() {
   }, [config?.projects, activity, query])
 
   return (
-    <aside className="flex h-full w-[248px] shrink-0 flex-col border-r border-(--ui-stroke-tertiary) bg-(--ui-bg-sidebar)">
+    <aside
+      className="relative flex h-full w-[248px] shrink-0 flex-col border-r border-(--ui-stroke-tertiary) bg-(--ui-bg-sidebar)"
+      onDragOver={event => {
+        if (!event.dataTransfer.types.includes('Files')) return
+        event.preventDefault()
+        event.dataTransfer.dropEffect = 'copy'
+        setDropping(true)
+      }}
+      onDragLeave={event => {
+        if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setDropping(false)
+      }}
+      onDrop={event => {
+        event.preventDefault()
+        setDropping(false)
+        const paths = [...event.dataTransfer.files].map(file => pathForFile(file)).filter(Boolean)
+        if (paths.length) void addPaths(paths)
+      }}
+    >
+      {dropping && (
+        <div className="pointer-events-none absolute inset-1.5 z-20 flex flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-(--ui-accent) bg-(--ui-bg-sidebar)/90 text-center text-[12.5px] text-(--ui-text-primary)">
+          <IconFolderPlus size={26} className="text-(--ui-accent-text)" />
+          {t('폴더를 놓으면')}
+          <br />
+          {t('프로젝트로 등록합니다')}
+        </div>
+      )}
       <div className="flex items-center gap-1 px-3 pt-2 pb-1">
         {(config?.projects.length || 0) > 5 && (
-          <SearchField value={query} onChange={event => setQuery(event.target.value)} placeholder="프로젝트 검색" />
+          <SearchField value={query} onChange={event => setQuery(event.target.value)} placeholder={t('프로젝트 검색')} />
         )}
-        {(config?.projects.length || 0) <= 5 && <div className="flex-1 text-[11px] font-semibold tracking-wide text-(--ui-text-tertiary) uppercase">프로젝트</div>}
-        <Tip label="폴더 추가">
-          <Button size="icon-xs" variant="ghost" aria-label="폴더 추가" onClick={() => void addProjectsFlow('pick')}>
+        {(config?.projects.length || 0) <= 5 && <div className="flex-1 text-[11px] font-semibold tracking-wide text-(--ui-text-tertiary) uppercase">{t('프로젝트')}</div>}
+        <Tip label={t('폴더 추가')}>
+          <Button size="icon-xs" variant="ghost" aria-label={t('폴더 추가')} onClick={() => void addProjectsFlow('pick')}>
             <IconFolderPlus />
           </Button>
         </Tip>
-        <Tip label="상위 폴더에서 프로젝트 찾기">
-          <Button size="icon-xs" variant="ghost" aria-label="상위 폴더에서 찾기" onClick={() => void addProjectsFlow('scan')}>
+        <Tip label={t('상위 폴더에서 프로젝트 찾기')}>
+          <Button size="icon-xs" variant="ghost" aria-label={t('상위 폴더에서 찾기')} onClick={() => void addProjectsFlow('scan')}>
             <IconFolderSearch />
           </Button>
         </Tip>
@@ -202,9 +235,9 @@ export function Sidebar() {
         ))}
         {!config?.projects.length && (
           <div className="px-2 py-6 text-center text-[12px] leading-relaxed text-(--ui-text-tertiary)">
-            아직 등록된 프로젝트가 없습니다.
+            {t('아직 등록된 프로젝트가 없습니다.')}
             <br />
-            위 버튼으로 폴더를 추가하세요.
+            {t('위 버튼으로 추가하거나 폴더를 여기로 끌어다 놓으세요.')}
           </div>
         )}
       </div>
@@ -217,7 +250,7 @@ export function Sidebar() {
               onClick={() => $view.set(view === item.view ? 'workspace' : item.view)}
               className={cn(
                 'flex h-8 w-full items-center justify-center rounded-md text-(--ui-text-secondary) hover:bg-(--chrome-action-hover) hover:text-(--ui-text-primary)',
-                view === item.view && 'bg-(--ui-bg-elevated) text-(--ui-accent-text) shadow-sm'
+                (view === item.view || (item.view === 'agents' && view === 'extensions')) && 'bg-(--ui-bg-elevated) text-(--ui-accent-text) shadow-sm'
               )}
             >
               <item.icon size={17} />

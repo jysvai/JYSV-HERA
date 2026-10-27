@@ -2,7 +2,7 @@
 
 # Themes
 
-<img src="../images/features/themes.jpg" alt="" width="120" align="right">
+<img src="../images/features/themes.jpg" alt="">
 
 Open **Theme · colors** (테마 · 색상) from the sidebar. Changes apply immediately. The ☀/☾ button in the title bar switches between light and dark at any time.
 

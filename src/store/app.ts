@@ -1,11 +1,12 @@
 import { atom, computed, map } from 'nanostores'
 
+import { t } from '../../shared/i18n'
 import type { AgentAvailability, AgentUsage, BusMessage, CreateSessionRequest, HeraConfig, Project, SessionInfo, UpdateInfo } from '../../shared/types'
 import { newId } from '../../shared/util'
 import { api, on } from '../lib/hera'
 
-export type View = 'workspace' | 'sessions' | 'usage' | 'accounts' | 'agents' | 'shortcuts' | 'settings' | 'history' | 'bus' | 'theme' | 'lanes'
-export type RightTab = 'backlog' | 'usage' | 'lanes'
+export type View = 'workspace' | 'sessions' | 'usage' | 'accounts' | 'agents' | 'shortcuts' | 'settings' | 'history' | 'bus' | 'theme' | 'lanes' | 'extensions'
+export type RightTab = 'backlog' | 'files' | 'usage' | 'lanes'
 
 export interface Layout {
   mode: 'single' | 'split'
@@ -28,6 +29,8 @@ export const $rightTab = atom<RightTab>(readLocal('hera.rightTab', 'backlog'))
 export const $palette = atom<boolean>(false)
 export const $bus = atom<BusMessage[]>([])
 export const $windowVisible = atom<boolean>(true)
+/** Terminal zoom: points added to the font size setting (Ctrl/⌘ +, -, 0 and Ctrl/⌘ + wheel). */
+export const $termZoom = atom<number>(readLocal('hera.termZoom', 0))
 export const $toast = atom<{ id: string; text: string; tone: 'info' | 'error' } | null>(null)
 export const $insightTick = atom(0)
 /** Last usage summary; shared by the status bar, the usage panel and the usage page. */
@@ -81,6 +84,20 @@ $projectId.subscribe(value => writeLocal('hera.project', value))
 $layouts.subscribe(value => writeLocal('hera.layouts', value))
 $rightPanel.subscribe(value => writeLocal('hera.rightPanel', value))
 $rightTab.subscribe(value => writeLocal('hera.rightTab', value))
+$termZoom.subscribe(value => writeLocal('hera.termZoom', value))
+
+/** Zoom every terminal in or out by `step` points, or back to the font size setting. */
+export function zoomTerminals(step: number | 'reset') {
+  const base = $config.get()?.settings.fontSize || 13
+  const next = step === 'reset' ? 0 : Math.max(6 - base, Math.min(40 - base, $termZoom.get() + step))
+  if (next === $termZoom.get() && step !== 'reset') return
+  $termZoom.set(next)
+  toast(next ? t('터미널 글자 크기 {size} (기본 {base}) · {shortcut} 으로 되돌리기', { size: base + next, base, shortcut: isMacPlatform() ? '⌘0' : 'Ctrl+0' }) : t('터미널 글자 크기 {size} (기본)', { size: base }))
+}
+
+function isMacPlatform() {
+  return navigator.platform.toLowerCase().includes('mac')
+}
 
 /** Show the right-hand panel on a tab (workspace view), or hide it when that tab is already showing. */
 export function toggleRightTab(tab: RightTab, forceOpen = false) {
@@ -122,6 +139,46 @@ export const $projectBadges = computed($sessions, sessions => {
   return out
 })
 
+/** Short label of the in-app update for buttons, or null when there is nothing to do. */
+export function updateLabel(update: UpdateInfo | null): string | null {
+  if (!update?.newer || !update.latest) return null
+  const progress = update.progress
+  if (progress?.phase === 'downloading') return t('내려받는 중 {percent}%', { percent: progress.total ? Math.floor((progress.received / progress.total) * 100) : 0 })
+  if (progress?.phase === 'ready') return t('다시 시작해서 v{version} 설치', { version: update.latest })
+  if (progress?.phase === 'installing') return t('설치하는 중…')
+
+  return t('v{version} 업데이트', { version: update.latest })
+}
+
+/**
+ * The update button: first download and verify, then (second press) restart into the
+ * installer. Builds that cannot update themselves open the release page instead.
+ */
+export async function runUpdate() {
+  const update = $update.get()
+  if (!update?.newer) return
+  if (!update.installable) {
+    window.open(update.url, '_blank')
+    return
+  }
+  const phase = update.progress?.phase
+  if (phase === 'downloading' || phase === 'installing') return
+
+  if (phase === 'ready') {
+    const ok = window.confirm(t('HERA 를 다시 시작해서 업데이트를 설치합니다.\n열려 있는 터미널은 세션 기억으로 다시 열리지만, 실행 중인 작업은 멈춥니다. 계속할까요?'))
+    if (!ok) return
+  }
+
+  try {
+    const next = await api.update(phase === 'ready' ? 'install' : 'download')
+    $update.set(next)
+    if (next.progress?.phase === 'error') toast(t('업데이트 실패: {error}', { error: next.progress.error || '' }), 'error')
+    else if (next.progress?.phase === 'ready' && phase !== 'ready') toast(t('업데이트를 내려받았습니다. 버튼을 한 번 더 누르면 다시 시작해서 설치합니다.'))
+  } catch (error) {
+    toast(t('업데이트 실패: {error}', { error: (error as Error).message }), 'error')
+  }
+}
+
 export function toast(text: string, tone: 'info' | 'error' = 'info') {
   const id = newId()
   $toast.set({ id, text, tone })
@@ -147,7 +204,7 @@ export function updateConfig(mutate: (draft: HeraConfig) => void) {
       // Main's normalized copy wins once our last edit has landed.
       if (configInFlight === 1 && saved) $config.set(saved)
     })
-    .catch(error => toast(`설정 저장 실패: ${error.message}`, 'error'))
+    .catch(error => toast(t('설정 저장 실패: {error}', { error: error.message }), 'error'))
     .finally(() => configInFlight--)
 }
 
@@ -207,7 +264,7 @@ export async function launch(req: CreateSessionRequest, opts: { split?: boolean 
 
     return session
   } catch (error) {
-    toast(`실행 실패: ${(error as Error).message}`, 'error')
+    toast(t('실행 실패: {error}', { error: (error as Error).message }), 'error')
 
     return null
   }
