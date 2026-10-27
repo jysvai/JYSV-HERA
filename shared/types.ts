@@ -103,6 +103,10 @@ export interface Settings {
   scrollback: number
   /** WebGL renderer for visible terminals (faster under heavy output, costs GPU memory). */
   gpu: boolean
+  /** Windows: the ConPTY that ships with HERA (as Windows Terminal does) instead of the system one. */
+  conptyDll: boolean
+  cursorStyle: 'bar' | 'block' | 'underline'
+  cursorBlink: boolean
   /** Fewer Chromium processes + aggressive trimming. Applies on restart. */
   lowMemory: boolean
   /** Destroy the window after it has been hidden this many minutes (0 = never). */
@@ -133,6 +137,21 @@ export interface Settings {
   /** Monthly budget hints for the usage page (tokens, 0 = off). */
   usageWarnPercent: number
   language: 'ko' | 'en'
+}
+
+/** What HERA can take over from the terminal used before it (Windows Terminal's default profile). */
+export interface TerminalImport {
+  source: string
+  profile: string
+  fontFace?: string
+  /** CSS pixels. */
+  fontSize?: number
+  cursorStyle?: 'bar' | 'block' | 'underline'
+  scrollback?: number
+  /** A HERA shell setting: a kind ('pwsh', 'gitbash') or a command line ('wsl.exe -d Ubuntu'). */
+  shell?: string
+  shellLabel?: string
+  scheme?: { name: string; background: string; foreground: string; cursor?: string; ansi: import('./themes').AnsiPalette }
 }
 
 export interface UpdateInfo {
@@ -206,6 +225,8 @@ export interface CreateSessionRequest {
   extraArgs?: string
   /** The tab hosts this lanes lane. */
   lane?: LaneTier | null
+  /** Extra environment for the shell (the config dir and provider of the session that asked for it). */
+  env?: Record<string, string>
   /** Session this one was spawned from (team / hera spawn). */
   parentId?: string | null
 }

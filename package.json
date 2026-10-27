@@ -1,7 +1,7 @@
 {
   "name": "jysv-hera",
   "productName": "JYSV HERA",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "JYSV HERA - a lightweight project terminal and multi-AI command center (Claude Code, Codex, Gemini, ...)",
   "author": {
     "name": "jysvai",
@@ -38,6 +38,7 @@
     "node-pty": "1.1.0"
   },
   "devDependencies": {
+    "@fontsource/cascadia-mono": "5.3.0",
     "@nanostores/react": "1.1.0",
     "@tabler/icons-react": "3.44.0",
     "@tailwindcss/vite": "4.3.3",
@@ -77,7 +78,7 @@
       "!**/*.map",
       "!**/node_modules/node-pty/{build,deps,src,scripts,third_party,typings}/**",
       "!**/node_modules/node-pty/binding.gyp",
-      "!**/node_modules/node-pty/prebuilds/*/conpty/**",
+      "!**/node_modules/node-pty/prebuilds/**/*.pdb",
       "!**/node_modules/node-pty/lib/**/*.test.js"
     ],
     "extraResources": [

@@ -3,7 +3,8 @@ import { useEffect, useState } from 'react'
 
 import type { Shortcut } from '../../../shared/types'
 import { relTime } from '../../../shared/util'
-import { Button, Dialog, Input, Select, Switch, Textarea } from '../../components/ui/primitives'
+import { ShellPicker } from '../../components/ShellPicker'
+import { Button, Dialog, Input, Switch, Textarea } from '../../components/ui/primitives'
 import { $config, $projectId, updateConfig } from '../../store/app'
 import { $editProjectId, $scanResult, addPaths } from './flows'
 
@@ -130,16 +131,7 @@ export function ProjectDialog() {
         </div>
         <label className="block">
           <div className="mb-1 text-[12px] text-(--ui-text-secondary)">셸</div>
-          <Select value={shell} onChange={event => setShell(event.target.value)}>
-            <option value="auto">기본값 따르기</option>
-            <option value="powershell">PowerShell</option>
-            <option value="pwsh">PowerShell 7 (pwsh)</option>
-            <option value="cmd">명령 프롬프트 (cmd)</option>
-            <option value="gitbash">Git Bash</option>
-            <option value="bash">bash</option>
-            <option value="zsh">zsh</option>
-            <option value="fish">fish</option>
-          </Select>
+          <ShellPicker value={shell} onChange={setShell} autoLabel="기본값 따르기" className="w-full" />
         </label>
         <label className="block">
           <div className="mb-1 text-[12px] text-(--ui-text-secondary)">프로젝트 명령 (한 줄에 하나: 이름 = 명령)</div>

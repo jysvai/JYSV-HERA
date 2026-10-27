@@ -135,3 +135,11 @@ export function heraPipeName(user: string, dataDir: string, defaultDataDir: stri
 
   return `${prefix}${safeUser}-${hash.toString(16)}`
 }
+
+/**
+ * Environment a tab opened for another session (`hera host`) takes from it: the
+ * Claude config dir (lanes register there; a profile's lanes must find their main)
+ * and which provider and region it uses. Never a key.
+ */
+export const HOST_PASSED_ENV =
+  /^(CLAUDE_CONFIG_DIR|CLAUDE_CODE_USE_(BEDROCK|MANTLE|VERTEX|FOUNDRY)|AWS_(REGION|DEFAULT_REGION|PROFILE)|ANTHROPIC_(BEDROCK_REGION_PREFIX|VERTEX_PROJECT_ID|FOUNDRY_RESOURCE|BEDROCK_BASE_URL|BEDROCK_MANTLE_BASE_URL|VERTEX_BASE_URL|FOUNDRY_BASE_URL|DEFAULT_(OPUS|SONNET|HAIKU|FABLE)_MODEL)|CLOUD_ML_REGION)$/

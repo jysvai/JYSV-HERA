@@ -85,6 +85,39 @@ interface Transcript {
   id: string
   born: number
   touched: number
+  /** Claude transcript file, read lazily to tell a lanes lane's conversation apart. */
+  file?: string
+}
+
+// A lanes lane runs as `claude -n <folder>-<4 hex>-mid|low`; Claude Code records that name near the top.
+const LANE_NAME = /"agentName":"[^"]*-[0-9a-f]{4}-(?:mid|low)"/
+const laneCache = new Map<string, boolean>()
+
+function isLaneTranscript(entry: Transcript): boolean {
+  if (!entry.file) return false
+  const key = `${entry.file}|${entry.born}`
+  const known = laneCache.get(key)
+  if (known !== undefined) return known
+
+  let lane = false
+
+  try {
+    const fd = fs.openSync(entry.file, 'r')
+
+    try {
+      const head = Buffer.alloc(16_384)
+      lane = LANE_NAME.test(head.subarray(0, fs.readSync(fd, head, 0, head.length, 0)).toString('utf8'))
+    } finally {
+      fs.closeSync(fd)
+    }
+  } catch {
+    return false
+  }
+
+  if (laneCache.size > 2000) laneCache.clear()
+  laneCache.set(key, lane)
+
+  return lane
 }
 
 function samePath(a: string | null | undefined, b: string | null | undefined) {
@@ -112,8 +145,9 @@ function claudeTranscripts(cwd: string, configDir: string | null): Transcript[] 
     if (!name.endsWith('.jsonl')) continue
 
     try {
-      const stat = fs.statSync(path.join(dir, name))
-      out.push({ id: name.slice(0, -'.jsonl'.length), born: stat.birthtimeMs || stat.mtimeMs, touched: stat.mtimeMs })
+      const file = path.join(dir, name)
+      const stat = fs.statSync(file)
+      out.push({ id: name.slice(0, -'.jsonl'.length), born: stat.birthtimeMs || stat.mtimeMs, touched: stat.mtimeMs, file })
     } catch {
       // vanished
     }
@@ -147,9 +181,11 @@ function transcriptsFor(claim: ConversationClaim): Transcript[] | null {
 
 /**
  * Match each terminal to the conversation it is holding. Latest-started terminals
- * pick first, each taking the most recently written transcript that was created
- * after it started and that no other terminal took (covers `/clear` and several
- * agents of the same kind in one folder).
+ * pick first. A terminal keeps the conversation HERA started it with unless a
+ * newer one began after that one went quiet (`/clear`); otherwise it takes the
+ * most recently written transcript created after it started that no other
+ * terminal took (several agents of the same kind in one folder). A lanes lane's
+ * conversation is never a candidate: resumed in a main tab it would replace main.
  */
 export function detectConversations(claims: ConversationClaim[]): Map<string, string | null> {
   const result = new Map<string, string | null>()
@@ -166,10 +202,13 @@ export function detectConversations(claims: ConversationClaim[]): Map<string, st
       continue
     }
 
-    const best = transcripts
-      .filter(entry => entry.born >= claim.startedAt - 10_000 && !taken.has(entry.id))
-      .sort((a, b) => b.touched - a.touched)[0]
-    const id = best?.id || (claim.known && transcripts.some(entry => entry.id === claim.known) ? claim.known : null)
+    const own = claim.known ? transcripts.find(entry => entry.id === claim.known && !taken.has(entry.id)) : undefined
+    const candidates = transcripts
+      .filter(entry => entry.born >= claim.startedAt - 10_000 && !taken.has(entry.id) && entry !== own && !isLaneTranscript(entry))
+      .sort((a, b) => b.touched - a.touched)
+    // Another conversation counts only if it began after HERA's own one stopped being written.
+    const newer = own ? candidates.find(entry => entry.born > own.touched - 2000) : candidates[0]
+    const id = newer?.id || own?.id || null
 
     if (id) taken.add(id)
     result.set(claim.key, id)

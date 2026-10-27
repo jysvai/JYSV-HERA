@@ -7,7 +7,7 @@ import os from 'node:os'
 import path from 'node:path'
 
 import type { WireRequest, WireResponse } from '../shared/types'
-import { heraPipeName } from '../shared/util'
+import { HOST_PASSED_ENV, heraPipeName } from '../shared/util'
 
 const isWin = process.platform === 'win32'
 
@@ -96,7 +96,7 @@ interface Parsed {
   rest: string[]
 }
 
-const VALUE_FLAGS = new Set(['n', 'lines', 'idle', 'timeout', 'file', 'project', 'agent', 'cmd', 'name', 'role', 'limit'])
+const VALUE_FLAGS = new Set(['n', 'lines', 'idle', 'timeout', 'file', 'project', 'agent', 'cmd', 'name', 'role', 'limit', 'lane', 'cwd', 'run', 'title'])
 
 function parse(argv: string[]): Parsed {
   const parsed: Parsed = { positional: [], flags: {}, rest: [] }
@@ -252,6 +252,8 @@ usage: hera <command> [args]
   wait <target>                     wait until target is idle            [--idle 5] [--timeout 1800]
   key <target> <keys...>            press keys: enter esc tab up down left right ctrl-c y n 1 ...
   spawn <agent> [--cmd "..."]       start a helper session in this project [--project p] [--resume] [--no-split]
+  host [--cwd dir] [-- command]     open a tab in the registered project holding dir (refused elsewhere) [--title t] [--check]
+  host --lane mid|low --run file    open a lanes lane in a HERA tab (used by the lanes plugin)
   projects | add [path] | open <project> [--agent a] [--resume]
   whoami | status | log [-n 30] | guide | --version
   statusline-tap [-- original statusline command]   (Claude Code statusLine integration)
@@ -419,6 +421,25 @@ async function main() {
         split: parsed.flags['no-split'] !== true
       })) as { name: string }
       out(`spawned ${result.name} — give it a few seconds to boot, then: hera ask ${result.name} "..."`)
+      break
+    }
+
+    case 'host': {
+      // Paths can come through the environment instead: hera.cmd hands its arguments
+      // to cmd.exe, which would run a & or | in a folder name.
+      const flag = (key: string) => (typeof parsed.flags[key] === 'string' ? (parsed.flags[key] as string) : '')
+      const env: Record<string, string> = {}
+      for (const [key, value] of Object.entries(process.env)) if (value !== undefined && HOST_PASSED_ENV.test(key)) env[key] = value
+      const result = (await call('host', {
+        lane: flag('lane'),
+        cwd: path.resolve(flag('cwd') || process.env.HERA_HOST_CWD || process.cwd()),
+        run: flag('run') || process.env.HERA_HOST_RUN || '',
+        command: parsed.rest.join(' '),
+        title: flag('title'),
+        check: parsed.flags.check === true,
+        env
+      })) as { name: string; project: string }
+      out(parsed.flags.check === true ? `HERA hosts ${result.project}` : `opened ${result.name || 'a tab'} in ${result.project}`)
       break
     }
 

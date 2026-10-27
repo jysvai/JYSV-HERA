@@ -10,9 +10,10 @@ import path from 'node:path'
 
 import { LANE_ALLOW_RULES } from '../shared/defaults'
 import type { CreateSessionRequest, LaneLive, LaneOptionSpec, LaneProjectState, LanesInfo, LaneTask, LaneTier, Project, SessionInfo } from '../shared/types'
+import { HOST_PASSED_ENV } from '../shared/util'
 
-import { dataPath, isWin, readJson, writeJsonAtomic } from './paths'
-import { getConfig, projectById } from './store'
+import { binDir, dataPath, isWin, readJson, writeJsonAtomic } from './paths'
+import { getConfig, projectById, projectForPath } from './store'
 
 const REPO = 'https://github.com/jysvai/lanes'
 const TIERS: LaneTier[] = ['mid', 'low']
@@ -79,6 +80,15 @@ function marketplaceDirs(marketDir: string, name: string): string[] {
 
 function hasScript(dir: string): boolean {
   return fs.existsSync(path.join(dir, 'bin', isWin ? 'lanes.ps1' : 'lanes.sh'))
+}
+
+/** lanes 0.3.13+ asks HERA for a tab itself (`hera host --lane`) whenever HERA_LANES_HOST is set. */
+function hasHostSeam(root: string): boolean {
+  try {
+    return fs.readFileSync(path.join(root, 'bin', isWin ? 'lanes.ps1' : 'lanes.sh'), 'utf8').includes('HERA_LANES_HOST')
+  } catch {
+    return false
+  }
 }
 
 /** Where the installed lanes plugin lives, from Claude Code's plugin registry. */
@@ -170,7 +180,7 @@ export function lanesInfo(): LanesInfo {
     stored,
     effective,
     repo: REPO,
-    canHost: isWin,
+    canHost: isWin || Boolean(where && hasHostSeam(where.root)),
     recommendedRules: [...LANE_ALLOW_RULES]
   }
 }
@@ -473,16 +483,24 @@ function run(file: string, args: string[], env: NodeJS.ProcessEnv): Promise<{ co
   })
 }
 
+/** What lets lanes.ps1 / lanes.sh reach this HERA: the host switch and the `hera` CLI on PATH. */
+function hostEnv(): Record<string, string> {
+  const pathKey = Object.keys(process.env).find(key => key.toLowerCase() === 'path') || 'PATH'
+
+  return { HERA_LANES_HOST: '1', [pathKey]: `${binDir()}${path.delimiter}${process.env[pathKey] || ''}` }
+}
+
 /** Run lanes.ps1 / lanes.sh hidden, the way the plugin itself does. */
-async function runScript(info: LanesInfo, project: Project, verb: 'start' | 'stop', which: LaneTier | 'all', launch: 'window' | 'background') {
+async function runScript(info: LanesInfo, project: Project, verb: 'start' | 'stop', which: LaneTier | 'all', launch: 'window' | 'background', extra: Record<string, string> = {}) {
   const slug = laneSlug(project.path)
   const args = scriptArgs(info, project, slug, launch)
 
   if (isWin) {
-    return run('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', scriptCall(info, verb, which, args)], cleanEnv())
+    return run('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', scriptCall(info, verb, which, args)], cleanEnv(extra))
   }
 
   return run('/bin/bash', [path.join(info.root || '', 'bin', 'lanes.sh'), verb, which], cleanEnv({
+    ...extra,
     LANES_PROJECT: project.path,
     LANES_SLUG: slug,
     LANES_LAUNCH: launch,
@@ -508,7 +526,7 @@ function hostScript(info: LanesInfo, project: Project, tier: LaneTier): string {
 
   return [
     `# JYSV HERA: runs the lanes lane ${slug}-${tier} in this tab instead of a new window.`,
-    `foreach ($name in @(${CLAUDE_SESSION_MARKERS.map(psQuote).join(', ')})) { Remove-Item -LiteralPath "Env:$name" -ErrorAction SilentlyContinue }`,
+    `foreach ($name in @(${[...CLAUDE_SESSION_MARKERS, 'HERA_LANES_HOST'].map(psQuote).join(', ')})) { Remove-Item -LiteralPath "Env:$name" -ErrorAction SilentlyContinue }`,
     // lanes.ps1 pipes Start-Process into Out-Null: a launch run through that pipeline gets a
     // redirected stdout and claude falls back to --print. Process.Start keeps this tab's console.
     'function Start-Process {',
@@ -536,6 +554,54 @@ function hostInTab(info: LanesInfo, project: Project, tier: LaneTier): SessionIn
   const command = `powershell.exe -NoProfile -Command "& ([scriptblock]::Create([IO.File]::ReadAllText(${psQuote(file)}, [Text.Encoding]::UTF8)))"`
 
   return tabs.open({ projectId: project.id, command, title: `lane · ${tier}`, lane: tier })
+}
+
+export interface HostRequest {
+  cwd: string
+  lane: LaneTier
+  /** The lane's run script lanes.ps1 / lanes.sh wrote (<project>/.claude/lanes/state/<tier>.run.ps1|.command). */
+  run: string
+  env?: Record<string, string>
+  /** Only say whether HERA would host it. */
+  check?: boolean
+}
+
+/**
+ * The lanes plugin asks for a tab (`hera host --lane`) instead of opening a window.
+ * Only for a project registered in HERA and while HERA hosts lanes; the plugin opens
+ * its own window when this refuses.
+ */
+export function hostLane(req: HostRequest): { id: string | null; name: string; project: string } {
+  const settings = getConfig().settings.lanes
+  if (!settings.enabled || settings.host !== 'hera') throw new Error('HERA 가 lanes 를 탭으로 열지 않도록 설정되어 있습니다.')
+  if (!tabs) throw new Error('HERA 창이 아직 준비되지 않았습니다.')
+
+  const cwd = path.resolve(req.cwd || '')
+  const project = req.cwd ? projectForPath(cwd) : null
+  if (!project) throw new Error(`HERA 에 등록된 프로젝트가 아닙니다: ${cwd}`)
+
+  const run = path.resolve(req.run || '')
+  const expected = path.join(cwd, '.claude', 'lanes', 'state', `${req.lane}.run.${isWin ? 'ps1' : 'command'}`)
+  const same = isWin ? run.toLowerCase() === expected.toLowerCase() : run === expected
+  if (!req.check && (!same || !fs.existsSync(run))) throw new Error(`lane 실행 파일이 아닙니다: ${run}`)
+
+  const name = `${laneSlug(cwd)}-${req.lane}`
+  if (req.check) return { id: null, name, project: project.name }
+
+  // A lane that closed leaves its tab behind; the new one takes its place.
+  for (const session of tabs.list()) {
+    if (session.lane === req.lane && session.projectId === project.id && (session.status === 'exited' || session.dormant)) tabs.close(session.id)
+  }
+
+  const env: Record<string, string> = {}
+  for (const [key, value] of Object.entries(req.env || {})) if (HOST_PASSED_ENV.test(key) && typeof value === 'string') env[key] = value
+
+  // Typed into the project's shell, so it has to read the same in PowerShell, cmd and POSIX shells.
+  const command = isWin ? `powershell.exe -NoProfile -Command "& ([scriptblock]::Create([IO.File]::ReadAllText(${psQuote(run)}, [Text.Encoding]::UTF8)))"` : `/bin/bash '${run.replace(/'/g, `'\\''`)}'`
+  const info = tabs.open({ projectId: project.id, cwd, command, title: `lane · ${req.lane}`, lane: req.lane, env })
+  opening.set(name, Date.now())
+
+  return { id: info.id, name, project: project.name }
 }
 
 function applyAllowFor(project: Project, rules: string[]): number {
@@ -583,7 +649,22 @@ export async function startLanes(projectId: string, which: LaneTier | 'all'): Pr
 
   if (!tiers.length) return { ok: true, message: '이미 열려 있습니다.' }
 
-  if (settings.host === 'hera' && info.canHost) {
+  const scope = tiers.length === 2 ? 'all' : tiers[0]
+
+  // lanes asks HERA for its tabs itself (`hera host`), the same way a lane the main session opens does.
+  if (settings.host === 'hera' && info.root && hasHostSeam(info.root)) {
+    const result = await runScript(info, project, 'start', scope, 'window', hostEnv())
+    const untrusted = /Workspace not trusted/i.test(result.out)
+
+    if (result.code === 0 && !untrusted) for (const tier of tiers) opening.set(`${slug}-${tier}`, Date.now())
+
+    return {
+      ok: result.code === 0 && !untrusted,
+      message: untrusted ? '이 폴더를 Claude Code 가 아직 신뢰하지 않습니다. 이 프로젝트에서 claude 를 한 번 열어 신뢰를 허용한 뒤 다시 시도하세요.' : `${tiers.join(', ')} lane 을 HERA 탭에서 엽니다.`
+    }
+  }
+
+  if (settings.host === 'hera' && isWin) {
     for (const tier of tiers) {
       hostInTab(info, project, tier)
       opening.set(`${slug}-${tier}`, Date.now())
@@ -592,7 +673,7 @@ export async function startLanes(projectId: string, which: LaneTier | 'all'): Pr
     return { ok: true, message: `${tiers.join(', ')} lane 을 HERA 탭에서 엽니다.` }
   }
 
-  const result = await runScript(info, project, 'start', tiers.length === 2 ? 'all' : tiers[0], 'window')
+  const result = await runScript(info, project, 'start', scope, 'window')
   // claude refuses an untrusted folder but lanes.ps1 still exits 0.
   const untrusted = /Workspace not trusted/i.test(result.out)
 

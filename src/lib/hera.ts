@@ -14,6 +14,7 @@ import type {
   Project,
   ProjectInsight,
   SessionInfo,
+  TerminalImport,
   UpdateInfo
 } from '../../shared/types'
 
@@ -23,6 +24,7 @@ interface Bridge {
   on: (channel: string, listener: (...args: never[]) => void) => () => void
   pathForFile: (file: File) => string
   platform: string
+  osBuild: number
 }
 
 declare global {
@@ -40,12 +42,15 @@ function call<T>(channel: string, ...args: unknown[]): Promise<T> {
 export const platform = bridge.platform
 export const isMac = platform === 'darwin'
 export const isWin = platform === 'win32'
+export const osBuild = bridge.osBuild || 0
 export const on = bridge.on
 export const writePty = bridge.write
 export const pathForFile = bridge.pathForFile
 
 export const api = {
   update: (action: 'state' | 'check') => call<UpdateInfo>('app:update', action),
+  terminalImport: () => call<TerminalImport | null>('terminal:import'),
+  shells: () => call<{ value: string; label: string }[]>('shells:list'),
   info: () => call<{ platform: string; version: string; dataDir: string; pendingReveal: { sessionId: string | null } | null }>('app:info'),
   metrics: () => call<AppMetrics>('app:metrics'),
   quit: () => call<void>('app:quit'),

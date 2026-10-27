@@ -50,6 +50,7 @@ import {
   setConfig
 } from './store'
 import { runSmoke } from './smoke'
+import { availableShells, detectTerminalImport } from './terminal-import'
 import { checkForUpdate, updateState } from './update'
 import { getUsage } from './usage'
 
@@ -589,6 +590,8 @@ function registerIpc() {
   }))
   handle('app:metrics', metrics)
   handle('app:update', (action: 'state' | 'check') => (action === 'check' ? checkForUpdate(true) : updateState()))
+  handle('terminal:import', () => detectTerminalImport())
+  handle('shells:list', () => availableShells())
   handle('app:quit', () => {
     quitting = true
     app.quit()

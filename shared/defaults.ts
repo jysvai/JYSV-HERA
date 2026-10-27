@@ -445,6 +445,9 @@ export function defaultSettings(platform: string): Settings {
     lineHeight: 1.15,
     scrollback: 3000,
     gpu: false,
+    conptyDll: true,
+    cursorStyle: 'bar',
+    cursorBlink: false,
     lowMemory: true,
     deepSleepMinutes: 10,
     hotkey: mac ? 'Command+Shift+Space' : 'Control+Alt+Space',
@@ -551,6 +554,9 @@ function normalizeSettings(base: Settings, raw: Partial<Settings> | undefined): 
   settings.highContrast = Boolean(settings.highContrast)
   settings.launchAtLogin = settings.launchAtLogin !== false
   settings.checkUpdates = settings.checkUpdates !== false
+  settings.conptyDll = settings.conptyDll !== false
+  if (!['bar', 'block', 'underline'].includes(settings.cursorStyle)) settings.cursorStyle = 'bar'
+  settings.cursorBlink = settings.cursorBlink === true
   if (settings.restoreMode !== 'manual') settings.restoreMode = 'resume'
   settings.lanes = normalizeLanes(settings.lanes)
 

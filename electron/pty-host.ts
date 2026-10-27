@@ -9,10 +9,12 @@
 // Output to the renderer is coalesced per ~8ms instead of one IPC per chunk.
 import { EventEmitter } from 'node:events'
 import fs from 'node:fs'
+import os from 'node:os'
 import path from 'node:path'
 import workerThreads from 'node:worker_threads'
 
 import { SerializeAddon } from '@xterm/addon-serialize'
+import { Unicode11Addon } from '@xterm/addon-unicode11'
 import { Terminal as HeadlessTerminal } from '@xterm/headless'
 import * as nodePty from 'node-pty'
 
@@ -96,6 +98,66 @@ export const ptyEvents = new TypedEmitter()
 const sessions = new Map<string, Session>()
 const FLUSH_MS = 8
 const STATUS_DEBOUNCE_MS = 650
+
+// The renderer's xterm uses Unicode 11 widths and knows it runs on ConPTY (which
+// changes how a resize reflows and grows the screen). The headless copy has to
+// measure and resize exactly the same way: a snapshot taken from it (tab shown
+// again, window restored) otherwise redraws a different, broken screen.
+const WINDOWS_PTY = isWin ? { backend: 'conpty' as const, buildNumber: Number(os.release().split('.')[2]) || undefined } : undefined
+
+function headlessTerminal(cols: number, rows: number, scrollback: number): { term: HeadlessTerminal; serializer: SerializeAddon } {
+  const term = new HeadlessTerminal({ cols, rows, scrollback, allowProposedApi: true, windowsPty: WINDOWS_PTY })
+  const serializer = new SerializeAddon()
+  term.loadAddon(serializer as unknown as Parameters<HeadlessTerminal['loadAddon']>[0])
+  term.loadAddon(new Unicode11Addon() as unknown as Parameters<HeadlessTerminal['loadAddon']>[0])
+  term.unicode.activeVersion = '11'
+
+  return { term, serializer }
+}
+
+/** Scrollback a snapshot carries: as much as the renderer keeps, so a tab switch loses none of it. */
+function snapshotLines(): number {
+  return Math.min(getConfig().settings.scrollback, 5000)
+}
+
+interface HeadlessCore {
+  coreMouseService?: { activeEncoding?: string }
+  coreService?: { isCursorHidden?: boolean; decPrivateModes?: { cursorStyle?: string; cursorBlink?: boolean } }
+  _bufferService?: { buffer?: { scrollTop: number; scrollBottom: number } }
+}
+
+const CURSOR_STYLE: Record<string, number> = { block: 1, underline: 3, bar: 5 }
+
+/**
+ * Terminal state SerializeAddon leaves out but a running program relies on: the
+ * mouse encoding (full-screen TUIs such as Claude Code's read SGR wheel events
+ * to scroll, and legacy encoding after a tab switch reads as no scrolling at all),
+ * the cursor's visibility and shape, and the scroll region.
+ */
+function liveState(term: HeadlessTerminal): string {
+  const core = (term as unknown as { _core?: HeadlessCore })._core
+  let out = ''
+
+  const encoding = core?.coreMouseService?.activeEncoding
+  if (encoding === 'SGR') out += '\x1b[?1006h'
+  else if (encoding === 'SGR_PIXELS') out += '\x1b[?1016h'
+
+  const dec = core?.coreService?.decPrivateModes
+  const style = dec?.cursorStyle ? CURSOR_STYLE[dec.cursorStyle] : undefined
+  if (style) out += `\x1b[${style + (dec?.cursorBlink ? 0 : 1)} q`
+
+  const buffer = core?._bufferService?.buffer
+  // DECSTBM homes the cursor: keep it where the snapshot left it.
+  if (buffer && (buffer.scrollTop !== 0 || buffer.scrollBottom !== term.rows - 1)) out += `\x1b7\x1b[${buffer.scrollTop + 1};${buffer.scrollBottom + 1}r\x1b8`
+
+  if (core?.coreService?.isCursorHidden) out += '\x1b[?25l'
+
+  return out
+}
+
+function snapshotOf(session: Session): string {
+  return session.serializer.serialize({ scrollback: snapshotLines() }) + liveState(session.term)
+}
 
 function agentById(id: string | null | undefined): AgentDef | null {
   if (!id) {
@@ -241,14 +303,7 @@ export function createSession(req: CreateSessionRequest): SessionInfo {
   const [cols, rows] = clampSize(req.cols || 120, req.rows || 32)
   const id = newId('s_')
   const name = uniqueName(agent?.id || spec.kind)
-  const term = new HeadlessTerminal({
-    cols,
-    rows,
-    scrollback: config.settings.scrollback,
-    allowProposedApi: true
-  })
-  const serializer = new SerializeAddon()
-  term.loadAddon(serializer as unknown as Parameters<HeadlessTerminal['loadAddon']>[0])
+  const { term, serializer } = headlessTerminal(cols, rows, config.settings.scrollback)
   // A fresh agent conversation gets an id HERA knows, so it can be resumed exactly.
   const conversationId = agent && !req.command?.trim() && !req.resume && agent.sessionIdArgs ? newConversationId() : null
 
@@ -293,11 +348,30 @@ export function createSession(req: CreateSessionRequest): SessionInfo {
   }
 
   trackCwd(session)
+  answerQueries(session)
   sessions.set(id, session)
   spawn(session, spec)
   ptyEvents.emit('changed', info(session))
 
   return info(session)
+}
+
+/**
+ * Answers to the program's queries (device attributes, cursor position) come from
+ * the renderer's xterm while a tab is on screen, and from the headless copy while
+ * it is not: ConPTY waits for its device-attributes answer before the shell starts,
+ * so a tab opened in the background would otherwise hang.
+ */
+function answerQueries(session: Session) {
+  session.term.onData(data => {
+    if (session.attached || session.attaching || !session.pty) return
+
+    try {
+      session.pty.write(data)
+    } catch {
+      // exiting
+    }
+  })
 }
 
 function trackCwd(session: Session) {
@@ -313,9 +387,13 @@ function trackCwd(session: Session) {
 
 function spawn(session: Session, spec: ShellSpec) {
   const agent = agentById(session.agentId)
+  const lanes = getConfig().settings.lanes
   const env = shellEnv({
     ...spec.env,
     ...profileEnv(agent, session.profileId),
+    ...(session.launchReq.env || {}),
+    // Tells the lanes plugin to open its lanes as HERA tabs (`hera host`) instead of new windows.
+    ...(lanes.enabled && lanes.host === 'hera' ? { HERA_LANES_HOST: '1' } : {}),
     HERA_SESSION_ID: session.id,
     HERA_SESSION_NAME: session.name,
     HERA_PROJECT: projectById(session.projectId)?.name || '',
@@ -323,16 +401,22 @@ function spawn(session: Session, spec: ShellSpec) {
   })
 
   let pty: nodePty.IPty
+  const options = { cols: session.cols, rows: session.rows, cwd: session.cwd, env, name: 'xterm-256color' }
 
   try {
-    pty = nodePty.spawn(spec.command, spec.args, {
-      cols: session.cols,
-      rows: session.rows,
-      cwd: session.cwd,
-      env,
-      name: 'xterm-256color',
-      ...(isWin ? { useConptyDll: false } : {})
-    })
+    // The ConPTY HERA ships (Windows Terminal's) passes mouse modes, focus and the
+    // like through to the terminal; the system one swallows mouse modes, so the wheel
+    // in a full-screen TUI (Claude Code, vim) arrives as arrow keys. The system one
+    // stays the fallback when that DLL is missing or refuses to start.
+    if (isWin && getConfig().settings.conptyDll) {
+      try {
+        pty = nodePty.spawn(spec.command, spec.args, { ...options, useConptyDll: true })
+      } catch {
+        pty = nodePty.spawn(spec.command, spec.args, { ...options, useConptyDll: false })
+      }
+    } else {
+      pty = nodePty.spawn(spec.command, spec.args, isWin ? { ...options, useConptyDll: false } : options)
+    }
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error)
     session.term.write(`\r\n\x1b[31m[HERA] 셸을 시작하지 못했습니다: ${message}\x1b[0m\r\n`)
@@ -450,7 +534,8 @@ function readScreen(session: Session, count?: number, includeScrollback = false)
   const lines: string[] = []
 
   for (let y = start; y < end; y++) {
-    lines.push(buffer.getLine(y)?.translateToString(true) ?? '')
+    // ConPTY pads repainted rows with real spaces, not empty cells.
+    lines.push((buffer.getLine(y)?.translateToString(true) ?? '').trimEnd())
   }
 
   // Agent TUIs pad the gap between the transcript and their input box with
@@ -605,7 +690,7 @@ export function attach(id: string) {
       return
     }
 
-    const snapshot = session.revive && !session.pty ? session.revive : session.serializer.serialize({ scrollback: 1500 })
+    const snapshot = session.revive && !session.pty ? session.revive : snapshotOf(session)
     ptyEvents.emit('snapshot', id, snapshot)
     session.attaching = false
     session.attached = true
@@ -883,7 +968,7 @@ function refreshConversations() {
 
   for (const session of sessions.values()) {
     const agent = session.pty ? agentById(session.activeAgentId) : null
-    if (!agent || !agent.resumeIdArgs || !session.agentStartedAt) continue
+    if (!agent || !agent.resumeIdArgs || !session.agentStartedAt || session.lane) continue
     claims.push({
       key: session.id,
       agent,
@@ -912,6 +997,10 @@ export function saveSessions() {
   refreshConversations()
 
   for (const session of sessions.values()) {
+    // A lane is the lanes plugin's to reopen (with its name, role and limits); resumed
+    // here it would come back as a plain Claude holding the lane's conversation.
+    if (session.lane) continue
+
     let snapshot = session.restoredSnapshot ?? ''
 
     if (session.restoredSnapshot === undefined) {
@@ -991,9 +1080,7 @@ export function restoreSessions() {
 
   for (const entry of saved) {
     const id = newId('s_')
-    const term = new HeadlessTerminal({ cols: 120, rows: 32, scrollback: 400, allowProposedApi: true })
-    const serializer = new SerializeAddon()
-    term.loadAddon(serializer as unknown as Parameters<HeadlessTerminal['loadAddon']>[0])
+    const { term, serializer } = headlessTerminal(120, 32, config.settings.scrollback)
     const when = entry.savedAt ? ` · ${new Date(entry.savedAt).toLocaleString()} 저장` : ''
     const revive = `${entry.snapshot}\r\n\x1b[2m── 이전 실행에서 복원된 화면${when} ──\x1b[0m\r\n`
     term.write(revive)
@@ -1041,6 +1128,7 @@ export function restoreSessions() {
       liveCwd: null
     }
     trackCwd(session)
+    answerQueries(session)
     sessions.set(id, session)
   }
 }

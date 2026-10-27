@@ -9,8 +9,9 @@ import net from 'node:net'
 import path from 'node:path'
 
 import type { BusMessage, CreateSessionRequest, SessionInfo, WireRequest, WireResponse } from '../shared/types'
-import { newId } from '../shared/util'
+import { HOST_PASSED_ENV, newId } from '../shared/util'
 
+import { hostLane } from './lanes'
 import { dataPath, isWin, pipePath, subDir } from './paths'
 import { createSession, getSession, listSessions, screenLines, sendKeys, typeMessage } from './pty-host'
 import { addProject, busMessages, getConfig, projectById, projectForPath, recordBus } from './store'
@@ -380,6 +381,34 @@ const handlers: Record<string, Handler> = {
     hooks?.reveal(info.id, { split: params.split !== false })
 
     return { name: info.name, id: info.id, agent: info.agentId }
+  },
+
+  // Something that would open a terminal window for a project folder (the lanes plugin,
+  // a script) opens a HERA tab instead. Registered projects only: elsewhere it is refused
+  // and the caller opens its own window as before.
+  host: params => {
+    const lane = str(params.lane)
+    const cwd = str(params.cwd)
+    const env: Record<string, string> = {}
+    const given = params.env && typeof params.env === 'object' ? (params.env as Record<string, unknown>) : {}
+
+    for (const [key, value] of Object.entries(given)) if (HOST_PASSED_ENV.test(key) && typeof value === 'string') env[key] = value
+
+    if (lane === 'mid' || lane === 'low') {
+      return hostLane({ cwd, lane, run: str(params.run), env, check: params.check === true })
+    }
+
+    if (lane) throw new Error(`알 수 없는 lane '${lane}'`)
+
+    const project = cwd ? projectForPath(path.resolve(cwd)) : null
+    if (!project) throw new Error(`HERA 에 등록된 프로젝트가 아닙니다: ${cwd || '(폴더 없음)'}`)
+    if (params.check === true) return { id: null, name: '', project: project.name }
+
+    const command = str(params.command).trim()
+    const info = launchSession({ projectId: project.id, cwd: path.resolve(cwd), command: command || undefined, title: str(params.title) || undefined, env })
+    hooks?.reveal(info.id, { split: false })
+
+    return { id: info.id, name: info.name, project: project.name }
   },
 
   projects: () => getConfig().projects.map(project => ({ id: project.id, name: project.name, path: project.path })),

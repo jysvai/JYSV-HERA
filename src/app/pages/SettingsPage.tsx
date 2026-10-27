@@ -3,9 +3,11 @@ import { useEffect, useState } from 'react'
 
 import type { AppMetrics, Settings } from '../../../shared/types'
 import { formatBytesKB } from '../../../shared/util'
+import { ShellPicker } from '../../components/ShellPicker'
 import { Button, Input, PageHeader, Row, Section, SegmentedControl, Select, Switch } from '../../components/ui/primitives'
 import { api, isMac, isWin } from '../../lib/hera'
 import { $config, $info, $update, toast, updateConfig } from '../../store/app'
+import { TerminalImportCard } from '../settings/TerminalImportCard'
 
 function useSetting<K extends keyof Settings>(key: K): [Settings[K] | undefined, (value: Settings[K]) => void] {
   const config = useStore($config)
@@ -84,6 +86,9 @@ export function SettingsPage() {
   const [lineHeight, setLineHeight] = useSetting('lineHeight')
   const [scrollback, setScrollback] = useSetting('scrollback')
   const [gpu, setGpu] = useSetting('gpu')
+  const [conptyDll, setConptyDll] = useSetting('conptyDll')
+  const [cursorStyle, setCursorStyle] = useSetting('cursorStyle')
+  const [cursorBlink, setCursorBlink] = useSetting('cursorBlink')
   const [lowMemory, setLowMemory] = useSetting('lowMemory')
   const [deepSleep, setDeepSleep] = useSetting('deepSleepMinutes')
   const [hotkey, setHotkey] = useSetting('hotkey')
@@ -129,6 +134,10 @@ export function SettingsPage() {
                 </Button>
               </a>
             )}
+            {/* docs/patch-notes holds one file per release; the newer one when there is one. */}
+            <a href={`https://github.com/jysvai/JYSV-HERA/blob/main/docs/patch-notes/ko/v${update?.newer && update.latest ? update.latest : info?.version || ''}.md`} target="_blank" rel="noreferrer">
+              <Button size="sm">패치노트</Button>
+            </a>
             <Button
               size="sm"
               disabled={checking}
@@ -173,27 +182,31 @@ export function SettingsPage() {
         </Section>
 
         <Section title="터미널">
-          <Row label="기본 셸">
-            <Select value={defaultShell} onChange={event => setDefaultShell(event.target.value)} className="w-56">
-              <option value="auto">자동 ({isWin ? 'Windows PowerShell' : '로그인 셸 ($SHELL)'})</option>
-              {isWin && (
-                <>
-                  <option value="powershell">Windows PowerShell 5.1</option>
-                  <option value="pwsh">PowerShell 7 (pwsh)</option>
-                  <option value="cmd">명령 프롬프트 (cmd)</option>
-                  <option value="gitbash">Git Bash</option>
-                </>
-              )}
-              <option value="bash">bash</option>
-              <option value="zsh">zsh</option>
-              <option value="fish">fish</option>
-            </Select>
+          <TerminalImportCard />
+          <Row label="기본 셸" description="이 PC 에 있는 셸, 또는 명령줄을 그대로 적을 수 있습니다 (예: wsl.exe -d Ubuntu).">
+            <ShellPicker value={defaultShell || 'auto'} onChange={setDefaultShell} autoLabel={`자동 (${isWin ? 'Windows PowerShell' : '로그인 셸 ($SHELL)'})`} className="w-56" />
           </Row>
+          {isWin && (
+            <Row
+              label="최신 ConPTY 사용 (권장)"
+              description="Windows Terminal 과 같은 콘솔 엔진입니다. Claude Code 전체 화면 모드의 휠 스크롤, vim · htop 같은 프로그램의 마우스가 동작합니다. 끄면 Windows 내장 엔진을 씁니다. 새로 여는 터미널부터 적용."
+            >
+              <Switch checked={conptyDll !== false} onChange={setConptyDll} label="최신 ConPTY" />
+            </Row>
+          )}
           <Row label="셸 프로필 불러오기" description="끄면 $PROFILE / .bashrc 등을 건너뛰어 더 빨리 열립니다 (단축어와 hera 는 항상 동작).">
             <Switch checked={Boolean(loadProfile)} onChange={setLoadProfile} label="셸 프로필" />
           </Row>
           <Row label="글꼴">
             <Input value={fontFamily} onChange={event => setFontFamily(event.target.value)} className="w-72 font-mono text-[12px]" />
+          </Row>
+          <Row label="커서">
+            <Select value={cursorStyle || 'bar'} onChange={event => setCursorStyle(event.target.value as Settings['cursorStyle'])} className="w-32">
+              <option value="bar">세로 막대</option>
+              <option value="block">블록</option>
+              <option value="underline">밑줄</option>
+            </Select>
+            <Switch checked={Boolean(cursorBlink)} onChange={setCursorBlink} label="깜빡임" />
           </Row>
           <Row label="글자 크기 / 줄 간격">
             <NumberInput value={fontSize || 13} min={8} max={28} onCommit={setFontSize} />

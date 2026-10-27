@@ -8,7 +8,7 @@ import { IconPlayerPlay, IconRefresh } from '@tabler/icons-react'
 import { useEffect, useRef } from 'react'
 
 import { Button } from '../../components/ui/primitives'
-import { api, isMac, isWin, pathForFile, writePty } from '../../lib/hera'
+import { api, isMac, isWin, osBuild, pathForFile, writePty } from '../../lib/hera'
 import { $config, $sessions } from '../../store/app'
 import { $terminalPalette, $theme } from '../../store/theme'
 import { registerTerminal, unregisterTerminal } from './registry'
@@ -41,6 +41,8 @@ export function TerminalView({ sessionId, focused, onFocus }: { sessionId: strin
   const termRef = useRef<Terminal | null>(null)
   const config = useStore($config)
   const session = useStore($sessions)[sessionId]
+  const sessionRef = useRef(session)
+  sessionRef.current = session
   const settings = config?.settings
   const palette = useStore($terminalPalette)
   const paletteRef = useRef(palette)
@@ -61,13 +63,14 @@ export function TerminalView({ sessionId, focused, onFocus }: { sessionId: strin
       lineHeight: settings.lineHeight,
       scrollback: Math.min(settings.scrollback, 5000),
       allowProposedApi: true,
-      cursorBlink: false,
-      cursorStyle: 'bar',
+      cursorBlink: settings.cursorBlink,
+      cursorStyle: settings.cursorStyle,
       macOptionIsMeta: true,
       minimumContrastRatio: contrastRef.current,
       theme: paletteRef.current || undefined,
       rightClickSelectsWord: false,
-      windowsPty: isWin ? { backend: 'conpty' } : undefined
+      // The same as the headless copy in main (pty-host.ts), so both reflow alike on resize.
+      windowsPty: isWin ? { backend: 'conpty', buildNumber: osBuild || undefined } : undefined
     })
     const fit = new FitAddon()
     term.loadAddon(fit)
@@ -109,7 +112,13 @@ export function TerminalView({ sessionId, focused, onFocus }: { sessionId: strin
       }
 
       if (!isMac && event.ctrlKey && key === 'v') {
-        void api.paste().then(text => text && term.paste(text))
+        // Pasted here only: left alone, the browser's own paste would type it a second time.
+        event.preventDefault()
+        void api.paste().then(text => {
+          if (text) term.paste(text)
+          // No text (an image): an agent CLI reads the clipboard itself on Ctrl+V.
+          else if (!event.shiftKey && sessionRef.current?.activeAgentId) writePty(sessionId, '\x16')
+        })
 
         return false
       }
@@ -124,6 +133,19 @@ export function TerminalView({ sessionId, focused, onFocus }: { sessionId: strin
     let lastCols = 0
     let lastRows = 0
     let frame = 0
+    let resizeTimer: ReturnType<typeof setTimeout> | undefined
+
+    // The pty follows once the size settles: every ConPTY resize repaints the whole
+    // screen, and a dragged divider or window edge would send dozens of them.
+    const sendSize = () => {
+      clearTimeout(resizeTimer)
+      resizeTimer = setTimeout(() => {
+        if (term.cols === lastCols && term.rows === lastRows) return
+        lastCols = term.cols
+        lastRows = term.rows
+        void api.resize(sessionId, term.cols, term.rows)
+      }, 80)
+    }
 
     const refit = () => {
       cancelAnimationFrame(frame)
@@ -136,11 +158,7 @@ export function TerminalView({ sessionId, focused, onFocus }: { sessionId: strin
           return
         }
 
-        if (term.cols !== lastCols || term.rows !== lastRows) {
-          lastCols = term.cols
-          lastRows = term.rows
-          void api.resize(sessionId, term.cols, term.rows)
-        }
+        sendSize()
       })
     }
 
@@ -168,6 +186,7 @@ export function TerminalView({ sessionId, focused, onFocus }: { sessionId: strin
       unmounted = true
       cancelAnimationFrame(attachFrame)
       cancelAnimationFrame(frame)
+      clearTimeout(resizeTimer)
       observer.disconnect()
       void api.detach(sessionId)
       unregisterTerminal(sessionId, term)
@@ -187,6 +206,12 @@ export function TerminalView({ sessionId, focused, onFocus }: { sessionId: strin
   useEffect(() => {
     if (termRef.current) termRef.current.options.minimumContrastRatio = contrast
   }, [contrast])
+
+  useEffect(() => {
+    if (!termRef.current || !settings) return
+    termRef.current.options.cursorStyle = settings.cursorStyle
+    termRef.current.options.cursorBlink = settings.cursorBlink
+  }, [settings?.cursorStyle, settings?.cursorBlink])
 
   useEffect(() => {
     if (focused) termRef.current?.focus()

@@ -14,13 +14,23 @@ interface Instance {
 
 const instances = new Map<string, Instance>()
 
+// Self-tests and bug reports read the live terminals (localStorage 'hera.debug' = '1').
+try {
+  if (localStorage.getItem('hera.debug') === '1') (window as unknown as { heraTerminals: unknown }).heraTerminals = instances
+} catch {
+  // storage blocked
+}
+
 on('pty:snapshot', (id: string, snapshot: string) => {
   const instance = instances.get(id)
 
   if (!instance) return
 
-  instance.term.reset()
-  instance.term.write(snapshot)
+  const term = instance.term
+  term.reset()
+  // Repaint every row once the snapshot is in: rows drawn mid-way would otherwise
+  // stay stale until something scrolls them.
+  term.write(snapshot, () => term.refresh(0, term.rows - 1))
   instance.ready = true
 })
 

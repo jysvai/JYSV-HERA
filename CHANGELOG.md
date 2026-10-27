@@ -1,5 +1,23 @@
 # Changelog
 
+Full patch notes, one file per release in English and Korean: [docs/patch-notes](docs/patch-notes/README.md).
+
+## 0.2.1 — 2026-10-27
+
+### Fixed
+
+- **Mouse wheel in full-screen programs** (Claude Code's full-screen mode, vim, htop): HERA ships Windows Terminal's ConPTY, which passes mouse modes through; the built-in one swallowed them.
+- **Scrolling after a tab switch:** restored screens keep the SGR mouse encoding, cursor visibility and shape, and the scroll region.
+- **Broken screens after a tab switch or resize:** the background copy uses the same Unicode 11 widths and ConPTY rules as the visible terminal; snapshots keep the full scrollback.
+- **Stale rows until scrolling**, **double paste**, **resize storms** and **background tabs that never started** with the new ConPTY.
+- **lanes replies lost after a restart:** a lane's conversation is never resumed in a main tab; lane tabs are not restored by HERA.
+
+### Added
+
+- lanes open as HERA tabs whoever opens them (lanes 0.3.13+, registered projects only), through the new `hera host`.
+- Windows Terminal import (font, cursor, scrollback, shell, color scheme), any shell or command line (WSL, custom), cursor settings, bundled Cascadia Mono.
+- Patch notes in `docs/patch-notes/{en,ko}`; releases are written from them and updated when they change.
+
 ## 0.2.0 — 2026-10-27
 
 First public release.

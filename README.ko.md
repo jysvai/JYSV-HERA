@@ -50,6 +50,7 @@ HERA 는 원래 쓰던 셸(PowerShell, cmd, Git Bash, bash, zsh, fish)을 그대
 | **테마** | 다크 / 라이트 / 시스템, 프리셋 9개, 강조색, 글자 선명하게, 터미널 16색까지 바꾸는 내 색상 편집기. |
 | **AI CLI 32종 내장** | 아래 목록 참고. 그 밖의 명령(예: `ollama run <모델>`)은 에이전트 페이지에서 추가. |
 | **lanes 연동** | [lanes](https://github.com/jysvai/lanes) 의 mid / low 보조 세션을 HERA 탭에서 돌리고, 모델 라우팅 · 권한 · 프로젝트별 지시를 한 설정 페이지에서. |
+| **쓰던 터미널 그대로** | Windows Terminal 의 콘솔 엔진(ConPTY)과 글꼴(Cascadia Mono)을 함께 넣어, Claude Code 전체 화면 모드 · vim · htop 에서도 마우스와 휠이 동작합니다. 원하면 Windows Terminal 의 글꼴 · 커서 · 스크롤백 · 색 구성 · 기본 셸을 가져옵니다. 셸은 PowerShell · pwsh · cmd · Git Bash · WSL, 또는 직접 적은 명령줄 무엇이든. |
 | **버전 확인** | 사이드바 아래에 설치된 버전이 표시되고, 새 릴리스가 나오면 업데이트 버튼으로 바뀝니다 (터미널에서는 `hera --version`). |
 
 <table>
@@ -137,6 +138,7 @@ hera reply claude-1 "요약"        받은 [HERA msg from …] 에 회신
 hera peek agy-1 -n 60            다른 세션 화면 읽기
 hera key claude-1 down enter     다른 세션에 키 입력 (승인 프롬프트 등)
 hera spawn grok                  이 프로젝트에 보조 AI 띄우기
+hera host [--cwd 폴더] -- <명령>   그 폴더가 속한 등록 프로젝트에 탭으로 열기 (등록 안 된 곳은 거절)
 hera open <프로젝트> --agent claude · hera add [경로] · hera projects
 hera guide                       AI 에게 줄 협업 규칙 전문
 hera --version                   설치된 HERA 버전
@@ -152,7 +154,8 @@ hera --version                   설치된 HERA 버전
 
 lanes 가 설치되어 있으면 HERA 가 알아서 찾아 **Lanes 페이지**와 오른쪽 패널의 **Lanes 탭**을 붙입니다.
 
-- **HERA 탭에서 lane 실행.** HERA 에서 여는 lane 은 별도 창이 아니라 그 프로젝트의 탭으로 열립니다. lanes 자신의 실행 스크립트를 그대로 쓰므로 역할 지시 · 플래그 · 안전 규칙은 lanes 가 정한 그대로입니다.
+- **HERA 탭에서 lane 실행.** HERA 에 등록한 프로젝트의 lane 은 모두 별도 창이 아니라 HERA 탭으로 열립니다. HERA 에서 연 lane 도, 메인 세션이 스스로 연 lane(닫힌 lane 에 일을 넘길 때, `/lane start`, 죽은 lane 을 다시 열 때)도 마찬가지입니다. lanes 0.3.13 이상이 HERA 에 탭을 요청하고(`hera host --lane`), HERA 는 등록된 프로젝트일 때만 받습니다. 그 밖의 폴더에서는 예전처럼 lane 창이 따로 열립니다. lanes 자신의 실행 스크립트를 그대로 쓰므로 역할 지시 · 플래그 · 안전 규칙은 lanes 가 정한 그대로입니다.
+- **재시작해도 메인과 lane 이 섞이지 않음.** 재시작 뒤 lane 의 대화를 메인 탭에서 이어 여는 일이 없어서, lane 의 회신이 계속 올바른 메인 세션에 도착합니다.
 - **실시간 패널.** lane 마다 상태, 지금 하는 일, 대기열, 최근 작업과 결과(누르면 보고서), 오늘 lane 비용과 메인 모델 대비 아낀 금액.
 - **모델 라우팅.** 메인 · mid · low 의 모델, 대체 모델, effort, 넘김 알림 기준과 작업 스타일. *자동*은 lanes 권장값, *직접 조정*은 모든 값을 엽니다. 값은 Claude Code `settings.json` 의 lanes 항목에 저장되며, 처음 바꿀 때 원본을 한 번 백업합니다.
 - **권한.** lane 권한 모드와 `dontAsk` 용 허용 목록. 자동 모드에서는 lane 을 열 때 이 목록을 프로젝트의 `.claude/settings.local.json` 에 넣습니다. lanes 는 lane 의 코드 편집과 git 쓰기를 항상 막습니다.

@@ -35,9 +35,38 @@ function gitBash(): string | null {
   return candidates.find(candidate => fs.existsSync(candidate)) || null
 }
 
-/** Resolve a shell preference ('auto', a kind, or an absolute path) to an executable. */
-export function resolveShell(pref: string | undefined): { kind: ShellSpec['kind']; command: string } {
+/** Split a command line into words: quoted parts stay together, backslashes stay as written (Windows paths). */
+export function splitCommandLine(line: string): string[] {
+  const words: string[] = []
+  const pattern = /"([^"]*)"|'([^']*)'|([^\s"']+)/g
+  let match: RegExpExecArray | null
+  let end = -1
+
+  while ((match = pattern.exec(line))) {
+    const piece = match[1] ?? match[2] ?? match[3] ?? ''
+    // "C:\Program Files"\x.exe: pieces that touch form one word
+    if (match.index === end && words.length) words[words.length - 1] += piece
+    else words.push(piece)
+    end = pattern.lastIndex
+  }
+
+  return words
+}
+
+/**
+ * Resolve a shell preference ('auto', a kind, an executable, or a whole command
+ * line such as `wsl.exe -d Ubuntu`) to an executable and, for a command line, its arguments.
+ */
+export function resolveShell(pref: string | undefined): { kind: ShellSpec['kind']; command: string; args?: string[] } {
   const choice = (pref || 'auto').trim()
+
+  // A command line with arguments runs exactly as written.
+  if (/\s/.test(choice) && !(path.isAbsolute(choice) && fs.existsSync(choice))) {
+    const [exe, ...args] = splitCommandLine(choice)
+    const resolved = exe ? (path.isAbsolute(exe) && fs.existsSync(exe) ? exe : findOnPath(exe)) : null
+
+    if (resolved) return { kind: kindOf(resolved), command: resolved, args }
+  }
 
   if (choice && choice !== 'auto') {
     const byKind: Record<string, () => string | null> = {
@@ -179,7 +208,7 @@ function writeShellShims(dir: string) {
 
 /** Build the spawn spec for an interactive shell with HERA's boot applied. */
 export function buildShellSpec(pref: string | undefined, loadProfile: boolean): ShellSpec {
-  const { kind, command } = resolveShell(pref)
+  const { kind, command, args: given } = resolveShell(pref)
   const dir = subDir('shell')
   const bin = binDir()
   const env: Record<string, string> = {}
@@ -187,6 +216,12 @@ export function buildShellSpec(pref: string | undefined, loadProfile: boolean): 
 
   if (!fs.existsSync(path.join(dir, 'aliases.ps1'))) {
     writeShortcutFiles([])
+  }
+
+  // A command line for a shell HERA does not set up itself (WSL, a VS developer
+  // prompt, ...) runs as written; `hera` still resolves through PATH.
+  if (given?.length && (kind === 'other' || kind === 'sh')) {
+    return { kind, command, args: given, env, name }
   }
 
   switch (kind) {

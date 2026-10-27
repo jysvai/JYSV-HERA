@@ -97,6 +97,9 @@ jobs:
           path: out
           merge-multiple: true
 
+      - name: Release notes (docs/patch-notes/{en,ko}/<tag>.md)
+        run: node scripts/patch-notes.mjs body "${{ github.ref_name }}" > release-body.md
+
       - name: Checksums
         run: |
           cd out
@@ -106,6 +109,6 @@ jobs:
       - uses: softprops/action-gh-release@v2
         with:
           name: JYSV HERA ${{ github.ref_name }}
-          body_path: .github/release-notes/${{ github.ref_name }}.md
+          body_path: release-body.md
           files: out/*
           make_latest: true

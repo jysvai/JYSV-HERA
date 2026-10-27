@@ -1,3 +1,4 @@
+import './fonts.css'
 import './styles.css'
 
 import { createRoot } from 'react-dom/client'
@@ -11,7 +12,16 @@ restoreCachedTheme()
 
 const root = createRoot(document.getElementById('root')!)
 
-bootStore()
+// Windows Terminal's font ships with HERA. xterm measures its cell once, when a
+// terminal opens: measured on a fallback font while the real one still loads,
+// every row is laid out on the wrong grid.
+function fontsReady(): Promise<unknown> {
+  const fonts = ['13px "Cascadia Mono"', 'bold 13px "Cascadia Mono"'].map(font => document.fonts.load(font).catch(() => undefined))
+
+  return Promise.race([Promise.all(fonts), new Promise(resolve => setTimeout(resolve, 1500))])
+}
+
+Promise.all([bootStore(), fontsReady()])
   .then(() => root.render(<App />))
   .catch(error => {
     root.render(

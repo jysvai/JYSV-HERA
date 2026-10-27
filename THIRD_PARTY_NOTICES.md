@@ -41,7 +41,8 @@ the packages (`node_modules/<package>/LICENSE`), and the packaged app keeps node
 |---|---|---|
 | [Electron](https://github.com/electron/electron) | application runtime (ships its own `LICENSE` and `LICENSES.chromium.html`) | MIT |
 | [xterm.js](https://github.com/xtermjs/xterm.js) — `@xterm/xterm`, `@xterm/headless`, addons `fit`, `serialize`, `unicode11`, `web-links`, `webgl` | terminal emulation | MIT |
-| [node-pty](https://github.com/microsoft/node-pty) (with winpty) | pseudo-terminals (ConPTY / winpty / Unix pty) | MIT |
+| [node-pty](https://github.com/microsoft/node-pty) (with winpty) | pseudo-terminals (ConPTY / winpty / Unix pty); on Windows it ships Microsoft's `conpty.dll` and `OpenConsole.exe`, the console host Windows Terminal uses | MIT |
+| [Cascadia Mono](https://github.com/microsoft/cascadia-code) via [Fontsource](https://github.com/fontsource/font-files) — `@fontsource/cascadia-mono` | the terminal font (Windows Terminal's default) | SIL OFL 1.1 |
 | [React](https://github.com/facebook/react), react-dom, scheduler | user interface | MIT |
 | [nanostores](https://github.com/nanostores/nanostores), @nanostores/react | state | MIT |
 | [Tabler Icons](https://github.com/tabler/tabler-icons) — `@tabler/icons-react` | icons | MIT |

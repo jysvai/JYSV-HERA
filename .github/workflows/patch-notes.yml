@@ -1,0 +1,36 @@
+name: Patch notes
+
+# Editing a file under docs/patch-notes updates the matching GitHub release, so a
+# release always says what its patch notes say.
+on:
+  push:
+    branches: [main]
+    paths: ['docs/patch-notes/**', 'scripts/patch-notes.mjs']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Update releases from their patch notes
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          for tag in $(node scripts/patch-notes.mjs versions); do
+            if gh release view "$tag" > /dev/null 2>&1; then
+              node scripts/patch-notes.mjs body "$tag" > body.md
+              gh release edit "$tag" --notes-file body.md
+              echo "updated $tag"
+            else
+              echo "no release $tag yet (the release workflow writes it when the tag is pushed)"
+            fi
+          done

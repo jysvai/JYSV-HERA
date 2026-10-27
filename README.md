@@ -50,6 +50,7 @@ HERA keeps the shell you already use (PowerShell, cmd, Git Bash, bash, zsh, fish
 | **Themes** | Dark / light / follow system, 9 presets, accent colors, high-contrast text, and a custom theme editor down to the 16 terminal colors. |
 | **32 agent CLIs built in** | See the list below; add any other command (for example `ollama run <model>`) on the Agents page. |
 | **lanes integration** | Run [lanes](https://github.com/jysvai/lanes) mid/low helper sessions inside HERA tabs, with model routing, permissions and per-project instructions in one settings page. |
+| **Feels like your old terminal** | Ships Windows Terminal's console engine (ConPTY) and font (Cascadia Mono), so mouse and wheel work in full-screen TUIs such as Claude Code's, vim and htop. Takes over Windows Terminal's font, cursor, scrollback, color scheme and default shell on request. Any shell: PowerShell, pwsh, cmd, Git Bash, WSL or a command line you type. |
 | **Version check** | The sidebar shows the installed version and turns into an update button when a newer release is out (`hera --version` in a terminal). |
 
 <table>
@@ -137,6 +138,7 @@ hera reply claude-1 "summary"    answer a [HERA msg from …]
 hera peek agy-1 -n 60            read another session's screen
 hera key claude-1 down enter     press keys in another session (approval prompts)
 hera spawn grok                  start a helper AI in this project
+hera host [--cwd dir] -- <cmd>   open a tab in the registered project holding dir (refused elsewhere)
 hera open <project> --agent claude · hera add [path] · hera projects
 hera guide                       the full collaboration rules to give an agent
 hera --version                   installed HERA version
@@ -152,7 +154,8 @@ Starting from a team preset (for example *Claude main + Codex helper*) briefs th
 
 Once lanes is installed, HERA finds it and adds a **Lanes** page and a **Lanes** tab in the right panel:
 
-- **Lanes in HERA tabs.** A lane started from HERA opens as a tab in the project instead of a separate window. It runs through lanes' own launcher, so its role prompt, flags and safety rules stay exactly as lanes defines them.
+- **Lanes in HERA tabs.** Every lane of a project registered in HERA opens as a HERA tab instead of a separate window: one you start from HERA, and one the main session opens itself (a task sent to a closed lane, `/lane start`, a lane restarted after it died). lanes 0.3.13+ asks HERA for the tab (`hera host --lane`); HERA agrees only for registered projects, and anywhere else the lane opens in its own window as before. It runs through lanes' own launcher, so its role prompt, flags and safety rules stay exactly as lanes defines them.
+- **Restarts keep main and lanes apart.** A lane's conversation is never resumed in a main tab after a restart, so the lanes' replies keep reaching the right main session.
 - **Live panel.** Each lane's state, current task, queue, recent tasks with their verdicts (click one to open its report), today's lane cost and the money saved compared with the main model.
 - **Model routing.** Model, fallback and effort for main, mid and low, the hand-off reminder threshold and work style. *Auto* uses lanes' recommended values; *Custom* unlocks every option. Values go to the lanes entry of Claude Code's `settings.json`, after a one-time backup.
 - **Permissions.** The lane permission mode and an allow-list for `dontAsk` lanes, which Auto mode adds to the project's `.claude/settings.local.json` when it starts a lane. lanes always blocks edits and git writes in lanes.

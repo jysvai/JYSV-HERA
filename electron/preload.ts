@@ -50,7 +50,9 @@ const INVOKE = new Set([
   'accounts:login',
   'accounts:statusline',
   'agents:availability',
-  'app:update'
+  'app:update',
+  'terminal:import',
+  'shells:list'
 ])
 
 const EVENTS = new Set([
@@ -95,5 +97,7 @@ contextBridge.exposeInMainWorld('hera', {
       return ''
     }
   },
-  platform: process.platform
+  platform: process.platform,
+  /** Windows build (26100, 19045, ...): xterm reflows only on a ConPTY new enough to reflow too. */
+  osBuild: process.platform === 'win32' ? Number(process.getSystemVersion().split('.')[2]) || 0 : 0
 })
