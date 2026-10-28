@@ -16,6 +16,7 @@ import { hostLane } from './lanes'
 import { dataPath, isWin, pipePath, subDir } from './paths'
 import { createSession, getSession, listSessions, ptyEvents, screenLines, sendKeys, typeMessage } from './pty-host'
 import { addProject, busMessages, getConfig, projectById, projectForPath, recordBus } from './store'
+import { createWorktree, listWorktrees } from './worktrees'
 
 type Handler = (params: Record<string, unknown>, caller: SessionInfo | null) => Promise<unknown> | unknown
 
@@ -406,7 +407,7 @@ const handlers: Record<string, Handler> = {
     return { to: target.name, unknown }
   },
 
-  spawn: (params, caller) => {
+  spawn: async (params, caller) => {
     const agentId = str(params.agent)
     const config = getConfig()
     const agent = config.agents.find(entry => entry.id === agentId)
@@ -416,9 +417,15 @@ const handlers: Record<string, Handler> = {
     }
 
     const projectId = str(params.project) ? findProject(str(params.project))?.id || null : caller?.projectId || null
+    // --worktree[=name]: the helper works in an isolated copy of the project on its own branch.
+    const wanted = params.worktree === true ? agent?.name || agentId || 'helper' : str(params.worktree)
+    if (wanted && !projectId) throw new Error(t('작업 공간은 등록된 프로젝트에서만 만들 수 있습니다.'))
+    const named = params.worktree === true && agent ? agent.id : undefined
+    const worktree = wanted && projectId ? await createWorktree(projectId, { label: wanted, name: named, agentId: agent?.id || null }) : null
     const info = launchSession({
       projectId,
-      cwd: projectId ? undefined : caller?.cwd,
+      cwd: worktree ? worktree.cwd : projectId ? undefined : caller?.cwd,
+      worktreeId: worktree?.id || null,
       agentId: agent?.id || null,
       command: str(params.command) || undefined,
       role: (str(params.role) as 'main' | 'helper') || 'helper',
@@ -440,7 +447,23 @@ const handlers: Record<string, Handler> = {
     hooks?.onMessage(message)
     hooks?.reveal(info.id, { split: params.split !== false })
 
-    return { name: info.name, id: info.id, agent: info.agentId }
+    return { name: info.name, id: info.id, agent: info.agentId, worktree: worktree ? { path: worktree.cwd, branch: worktree.branch } : null }
+  },
+
+  worktrees: (params, caller) => {
+    const projectId = str(params.project) ? findProject(str(params.project))?.id || null : caller?.projectId || null
+    const sessions = listSessions()
+
+    return listWorktrees()
+      .filter(entry => !projectId || entry.projectId === projectId)
+      .map(entry => ({
+        label: entry.label,
+        branch: entry.branch,
+        path: entry.cwd,
+        base: entry.baseSha.slice(0, 7),
+        merged: Boolean(entry.mergedAt),
+        sessions: sessions.filter(session => session.worktreeId === entry.id).map(session => session.name)
+      }))
   },
 
   // Something that would open a terminal window for a project folder (the lanes plugin,

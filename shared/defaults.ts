@@ -469,7 +469,8 @@ export function defaultSettings(platform: string): Settings {
     externalTerminal: 'auto',
     lanes: { ...DEFAULT_LANES, allowRules: [...DEFAULT_LANES.allowRules] },
     usageWarnPercent: 80,
-    uiLanguage: 'auto'
+    uiLanguage: 'auto',
+    isolateHelpers: false
   }
 }
 
@@ -558,6 +559,7 @@ function normalizeSettings(base: Settings, raw: Partial<Settings> | undefined): 
   settings.checkUpdates = settings.checkUpdates !== false
   settings.conptyDll = settings.conptyDll !== false
   settings.codexOwnServer = settings.codexOwnServer !== false
+  settings.isolateHelpers = settings.isolateHelpers === true
   if (!['auto', 'ko', 'en'].includes(settings.uiLanguage)) settings.uiLanguage = 'auto'
   if (!['bar', 'block', 'underline'].includes(settings.cursorStyle)) settings.cursorStyle = 'bar'
   settings.cursorBlink = settings.cursorBlink === true

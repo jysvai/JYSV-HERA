@@ -32,6 +32,8 @@ export interface Project {
   todos: TodoItem[]
   /** Per-project quick commands, shown as buttons and in the palette. */
   commands: Shortcut[]
+  /** Runs in a terminal tab of every new worktree (`npm install`, say). Stored here, never read from the repository. */
+  worktreeSetup?: string
   pinned: boolean
   createdAt: number
   tags?: string[]
@@ -112,6 +114,100 @@ export interface StartWorkRequest {
   /** Helpers. An open session of the same agent in the project is reused. */
   helpers?: WorkAgent[]
   teamName?: string | null
+  /** New helpers work in worktrees of their own (git projects only). */
+  isolate?: boolean
+}
+
+/** The same task for several agents, each in a worktree of its own, to compare and keep one. */
+export interface StartRaceRequest {
+  projectId: string
+  task: string
+  /** 2–4 agents (the same agent twice is fine). */
+  agents: WorkAgent[]
+}
+
+/**
+ * An isolated copy of a project: a git worktree on a `hera/…` branch, outside the project
+ * folder. HERA only ever deletes worktrees and branches it made itself.
+ */
+export interface WorktreeInfo {
+  id: string
+  projectId: string
+  /** What the user (or HERA) called it; the folder and branch use a cleaned-up form. */
+  label: string
+  name: string
+  branch: string
+  /** Root of the worktree. */
+  path: string
+  /** Where the project's folder is inside the worktree (the root, or a subfolder for a project inside a bigger repo). */
+  cwd: string
+  /** Branch the project folder was on when the copy was made (null on a detached HEAD). */
+  baseBranch: string | null
+  /** Commit the copy started from: changes are counted against it. */
+  baseSha: string
+  createdAt: number
+  /** Copies of one comparison share this id. */
+  raceId?: string | null
+  /** The task of a comparison or of a helper. */
+  task?: string | null
+  agentId?: string | null
+  /** Set once HERA merged it into the project folder. */
+  mergedAt?: number | null
+  /** The copy's tip at that merge: changes and commits are counted from here on, so work done after a merge is never taken for merged. */
+  mergedSha?: string | null
+}
+
+export interface WorktreeStatus {
+  id: string
+  exists: boolean
+  /** Files not yet in the project: changed since the start or the last merge (committed or not, new files included). */
+  files: number
+  added: number
+  deleted: number
+  /** Not yet committed in the copy. */
+  uncommitted: number
+  /** Commits on the copy's branch since the start or the last merge. */
+  commits: number
+  error?: string
+}
+
+/** Whether a project can get worktrees, and what the user should know first. */
+export interface WorktreeSupport {
+  ok: boolean
+  /** Why not (no git, not a repo, no commits yet, WSL shell). */
+  reason?: string
+  /** The project is a folder without git: HERA can make it a repository. */
+  canInit?: boolean
+  branch: string | null
+  head: string | null
+  /** Uncommitted files in the project folder (not carried into a new copy). */
+  dirty: number
+}
+
+export interface WorktreeFileDiff {
+  path: string
+  /** A added, M modified, D deleted, R renamed, ? new and not yet added. */
+  status: string
+  added: number
+  deleted: number
+  binary: boolean
+  /** Unified diff hunks ('' for binary files). */
+  patch: string
+}
+
+export interface WorktreeDiff {
+  files: WorktreeFileDiff[]
+  /** The diff was cut to keep the window responsive. */
+  truncated: boolean
+}
+
+export interface WorktreeActionResult {
+  ok: boolean
+  message?: string
+  /** Files that conflicted (the merge was undone). */
+  conflicts?: string[]
+  /** Removing needs the user's confirmation: this much would be lost. */
+  confirm?: { uncommitted: number; unmergedCommits: number }
 }
 
 export interface StartWorkResult {
@@ -167,6 +263,8 @@ export interface Settings {
   usageWarnPercent: number
   /** UI language; 'auto' follows the OS (Korean on a Korean system, English elsewhere). */
   uiLanguage: 'auto' | 'ko' | 'en'
+  /** Multi-agent work: new helpers get worktrees of their own. */
+  isolateHelpers: boolean
 }
 
 /** What HERA can take over from the terminal used before it (Windows Terminal's default profile). */
@@ -317,6 +415,8 @@ export interface SessionInfo {
   dormant?: boolean
   /** A lanes lane HERA hosts in this tab. */
   lane?: LaneTier | null
+  /** The worktree the session works in. */
+  worktreeId?: string | null
 }
 
 export interface CreateSessionRequest {
@@ -340,6 +440,8 @@ export interface CreateSessionRequest {
   env?: Record<string, string>
   /** Session this one was spawned from (team / hera spawn). */
   parentId?: string | null
+  /** Run in this worktree of the project (its folder becomes the cwd). */
+  worktreeId?: string | null
 }
 
 export interface BusMessage {

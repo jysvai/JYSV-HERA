@@ -226,6 +226,9 @@ same project folder. Use these commands from your shell to work with them:
   hera key <name> enter|esc|y|1  press keys in another session (e.g. approve a prompt)
   hera spawn <agent>             start a new helper (claude, codex, agy, grok, ...)
                                  in this project; prints its name
+  hera spawn <agent> --worktree  the helper works in its own git worktree (an isolated
+                                 copy on branch hera/<name>); merge it with git merge
+  hera worktrees                 worktrees of this project: branch, folder, sessions
   hera projects | hera open <project> [--agent claude]
 
 Names look like claude-1, codex-1, agy-1. You may also use the agent id
@@ -254,6 +257,8 @@ usage: hera <command> [args]
   wait <target>                     wait until target is idle            [--idle 5] [--timeout 1800]
   key <target> <keys...>            press keys: enter esc tab up down left right ctrl-c y n 1 ...
   spawn <agent> [--cmd "..."]       start a helper session in this project [--project p] [--resume] [--no-split]
+                                    [--worktree[=name]] in an isolated git worktree of the project
+  worktrees [--project p] [--json]  worktrees HERA made for this project
   host [--cwd dir] [-- command]     open a tab in the registered project holding dir (refused elsewhere) [--title t] [--check]
   host --lane mid|low --run file    open a lanes lane in a HERA tab (used by the lanes plugin)
   projects | add [path] | open <project> [--agent a] [--resume]
@@ -420,9 +425,20 @@ async function main() {
         command: parsed.flags.cmd,
         role: parsed.flags.role || 'helper',
         resume: parsed.flags.resume === true,
-        split: parsed.flags['no-split'] !== true
-      })) as { name: string }
+        split: parsed.flags['no-split'] !== true,
+        worktree: parsed.flags.worktree
+      })) as { name: string; worktree: { path: string; branch: string } | null }
       out(`spawned ${result.name} — give it a few seconds to boot, then: hera ask ${result.name} "..."`)
+      if (result.worktree) out(`  works in ${result.worktree.path} on branch ${result.worktree.branch}; ask it to commit there, then: git merge ${result.worktree.branch}`)
+      break
+    }
+
+    case 'worktrees': {
+      const rows = (await call('worktrees', { project: parsed.flags.project })) as { label: string; branch: string; path: string; base: string; merged: boolean; sessions: string[] }[]
+
+      if (parsed.flags.json) out(JSON.stringify(rows, null, 2))
+      else if (!rows.length) out('(no worktrees — make one with: hera spawn <agent> --worktree)')
+      else for (const row of rows) out(`${row.branch}  ${row.path}  from ${row.base}${row.merged ? '  merged' : ''}${row.sessions.length ? `  [${row.sessions.join(', ')}]` : ''}`)
       break
     }
 

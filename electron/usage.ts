@@ -8,7 +8,7 @@ import { localDay } from '../shared/util'
 
 import { agyConversations, agyLoggedIn, claudeConfigDirs, claudeRateLimits, codexHomes, codexRateLimits } from './agent-data'
 import { dataDir, dataPath } from './paths'
-import { getConfig } from './store'
+import { getConfig, pathAliases } from './store'
 import type { ProviderUsageRaw, TokenTally, WorkerResult } from './usage-core'
 
 // USD per million tokens (Anthropic first-party list prices). Cache writes are
@@ -70,13 +70,20 @@ function totalTokens(tally: TokenTally): number {
 }
 
 /** Folder → registered project (deepest match wins, so nested projects count separately). */
-function projectMatcher(projects: Project[]) {
+function projectMatcher(projects: Project[], aliases: { root: string; projectId: string }[] = []) {
   const norm = (p: string) => {
     const resolved = path.resolve(p).replace(/[\\/]+$/, '')
 
     return process.platform === 'win32' ? resolved.toLowerCase() : resolved
   }
-  const roots = projects.map(project => ({ project, root: norm(project.path) })).sort((a, b) => b.root.length - a.root.length)
+  const roots = [
+    ...projects.map(project => ({ project, root: norm(project.path) })),
+    // A worktree of a project counts as the project.
+    ...aliases.flatMap(alias => {
+      const project = projects.find(entry => entry.id === alias.projectId)
+      return project ? [{ project, root: norm(alias.root) }] : []
+    })
+  ].sort((a, b) => b.root.length - a.root.length)
   const cache = new Map<string, Project | null>()
 
   return (cwd: string): Project | null => {
@@ -256,7 +263,7 @@ export async function getUsage(force = false): Promise<AgentUsage[]> {
     return withLimits(lastResult.usages)
   }
 
-  const projectOf = projectMatcher(getConfig().projects)
+  const projectOf = projectMatcher(getConfig().projects, pathAliases())
   // A project added/removed only needs a re-split of the parsed logs, not a re-parse.
   const started = Date.now()
   const result = !force && lastRaw && fresh(lastRaw.at) ? lastRaw.result : await runWorker()

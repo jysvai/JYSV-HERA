@@ -48,6 +48,8 @@ HERA 에서 연 모든 터미널에는 PATH 에 `hera` 명령이 있습니다. �
 | 명령 | 설명 |
 |---|---|
 | `hera spawn <에이전트> [--cmd "…"] [--project p] [--resume] [--no-split] [--role helper]` | 새 세션에서 에이전트를 실행. 역할 기본값은 `helper`. `--cmd` 는 에이전트의 기본 명령을 대신함. |
+| `hera spawn <에이전트> --worktree[=이름]` | 새 세션이 프로젝트 폴더가 아니라 자기 [작업 공간](worktrees.md) (브랜치 `hera/<이름>`) 에서 일함. 폴더와 브랜치를 출력하며, 결과는 `git merge hera/<이름>` 으로 가져옴. |
+| `hera worktrees [--project p] [--json]` | HERA 가 이 프로젝트에 만든 작업 공간: 브랜치, 폴더, 시작 커밋, 합쳤는지, 그 안의 세션. |
 | `hera add [경로] [--name n]` | 폴더를 프로젝트로 등록. |
 | `hera open <프로젝트> [--agent a] [--resume]` | 프로젝트를 열고 필요하면 에이전트도 실행. |
 | `hera focus <대상>` | 세션을 앞으로 가져옴. |

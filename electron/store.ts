@@ -142,9 +142,27 @@ export function samePath(a: string, b: string): boolean {
   return norm(a) === norm(b)
 }
 
+type PathAlias = { root: string; projectId: string }
+let aliasSource: () => PathAlias[] = () => []
+
+/** Folders outside a project that belong to it (its worktrees). */
+export function setPathAliases(source: () => PathAlias[]) {
+  aliasSource = source
+}
+
+export function pathAliases(): PathAlias[] {
+  return aliasSource()
+}
+
 export function projectForPath(dir: string): Project | null {
   const target = path.resolve(dir)
   let best: Project | null = null
+
+  for (const alias of aliasSource()) {
+    const rel = path.relative(path.resolve(alias.root), target)
+    const project = rel === '' || (!rel.startsWith('..') && !path.isAbsolute(rel)) ? projectById(alias.projectId) : null
+    if (project) return project
+  }
 
   for (const project of getConfig().projects) {
     const root = path.resolve(project.path)

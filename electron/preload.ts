@@ -23,6 +23,17 @@ const INVOKE = new Set([
   'sessions:create',
   'sessions:team',
   'work:start',
+  'work:race',
+  'worktrees:list',
+  'worktrees:support',
+  'worktrees:init',
+  'worktrees:create',
+  'worktrees:status',
+  'worktrees:diff',
+  'worktrees:commit',
+  'worktrees:merge',
+  'worktrees:remove',
+  'worktrees:openFolder',
   'sessions:write',
   'sessions:resize',
   'sessions:attach',
@@ -73,7 +84,8 @@ const EVENTS = new Set([
   'bus:message',
   'app:visibility',
   'app:reveal',
-  'app:update'
+  'app:update',
+  'worktrees:changed'
 ])
 
 contextBridge.exposeInMainWorld('hera', {

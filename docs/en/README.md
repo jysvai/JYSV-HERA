@@ -10,6 +10,7 @@ HERA is a terminal for people who work with AI coding agents. These pages explai
 | [Projects](projects.md) | Registering folders (drag and drop), the start screen, project settings, the folder tree, the backlog panel |
 | [Terminal](terminal.md) | Tabs, split view, copy and paste, zoom, fonts, cursor, shells, ConPTY, Windows Terminal import |
 | [Agents](agents.md) | The 32 built-in AI CLIs, adding your own, status detection, notifications, accounts |
+| [Worktrees](worktrees.md) | Isolated copies of a project for an AI to work in: review, merge or throw away; give several AIs the same task and keep the best |
 | [The `hera` CLI](hera-cli.md) | Every `hera` command, with examples, and how agents hand work to each other |
 | [Lanes](lanes.md) | Running the lanes plugin's mid and low sessions inside HERA |
 | [Session memory](session-memory.md) | Autosave, restoring after a reboot, resuming the exact conversation |

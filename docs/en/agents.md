@@ -92,6 +92,8 @@ You never have to type `hera ask` or `hera send` yourself. Give the work to a le
 
 HERA opens the panes side by side, waits until every agent is on screen and idle (it never types into a starting CLI or a trust prompt), then briefs the lead on its helpers and the `hera` protocol and hands it the task. The lead splits the work and the helpers report back by themselves. If a helper finishes without replying, HERA sends its last screen to the lead after 20 quiet seconds, and tells the lead when a helper waits for an approval. The to-do shows which session is on it; click it to jump there. Every message is logged on the **Agent chat** page.
 
+Switch on **Helpers work in their own worktrees** (보조는 각자 작업 공간에서) at the top of these menus, and new helpers open in [worktrees](worktrees.md) of their own: isolated copies on their own branches, so two agents editing the same file do not clash. The lead is told where each helper works and merges their branches itself. The same menu has **Give several AIs the same task and pick one…**, which runs one task in several AIs side by side and lets you keep the best result.
+
 ## See also
 
 - [The hera CLI](hera-cli.md) for how agents talk to each other.

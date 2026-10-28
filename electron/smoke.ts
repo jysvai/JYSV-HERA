@@ -1,6 +1,7 @@
 // Self-test for release builds: `HERA_SMOKE=<result.json> <app>` opens a real
 // terminal with the default shell, checks that it runs a command and that the
-// bundled `hera` CLI is on its PATH, writes the result and exits (0 = pass).
+// bundled `hera` CLI is on its PATH, runs the worktree checks (smoke-worktrees.ts),
+// writes the result and exits (0 = pass).
 // CI runs it on every OS before publishing installers.
 
 import fs from 'node:fs'
@@ -9,6 +10,7 @@ import os from 'node:os'
 import { app, BrowserWindow } from 'electron'
 
 import * as pty from './pty-host'
+import { smokeWorktrees } from './smoke-worktrees'
 
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
 
@@ -45,6 +47,8 @@ export async function runSmoke(resultFile: string) {
     const win = BrowserWindow.getAllWindows()[0]
     const rendered = win ? await win.webContents.executeJavaScript('document.getElementById("root")?.childElementCount || 0').catch(() => 0) : 0
     record('window rendered', Number(rendered) > 0)
+
+    await smokeWorktrees(record)
   } catch (error) {
     record('exception', false, (error as Error).stack || String(error))
   }

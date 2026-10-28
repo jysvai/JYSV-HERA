@@ -1,5 +1,5 @@
 import { useStore } from '@nanostores/react'
-import { IconChartBar, IconFolders, IconListDetails, IconRoute, IconX } from '@tabler/icons-react'
+import { IconChartBar, IconFolders, IconGitBranch, IconListDetails, IconRoute, IconX } from '@tabler/icons-react'
 import type { ReactNode } from 'react'
 
 import { t } from '../../../shared/i18n'
@@ -11,6 +11,7 @@ import { UsagePanel } from '../pages/UsagePage'
 import { BacklogPanel } from '../projects/BacklogPanel'
 import { FilesPanel } from '../projects/FilesPanel'
 import { LanesPanel } from '../projects/LanesPanel'
+import { WorktreesPanel } from '../projects/WorktreesPanel'
 
 function Tab({ active, disabled, onClick, icon, children, hint }: { active: boolean; disabled?: boolean; onClick: () => void; icon: ReactNode; children: ReactNode; hint: string }) {
   return (
@@ -50,6 +51,9 @@ export function RightPanel() {
           <Tab active={shown === 'files'} disabled={!project} onClick={() => $rightTab.set('files')} icon={<IconFolders />} hint={t('폴더 구조 ({shortcut})', { shortcut: chord('E') })}>
             {t('폴더')}
           </Tab>
+          <Tab active={shown === 'worktrees'} disabled={!project} onClick={() => $rightTab.set('worktrees')} icon={<IconGitBranch />} hint={t('작업 공간 (프로젝트의 격리된 복사본, git worktree)')}>
+            {t('작업 공간')}
+          </Tab>
           <Tab active={shown === 'usage'} onClick={() => $rightTab.set('usage')} icon={<IconChartBar />} hint={t('사용량 ({shortcut})', { shortcut: chord('U') })}>
             {t('사용량')}
           </Tab>
@@ -70,6 +74,7 @@ export function RightPanel() {
         </div>
       )}
       {shown === 'files' && project && <FilesPanel />}
+      {shown === 'worktrees' && project && <WorktreesPanel />}
       {shown === 'usage' && <UsagePanel />}
       {shown === 'lanes' && project && <LanesPanel />}
     </aside>

@@ -1,12 +1,25 @@
 import { atom, computed, map } from 'nanostores'
 
 import { t } from '../../shared/i18n'
-import type { AgentAvailability, AgentUsage, BusMessage, CreateSessionRequest, HeraConfig, Project, SessionInfo, StartWorkRequest, StartWorkResult, UpdateInfo } from '../../shared/types'
+import type {
+  AgentAvailability,
+  AgentUsage,
+  BusMessage,
+  CreateSessionRequest,
+  HeraConfig,
+  Project,
+  SessionInfo,
+  StartRaceRequest,
+  StartWorkRequest,
+  StartWorkResult,
+  UpdateInfo,
+  WorktreeInfo
+} from '../../shared/types'
 import { newId } from '../../shared/util'
 import { api, on } from '../lib/hera'
 
 export type View = 'workspace' | 'sessions' | 'usage' | 'accounts' | 'agents' | 'shortcuts' | 'settings' | 'history' | 'bus' | 'theme' | 'lanes' | 'extensions'
-export type RightTab = 'backlog' | 'files' | 'usage' | 'lanes'
+export type RightTab = 'backlog' | 'files' | 'worktrees' | 'usage' | 'lanes'
 
 export interface Layout {
   mode: 'single' | 'split'
@@ -28,6 +41,9 @@ export const $rightPanel = atom<boolean>(readLocal('hera.rightPanel', true))
 export const $rightTab = atom<RightTab>(readLocal('hera.rightTab', 'backlog'))
 export const $palette = atom<boolean>(false)
 export const $bus = atom<BusMessage[]>([])
+export const $worktrees = atom<WorktreeInfo[]>([])
+/** The "try with several AIs" dialog, open for this project and task. */
+export const $raceDraft = atom<{ projectId: string; task: string } | null>(null)
 export const $windowVisible = atom<boolean>(true)
 /** Terminal zoom: points added to the font size setting (Ctrl/⌘ +, -, 0 and Ctrl/⌘ + wheel). */
 export const $termZoom = atom<number>(readLocal('hera.termZoom', 0))
@@ -313,6 +329,27 @@ export async function startWork(req: StartWorkRequest): Promise<StartWorkResult 
   }
 }
 
+/** The same task for several agents, each in a worktree of its own; their panes open side by side. */
+export async function startRace(req: StartRaceRequest): Promise<boolean> {
+  try {
+    const result = await api.startRace(req)
+
+    for (const session of result.sessions) $sessions.setKey(session.id, session)
+    setLayout(req.projectId, { mode: 'split', active: result.sessions[0]?.id || null, split: result.sessions.map(session => session.id).slice(0, 4) })
+    $rightTab.set('worktrees')
+    $rightPanel.set(true)
+    $view.set('workspace')
+    refreshActivity()
+    toast(t('AI {count}개가 각자 작업 공간에서 시작합니다. 끝나면 작업 공간 탭에서 비교하세요.', { count: result.sessions.length }))
+
+    return true
+  } catch (error) {
+    toast(t('시작하지 못했습니다: {error}', { error: (error as Error).message }), 'error')
+
+    return false
+  }
+}
+
 export async function closeSession(id: string) {
   await api.kill(id)
 }
@@ -336,6 +373,10 @@ export async function bootStore() {
   $sessions.set(Object.fromEntries(sessions.map(session => [session.id, session])))
   $availability.set(Object.fromEntries(availability.map(entry => [entry.agentId, entry])))
   $bus.set(bus)
+  void api
+    .worktrees()
+    .then(list => $worktrees.set(list))
+    .catch(() => undefined)
 
   if (!$projectId.get() && config.projects.length) {
     $projectId.set(config.projects[0].id)
@@ -383,6 +424,7 @@ export async function bootStore() {
     }
   })
   on('bus:message', (message: BusMessage) => $bus.set([...$bus.get().slice(-299), message]))
+  on('worktrees:changed', (list: WorktreeInfo[]) => $worktrees.set(list))
   on('app:visibility', (visible: boolean) => $windowVisible.set(visible))
   on('app:reveal', (payload: { sessionId: string | null; split?: boolean }) => {
     const session = payload.sessionId ? $sessions.get()[payload.sessionId] : null

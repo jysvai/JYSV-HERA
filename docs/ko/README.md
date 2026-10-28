@@ -10,6 +10,7 @@ HERA 는 AI 코딩 에이전트와 함께 일하는 사람을 위한 터미널�
 | [프로젝트](projects.md) | 폴더 등록(끌어다 놓기), 시작 화면, 프로젝트 설정, 폴더 트리, 백로그 패널 |
 | [터미널](terminal.md) | 탭, 분할, 복사·붙여넣기, 확대·축소, 글꼴, 커서, 셸, ConPTY, Windows Terminal 가져오기 |
 | [에이전트](agents.md) | 내장 AI CLI 32종, 직접 추가, 상태 감지, 알림, 계정 |
+| [작업 공간](worktrees.md) | AI 가 일하는 프로젝트의 격리된 복사본: 검토하고 합치거나 버리기, 여러 AI 에게 같은 일을 시키고 가장 좋은 결과 고르기 |
 | [hera CLI](hera-cli.md) | 모든 `hera` 명령과 예시, 에이전트끼리 일을 넘기는 방법 |
 | [Lanes](lanes.md) | lanes 플러그인의 mid · low 세션을 HERA 안에서 돌리기 |
 | [세션 기억](session-memory.md) | 자동 저장, 재부팅 뒤 복원, 대화 그대로 이어가기 |

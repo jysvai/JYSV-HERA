@@ -1,6 +1,7 @@
 import { useStore } from '@nanostores/react'
 import {
   IconFolderPlus,
+  IconGitBranch,
   IconLayoutColumns,
   IconLayoutSidebarRight,
   IconSend,
@@ -15,8 +16,9 @@ import type { SessionInfo } from '../../../shared/types'
 import { Button, EmptyState, StatusDot, Tip } from '../../components/ui/primitives'
 import { cn } from '../../lib/cn'
 import { api } from '../../lib/hera'
-import { $config, $layouts, $project, $projectSessions, $rightPanel, closeSession, setLayout, toast } from '../../store/app'
+import { $config, $layouts, $project, $projectSessions, $rightPanel, $worktrees, closeSession, setLayout, toast } from '../../store/app'
 import { addProjectsFlow } from '../projects/flows'
+import { RaceDialog } from '../projects/WorktreesPanel'
 import { TerminalView } from '../terminal/TerminalView'
 import { AgentGlyph, LaunchMenu, LaunchPad } from './launch'
 import { AddHelpersMenu } from './WorkMenu'
@@ -34,6 +36,7 @@ function SessionTab({
 }) {
   const config = useStore($config)
   const agent = config?.agents.find(entry => entry.id === (session.activeAgentId || session.agentId)) || null
+  const copy = useStore($worktrees).find(entry => entry.id === session.worktreeId)
   const [editing, setEditing] = useState(false)
 
   return (
@@ -74,6 +77,11 @@ function SessionTab({
         <span className="truncate">
           {session.title}
           <span className="ml-1.5 text-[11px] text-(--ui-text-tertiary)">{session.name}</span>
+        </span>
+      )}
+      {copy && (
+        <span title={t('작업 공간 {label} ({branch})', { label: copy.label, branch: copy.branch })} className="flex shrink-0 text-(--ui-accent-text)">
+          <IconGitBranch size={12} />
         </span>
       )}
       <button
@@ -271,6 +279,7 @@ export function Workspace() {
         </div>
       )}
       {layout.mode === 'split' && panes.length > 1 && <BroadcastBar sessions={sessions.filter(session => panes.includes(session.id))} />}
+      <RaceDialog />
     </div>
   )
 }
@@ -278,6 +287,7 @@ export function Workspace() {
 function PaneLabel({ session, focused }: { session: SessionInfo; focused: boolean }) {
   const config = useStore($config)
   const agent = config?.agents.find(entry => entry.id === (session.activeAgentId || session.agentId)) || null
+  const copy = useStore($worktrees).find(entry => entry.id === session.worktreeId)
 
   return (
     <div
@@ -291,6 +301,11 @@ function PaneLabel({ session, focused }: { session: SessionInfo; focused: boolea
       <span className="truncate">{session.title}</span>
       <span className="text-(--ui-text-tertiary)">{session.name}</span>
       {session.role && <span className="rounded bg-(--ui-bg-quaternary) px-1 text-[10px]">{session.role === 'main' ? t('메인') : t('보조')}</span>}
+      {copy && (
+        <span className="flex min-w-0 items-center gap-0.5 text-[10.5px] text-(--ui-accent-text)" title={copy.cwd}>
+          <IconGitBranch size={11} className="shrink-0" /> <span className="truncate">{copy.branch}</span>
+        </span>
+      )}
     </div>
   )
 }

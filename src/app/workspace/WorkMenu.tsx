@@ -1,11 +1,14 @@
 import { useStore } from '@nanostores/react'
-import { IconPlus, IconUsersGroup } from '@tabler/icons-react'
+import { IconGitBranch, IconPlus, IconTrophy, IconUsersGroup } from '@tabler/icons-react'
 import type { ReactNode } from 'react'
 
 import { t } from '../../../shared/i18n'
 import type { AgentDef, Project, SessionInfo, StartWorkResult, WorkAgent } from '../../../shared/types'
 import { Menu, MenuItem, MenuLabel } from '../../components/ui/menu'
-import { $config, $sessions, startWork } from '../../store/app'
+import { Switch } from '../../components/ui/primitives'
+import { cn } from '../../lib/cn'
+import { $config, $raceDraft, $sessions, startWork, updateConfig } from '../../store/app'
+import { useWorktreeSupport } from '../projects/WorktreesPanel'
 import { AgentGlyph, useInstalledAgents } from './launch'
 
 const agentOf = (session: SessionInfo) => session.activeAgentId || session.agentId
@@ -29,6 +32,27 @@ function helpersFor(lead: SessionInfo, open: SessionInfo[], fallback: WorkAgent[
 
   const other = installed.find(agent => agent.id !== agentOf(lead))
   return other ? [{ agentId: other.id }] : []
+}
+
+/** Multi-agent setting: new helpers work in worktrees of their own (git projects only). */
+function IsolateToggle({ projectId }: { projectId: string }) {
+  const config = useStore($config)
+  const support = useWorktreeSupport(projectId)
+  const label = t('보조는 각자 작업 공간에서 (git worktree)')
+
+  return (
+    <div className="flex items-center gap-2 px-2 py-1.5 text-[12px]" title={support && !support.ok ? support.reason : t('보조가 프로젝트 폴더 대신 자기 브랜치의 복사본에서 일합니다. 같은 파일을 동시에 고쳐도 부딪히지 않습니다.')}>
+      <IconGitBranch size={14} className="shrink-0 text-(--ui-text-tertiary)" />
+      <span className={cn('flex-1', !support?.ok && 'opacity-50')}>{label}</span>
+      <Switch
+        checked={Boolean(config?.settings.isolateHelpers && support?.ok)}
+        onChange={next => {
+          if (support?.ok) updateConfig(draft => void (draft.settings.isolateHelpers = next))
+        }}
+        label={label}
+      />
+    </div>
+  )
 }
 
 function names(helpers: WorkAgent[], open: SessionInfo[], agents: AgentDef[]) {
@@ -61,7 +85,7 @@ export function WorkMenu({
   const run = async (req: Omit<Parameters<typeof startWork>[0], 'projectId' | 'task'>) => {
     const text = task().trim()
     if (!text) return
-    const result = await startWork({ projectId: project.id, task: text, ...req })
+    const result = await startWork({ projectId: project.id, task: text, isolate: Boolean(config?.settings.isolateHelpers), ...req })
     if (result) onStarted?.(result)
   }
 
@@ -70,6 +94,7 @@ export function WorkMenu({
       {close => (
         <>
           <MenuLabel>{t('멀티 에이전트로 진행')}</MenuLabel>
+          <IsolateToggle projectId={project.id} />
           {open.map(session => {
             const helpers = helpersFor(session, open, fallback, installed)
 
@@ -109,6 +134,16 @@ export function WorkMenu({
             )
           })}
           {!open.length && !teams.length && <div className="px-2 py-1.5 text-[12px] text-(--ui-text-tertiary)">{t('에이전트 페이지에서 팀을 만들거나 AI 세션을 먼저 여세요.')}</div>}
+          <MenuLabel>{t('여러 AI 결과 비교')}</MenuLabel>
+          <MenuItem
+            hint={t('각자 작업 공간에서')}
+            onSelect={() => {
+              close()
+              $raceDraft.set({ projectId: project.id, task: task().trim() })
+            }}
+          >
+            <IconTrophy /> {t('여러 AI 에게 같은 일 시키고 고르기…')}
+          </MenuItem>
           <MenuLabel>{t('한 에이전트에게 맡기기')}</MenuLabel>
           {open.map(session => (
             <MenuItem
@@ -146,13 +181,14 @@ export function AddHelpersMenu({ lead, trigger }: { lead: SessionInfo; trigger: 
   const installed = useInstalledAgents()
   const ready = new Set(installed.map(agent => agent.id))
   const teams = (config?.teams || []).filter(team => team.panes.some(pane => pane.role === 'helper') && team.panes.every(pane => ready.has(pane.agentId)))
-  const add = (helpers: WorkAgent[]) => void startWork({ projectId: lead.projectId!, leadId: lead.id, helpers })
+  const add = (helpers: WorkAgent[]) => void startWork({ projectId: lead.projectId!, leadId: lead.id, helpers, isolate: Boolean(config?.settings.isolateHelpers) })
 
   return (
     <Menu width={300} align="end" trigger={({ toggle }) => trigger(toggle)}>
       {close => (
         <>
           <MenuLabel>{t('{name} 에 보조 붙이기 (멀티 에이전트)', { name: lead.name })}</MenuLabel>
+          <IsolateToggle projectId={lead.projectId!} />
           {installed.map(agent => (
             <MenuItem
               key={agent.id}

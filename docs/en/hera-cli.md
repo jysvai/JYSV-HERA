@@ -48,6 +48,8 @@ Only live sessions can be addressed. Sending to an exited session is an error.
 | Command | What it does |
 |---|---|
 | `hera spawn <agent> [--cmd "…"] [--project p] [--resume] [--no-split] [--role helper]` | Opens a new session running an agent. The role defaults to `helper`. `--cmd` replaces the agent's command. |
+| `hera spawn <agent> --worktree[=name]` | The new session works in a [worktree](worktrees.md) of its own (branch `hera/<name>`), not in the project folder. Prints the folder and branch; bring the result in with `git merge hera/<name>`. |
+| `hera worktrees [--project p] [--json]` | The worktrees HERA made for this project: branch, folder, starting commit, whether it was merged, the sessions in it. |
 | `hera add [path] [--name n]` | Registers a folder as a project. |
 | `hera open <project> [--agent a] [--resume]` | Opens a project, optionally starting an agent. |
 | `hera focus <target>` | Brings a session to the front. |

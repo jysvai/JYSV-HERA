@@ -26,7 +26,7 @@ import {
 
 import { resolveLanguage, setLanguage, t } from '../shared/i18n'
 import { resolveTheme } from '../shared/themes'
-import type { BusMessage, CreateSessionRequest, HeraConfig, LaneTier, SessionInfo, StartWorkRequest, UpdateInfo } from '../shared/types'
+import type { BusMessage, CreateSessionRequest, HeraConfig, LaneTier, SessionInfo, StartRaceRequest, StartWorkRequest, UpdateInfo } from '../shared/types'
 
 import { accountStatuses, createProfile, installStatuslineTap, removeProfile, statuslineTapState, uninstallStatuslineTap } from './accounts'
 import { claudeLiveSessions } from './agent-data'
@@ -56,8 +56,22 @@ import {
 import { runSmoke } from './smoke'
 import { availableShells, detectTerminalImport } from './terminal-import'
 import { checkForUpdate, cleanUpdateDownloads, downloadUpdate, installUpdate, updateState } from './update'
-import { startWork, teamBrief } from './teamwork'
+import { startRace, startWork, teamBrief } from './teamwork'
 import { getUsage } from './usage'
+import {
+  commitWorktree,
+  createWorktree,
+  initRepository,
+  listWorktrees,
+  mergeWorktree,
+  pruneMissingWorktrees,
+  removeWorktree,
+  worktreeById,
+  worktreeDiff,
+  worktreeEvents,
+  worktreeStatus,
+  worktreeSupport
+} from './worktrees'
 
 const DEV_URL = process.env.HERA_DEV_SERVER
 let win: BrowserWindow | null = null
@@ -534,6 +548,7 @@ function trayTooltip(): string {
 pty.ptyEvents.on('data', (id, data) => send('pty:data', id, data))
 pty.ptyEvents.on('snapshot', (id, data) => send('pty:snapshot', id, data))
 pty.ptyEvents.on('changed', info => send('sessions:changed', info))
+worktreeEvents.on('changed', () => send('worktrees:changed', listWorktrees()))
 pty.ptyEvents.on('removed', id => send('sessions:removed', id))
 
 // ---------------------------------------------------------------- metrics
@@ -666,6 +681,27 @@ function registerIpc() {
   handle('sessions:create', (req: CreateSessionRequest) => launch(req))
   handle('sessions:team', (projectId: string, teamId: string) => launchTeam(projectId, teamId))
   handle('work:start', (req: StartWorkRequest) => startWork(req, launch))
+  handle('work:race', (req: StartRaceRequest) => startRace(req, launch))
+
+  handle('worktrees:list', () => listWorktrees())
+  handle('worktrees:support', (projectId: string) => worktreeSupport(String(projectId)))
+  handle('worktrees:init', (projectId: string) => initRepository(String(projectId)))
+  handle('worktrees:create', async (projectId: string, label: string, agentId: string | null) => {
+    const agent = getConfig().agents.find(entry => entry.id === agentId) || null
+    const worktree = await createWorktree(String(projectId), { label: String(label || agent?.name || ''), agentId: agent?.id || null })
+    const session = launch({ projectId: worktree.projectId, agentId: agent?.id || null, cwd: worktree.cwd, worktreeId: worktree.id })
+
+    return { worktree, session }
+  })
+  handle('worktrees:status', (ids: string[]) => Promise.all((Array.isArray(ids) ? ids : []).map(id => worktreeStatus(String(id)))))
+  handle('worktrees:diff', (id: string) => worktreeDiff(String(id)))
+  handle('worktrees:commit', (id: string, message: string) => commitWorktree(String(id), String(message || '')))
+  handle('worktrees:merge', (id: string, mode: string) => mergeWorktree(String(id), mode === 'squash' ? 'squash' : 'merge'))
+  handle('worktrees:remove', (id: string, force: boolean) => removeWorktree(String(id), force === true))
+  handle('worktrees:openFolder', (id: string) => {
+    const worktree = worktreeById(String(id))
+    if (worktree && isDirectory(worktree.path)) void shell.openPath(worktree.path)
+  })
   handle('sessions:write', (id: string, data: string) => pty.write(id, data))
   // Keystroke hot path: one-way, no reply round-trip.
   ipcMain.on('pty:write', (_event, id: string, data: string) => {
@@ -782,6 +818,7 @@ app.whenReady().then(() => {
   applyLanguage()
   writeShortcutFiles(config.shortcuts)
   pty.restoreSessions()
+  void pruneMissingWorktrees()
   registerIpc()
   onConfigChange(next => {
     applyLanguage()

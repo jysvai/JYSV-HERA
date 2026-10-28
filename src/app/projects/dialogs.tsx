@@ -41,6 +41,7 @@ export function ProjectDialog() {
   const [color, setColor] = useState<string | undefined>()
   const [shell, setShell] = useState('auto')
   const [commands, setCommands] = useState('')
+  const [setup, setSetup] = useState('')
   const [pinned, setPinned] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
 
@@ -51,6 +52,7 @@ export function ProjectDialog() {
     setColor(project.color)
     setShell(project.shell || 'auto')
     setCommands(formatCommandLines(project.commands))
+    setSetup(project.worktreeSetup || '')
     setPinned(project.pinned)
     setConfirmDelete(false)
   }, [project?.id]) // eslint-disable-line react-hooks/exhaustive-deps
@@ -68,6 +70,7 @@ export function ProjectDialog() {
       target.color = color
       target.shell = shell === 'auto' ? undefined : shell
       target.commands = parseCommandLines(commands)
+      target.worktreeSetup = setup.trim() || undefined
       target.pinned = pinned
     })
     close()
@@ -142,6 +145,11 @@ export function ProjectDialog() {
             placeholder={'dev = npm run dev\ntest = npm test\nclaude-yolo = claude --dangerously-skip-permissions'}
             className="font-mono text-[12px]"
           />
+        </label>
+        <label className="block">
+          <div className="mb-1 text-[12px] text-(--ui-text-secondary)">{t('새 작업 공간 준비 명령 (선택)')}</div>
+          <Input value={setup} onChange={event => setSetup(event.target.value)} placeholder="npm install" className="font-mono text-[12px]" />
+          <div className="mt-1 text-[11px] leading-relaxed text-(--ui-text-tertiary)">{t('작업 공간을 만들 때마다 그 폴더의 터미널 탭에서 실행합니다. node_modules 같은 의존성은 복사되지 않기 때문입니다.')}</div>
         </label>
         <div className="flex items-center justify-between">
           <span className="text-[13px]">{t('사이드바 상단 고정')}</span>

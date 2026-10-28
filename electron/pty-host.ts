@@ -190,7 +190,8 @@ function info(session: Session): SessionInfo {
     cols: session.cols,
     rows: session.rows,
     dormant: session.dormant,
-    lane: session.lane || null
+    lane: session.lane || null,
+    worktreeId: session.launchReq.worktreeId || null
   }
 }
 
@@ -300,6 +301,9 @@ export function createSession(req: CreateSessionRequest): SessionInfo {
   const config = getConfig()
   const project = projectById(req.projectId || null)
   const agent = agentById(req.agentId || null)
+  // A worktree that was deleted in the meantime (a restored tab): open the project folder instead.
+  const lostCopy = Boolean(req.worktreeId && req.cwd && !isDir(req.cwd))
+  if (lostCopy) req = { ...req, cwd: undefined, worktreeId: null }
   const cwd = safeCwd(req.cwd || project?.path)
   const spec = buildShellSpec(project?.shell || config.settings.defaultShell, config.settings.loadShellProfile)
   const [cols, rows] = clampSize(req.cols || 120, req.rows || 32)
