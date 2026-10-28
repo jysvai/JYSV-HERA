@@ -12,7 +12,7 @@
   ```
 - **Linux AppImage** will not start: `chmod +x JYSV-HERA-*.AppImage`, then run it.
 
-## No terminal opens: the screen only says "Register a project"
+## No terminal opens: the screen only says "Add a project"
 
 Terminals open inside a project, and a project is a folder you registered. Drag a folder onto the left sidebar, or press **Add folder** (폴더 추가), then click the project. The start screen offers *Terminal* and one card per installed AI. Step by step: [Getting started](getting-started.md).
 

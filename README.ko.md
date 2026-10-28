@@ -149,7 +149,9 @@ Windows 11(논리 코어 16개)에서 각 앱에 Windows PowerShell 5.1 터미�
 
 ## 처음 쓰기
 
-> **터미널이나 AI 도구가 처음이라면** [처음 시작하기](docs/ko/getting-started.md) 를 따라 하세요. AI 도구 설치, 폴더 등록, 첫 대화까지 한 단계씩 안내합니다.
+> **터미널이나 AI 도구가 처음이라면** [처음 시작하기](docs/ko/getting-started.md) 를 따라 하세요. AI 도구 설치, 폴더 등록, 첫 대화까지 그림과 함께 한 단계씩 안내합니다.
+
+<p align="center"><img src="docs/images/getting-started/ko-0-how.png" alt="HERA 가 동작하는 방식: 폴더를 등록하면 HERA 가 그 폴더에서 터미널과 AI 를 탭으로 열고, AI 는 내 계정으로 실행됩니다" width="860"></p>
 
 0. **쓰려는 AI CLI 설치**: 예를 들어 `npm i -g @anthropic-ai/claude-code` 나 `npm i -g @openai/codex` ([Node.js](https://nodejs.org/) 필요). 설치한 뒤 HERA 를 다시 켜야(트레이 → *종료*) 새 도구가 보입니다.
 1. **프로젝트 등록**: 터미널은 항상 등록한 폴더 안에서 열리므로 여기부터 시작합니다. 폴더를 사이드바로 끌어다 놓거나 📁+ 로 추가하거나, 🔍 로 상위 폴더(예: `Desktop`)를 골라 `.git`, `package.json`, `pyproject.toml` 등으로 프로젝트를 찾아 한 번에 등록합니다.

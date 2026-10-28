@@ -149,7 +149,9 @@ Daily use so far has been on Windows; macOS and Linux builds pass the self-test 
 
 ## Quick start
 
-> **New to terminals or AI tools?** Follow [Getting started](docs/en/getting-started.md): install an AI tool, register a folder and have your first conversation, step by step.
+> **New to terminals or AI tools?** Follow [Getting started](docs/en/getting-started.md): install an AI tool, register a folder and have your first conversation, step by step, with screenshots.
+
+<p align="center"><img src="docs/images/getting-started/en-0-how.png" alt="How HERA works: register a folder, HERA opens terminals and AI tools there as tabs, and the AI tools run with your own account" width="860"></p>
 
 0. **Install an AI CLI** you want to use, for example `npm i -g @anthropic-ai/claude-code` or `npm i -g @openai/codex` (needs [Node.js](https://nodejs.org/)). Restart HERA afterwards (tray → *Quit*) so it sees the new tool.
 1. **Add projects:** terminals always open inside a registered folder, so start here. Drag a folder onto the sidebar, or use the 📁+ button; 🔍 scans a parent folder (for example `Desktop`) and finds projects by `.git`, `package.json`, `pyproject.toml` and more.
