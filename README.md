@@ -137,7 +137,7 @@ Download from **[Releases](https://github.com/jysvai/JYSV-HERA/releases/latest)*
 | OS | File | How |
 |---|---|---|
 | **Windows 10 / 11** (x64) | `…-win-x64.exe` | Installer, per user, no admin rights. Not code-signed yet: if SmartScreen asks, choose *More info → Run anyway*. A portable `…-win-x64.zip` is also there. |
-| **macOS 12+** Apple Silicon | `…-mac-arm64.dmg` | Drag to Applications. The app is not notarized: the first time, right-click it → *Open*, or run `xattr -dr com.apple.quarantine "/Applications/JYSV HERA.app"`. |
+| **macOS 12+** Apple Silicon | `…-mac-arm64.dmg` | Drag to Applications. The app is not notarized yet, so macOS blocks the first launch: on macOS 15 and later open *System Settings → Privacy & Security* and press **Open Anyway**; on macOS 12–14 right-click the app → *Open*. Or run `xattr -dr com.apple.quarantine "/Applications/JYSV HERA.app"`. Updates from inside the app do not ask again. |
 | **macOS 12+** Intel | `…-mac-x64.dmg` | Same as above. |
 | **Ubuntu 20.04+ / Debian 11+** | `.deb` | `sudo apt install ./JYSV-HERA-*.deb` |
 | **Rocky / Alma / RHEL 9+, Fedora** | `.rpm` | `sudo dnf install ./JYSV-HERA-*.rpm` |

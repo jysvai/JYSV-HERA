@@ -32,7 +32,7 @@ shasum -a 256 JYSV-HERA-0.2.4-mac-arm64.dmg                     # macOS / Linux
 | OS | 지금 | 예정 |
 |---|---|---|
 | Windows | 아직 서명 없음: 처음 실행할 때 SmartScreen 에서 *추가 정보 → 실행*. | SignPath Foundation(오픈소스 무료)의 Authenticode 서명. 릴리스 워크플로는 준비돼 있어서 계정이 생기면 바로 서명합니다. |
-| macOS | 애드혹 서명, 공증 없음: 처음 한 번 우클릭 → *열기*. | Developer ID 서명과 Apple 공증. 인증서를 넣으면 릴리스 워크플로가 둘 다 합니다. |
+| macOS | 애드혹 서명, 공증 없음: 처음 한 번 *시스템 설정 → 개인정보 보호 및 보안 → 그래도 열기* (macOS 12–14 는 우클릭 → *열기*). | Developer ID 서명과 Apple 공증. 인증서를 넣으면 릴리스 워크플로가 둘 다 합니다. |
 | Linux | 체크섬과 출처 증명 (Linux 패키지는 보통 서명하지 않음). | — |
 
 그때까지는 위의 출처 증명이 파일이 진짜인지 확인하는 방법입니다.

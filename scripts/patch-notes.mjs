@@ -67,7 +67,7 @@ function downloads(version) {
     '모든 파일은 각 OS 에서 빌드하고 그 자리에서 자체 시험(실제 터미널 · `hera` CLI · 창)을 통과했습니다. 체크섬은 `SHA256SUMS.txt`.',
     '',
     '- **Windows:** not code-signed yet; if SmartScreen asks, *More info → Run anyway*. · 코드 서명 전이라 SmartScreen 이 막으면 *추가 정보 → 실행*.',
-    '- **macOS:** not notarized; the first time, right-click the app → *Open*. · 공증 전이라 처음 한 번은 우클릭 → *열기*.'
+    '- **macOS:** not notarized yet; the first time, *System Settings → Privacy & Security → Open Anyway* (macOS 12–14: right-click the app → *Open*). · 공증 전이라 처음 한 번은 *시스템 설정 → 개인정보 보호 및 보안 → 그래도 열기* (macOS 12–14 는 우클릭 → *열기*).'
   ].join('\n')
 }
 
