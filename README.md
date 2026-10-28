@@ -243,6 +243,16 @@ Verified end to end: a main Claude in HERA sent `/lane low …`, the low lane ru
 
 Details and how to verify a download: [Security](docs/en/security.md). Report a vulnerability privately: [SECURITY.md](SECURITY.md).
 
+## Code signing policy
+
+Free code signing provided by [SignPath.io](https://about.signpath.io/), certificate by [SignPath Foundation](https://signpath.org/). The application is in review; until it is approved, Windows releases are not signed yet. Every download can already be checked with its build provenance ([Security](docs/en/security.md)).
+
+- Committers and reviewers: [jysvai](https://github.com/jysvai)
+- Approvers: [jysvai](https://github.com/jysvai)
+- Releases are built by [GitHub Actions](https://github.com/jysvai/JYSV-HERA/actions/workflows/release.yml) from the tagged source, and every signing request is approved by hand.
+
+**Privacy:** this program does not transfer any information to other networked systems unless the user asks for it, apart from the update check against GitHub's public releases API, which can be switched off in *Settings → Version · Update*. See [Privacy](#privacy).
+
 ## Build from source
 
 ```bash

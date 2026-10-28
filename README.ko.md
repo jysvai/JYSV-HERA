@@ -243,6 +243,16 @@ lanes 는 Claude Code 프롬프트에서 한 번 설치하고, *Lanes → HERA �
 
 자세한 내용과 받은 파일 확인 방법: [보안](docs/ko/security.md). 취약점은 비공개로 알려 주세요: [SECURITY.md](SECURITY.md).
 
+## 코드 서명 정책 (Code signing policy)
+
+Free code signing provided by [SignPath.io](https://about.signpath.io/), certificate by [SignPath Foundation](https://signpath.org/). 지금 신청을 검토 중이며, 승인될 때까지 Windows 릴리스는 아직 서명되지 않습니다. 받은 파일은 지금도 빌드 출처 증명으로 확인할 수 있습니다([보안](docs/ko/security.md)).
+
+- 커밋 · 리뷰: [jysvai](https://github.com/jysvai)
+- 승인: [jysvai](https://github.com/jysvai)
+- 릴리스는 태그된 소스에서 [GitHub Actions](https://github.com/jysvai/JYSV-HERA/actions/workflows/release.yml) 가 빌드하고, 서명 요청은 매번 직접 승인합니다.
+
+**개인정보:** 이 프로그램은 사용자가 요청하지 않으면 다른 네트워크 시스템으로 정보를 보내지 않습니다. 예외는 GitHub 공개 릴리스 API 로 하는 업데이트 확인 하나이며, *설정 → 버전 · 업데이트* 에서 끌 수 있습니다. [개인정보](#개인정보) 참고.
+
 ## 소스에서 빌드
 
 ```bash

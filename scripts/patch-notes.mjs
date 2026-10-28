@@ -95,7 +95,7 @@ function releaseBody(version) {
     '',
     downloads(version),
     '',
-    `All patch notes · 전체 패치노트: [docs/patch-notes](${REPO}/tree/main/docs/patch-notes)`
+    `All patch notes · 전체 패치노트: [docs/patch-notes](${REPO}/tree/main/docs/patch-notes) · Code signing policy · 코드 서명 정책: [README](${REPO}#code-signing-policy)`
   ].join('\n')
 }
 
