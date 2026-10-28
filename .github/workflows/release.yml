@@ -73,15 +73,23 @@ jobs:
 
       - name: Package
         if: runner.os != 'Windows' || env.WIN_SIGNPATH != 'true'
-        run: npx electron-builder ${{ matrix.target }} --publish never --config scripts/builder-config.cjs
+        shell: bash
+        run: |
+          # macOS: Developer ID signing and notarization only when the secrets exist; ad-hoc
+          # otherwise. Set nothing when unused: electron-builder reads an empty CSC_LINK as a path.
+          if [ "$RUNNER_OS" = macOS ] && [ "$MAC_SIGNING" = true ]; then
+            export CSC_LINK="$MAC_CERTS" CSC_KEY_PASSWORD="$MAC_CERTS_PASSWORD" CSC_IDENTITY_AUTO_DISCOVERY=true
+            if [ "$MAC_NOTARIZE" = true ]; then
+              export APPLE_API_KEY="$RUNNER_TEMP/apple-api-key.p8" APPLE_API_KEY_ID="$APPLE_KEY_ID" APPLE_API_ISSUER="$APPLE_ISSUER"
+            fi
+          fi
+          npx electron-builder ${{ matrix.target }} --publish never --config scripts/builder-config.cjs
         env:
-          # macOS: Developer ID signing and notarization only when the secrets exist; ad-hoc otherwise.
-          CSC_IDENTITY_AUTO_DISCOVERY: ${{ runner.os == 'macOS' && env.MAC_SIGNING == 'true' }}
-          CSC_LINK: ${{ runner.os == 'macOS' && secrets.MAC_CERTS || '' }}
-          CSC_KEY_PASSWORD: ${{ runner.os == 'macOS' && secrets.MAC_CERTS_PASSWORD || '' }}
-          APPLE_API_KEY: ${{ runner.os == 'macOS' && env.MAC_NOTARIZE == 'true' && format('{0}/apple-api-key.p8', runner.temp) || '' }}
-          APPLE_API_KEY_ID: ${{ runner.os == 'macOS' && secrets.APPLE_API_KEY_ID || '' }}
-          APPLE_API_ISSUER: ${{ runner.os == 'macOS' && secrets.APPLE_API_ISSUER || '' }}
+          CSC_IDENTITY_AUTO_DISCOVERY: false
+          MAC_CERTS: ${{ secrets.MAC_CERTS }}
+          MAC_CERTS_PASSWORD: ${{ secrets.MAC_CERTS_PASSWORD }}
+          APPLE_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
+          APPLE_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
 
       # Windows signed through SignPath: sign the app, build the installer and zip from the
       # signed app, then sign the installer, so both the installer and the installed
