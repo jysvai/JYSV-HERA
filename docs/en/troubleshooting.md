@@ -5,7 +5,7 @@
 ## The installer is blocked
 
 - **Windows SmartScreen** ("Windows protected your PC"): HERA is not code-signed yet. Choose *More info*, then *Run anyway*. The installer is per user and needs no administrator rights.
-- **macOS Gatekeeper**: the app is not notarized yet, so the first launch is blocked. On macOS 15 and later, try to open it once, then go to *System Settings → Privacy & Security* and press **Open Anyway** (right-click → *Open* no longer works there). On macOS 12–14, right-click it in Applications and choose *Open*. Or run:
+- **macOS Gatekeeper**: the app is not notarized yet, so the first launch is blocked. On macOS 15 and later, try to open it once, then go to *System Settings → Privacy & Security* and press **Open Anyway** (right-click → *Open* no longer works there). On macOS 13–14, right-click it in Applications and choose *Open*. Or run:
 
   ```
   xattr -dr com.apple.quarantine "/Applications/JYSV HERA.app"

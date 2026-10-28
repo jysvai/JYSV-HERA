@@ -1,7 +1,7 @@
 // Dev loop: vite (renderer HMR) + esbuild --watch (main/preload/cli) + electron.
 // Uses an isolated data dir (app/.hera-dev) and pipe so it never touches the
 // installed app's projects or answers its `hera` calls.
-import { spawn } from 'node:child_process'
+import { spawn, spawnSync } from 'node:child_process'
 import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -80,6 +80,8 @@ run('node', ['scripts/build-main.mjs', '--watch'])
 await Promise.all([waitFor(`http://localhost:${port}/`), waitForFile(mainJs)])
 
 const electronBin = path.join(root, 'node_modules', 'electron', 'dist', isWin ? 'electron.exe' : process.platform === 'darwin' ? 'Electron.app/Contents/MacOS/Electron' : 'electron')
+// Since Electron 42, npm install no longer downloads the binary; fetch it on the first run.
+if (!fs.existsSync(electronBin)) spawnSync(process.execPath, [path.join(root, 'node_modules', 'electron', 'install.js')], { cwd: root, stdio: 'inherit' })
 const electron = spawn(electronBin, ['.'], {
   cwd: root,
   stdio: 'inherit',

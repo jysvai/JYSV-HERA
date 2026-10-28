@@ -154,6 +154,10 @@ export function TerminalView({ sessionId, focused, onFocus }: { sessionId: strin
       const data = event.clipboardData
 
       if (!data || data.getData('text/plain') || ![...data.items].some(item => item.type.startsWith('image/'))) return
+      // Stop it here: xterm would send an empty paste, and Claude Code answers that by reading
+      // the clipboard image itself, so the image arrived twice ([Image #1] [Image #2]).
+      event.preventDefault()
+      event.stopImmediatePropagation()
       void pasteImage()
     }
 

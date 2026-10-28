@@ -10,7 +10,7 @@
 [![License: AGPL-3.0](https://img.shields.io/badge/license-AGPL--3.0-blue.svg)](LICENSE)
 <br>
 [![Windows](https://img.shields.io/badge/Windows-10%20%7C%2011-0078d4?logo=windows&logoColor=white)](https://github.com/jysvai/JYSV-HERA/releases/latest)
-[![macOS](https://img.shields.io/badge/macOS-12%2B%20·%20Intel%20%7C%20Apple%20Silicon-555?logo=apple&logoColor=white)](https://github.com/jysvai/JYSV-HERA/releases/latest)
+[![macOS](https://img.shields.io/badge/macOS-13%2B%20·%20Intel%20%7C%20Apple%20Silicon-555?logo=apple&logoColor=white)](https://github.com/jysvai/JYSV-HERA/releases/latest)
 [![Linux](https://img.shields.io/badge/Linux-AppImage%20·%20deb%20·%20rpm-e95420?logo=linux&logoColor=white)](https://github.com/jysvai/JYSV-HERA/releases/latest)
 [![Works with lanes](https://img.shields.io/badge/works%20with-lanes-7b5cff)](https://github.com/jysvai/lanes)
 
@@ -137,8 +137,8 @@ Download from **[Releases](https://github.com/jysvai/JYSV-HERA/releases/latest)*
 | OS | File | How |
 |---|---|---|
 | **Windows 10 / 11** (x64) | `…-win-x64.exe` | Installer, per user, no admin rights. Not code-signed yet: if SmartScreen asks, choose *More info → Run anyway*. A portable `…-win-x64.zip` is also there. |
-| **macOS 12+** Apple Silicon | `…-mac-arm64.dmg` | Drag to Applications. The app is not notarized yet, so macOS blocks the first launch: on macOS 15 and later open *System Settings → Privacy & Security* and press **Open Anyway**; on macOS 12–14 right-click the app → *Open*. Or run `xattr -dr com.apple.quarantine "/Applications/JYSV HERA.app"`. Updates from inside the app do not ask again. |
-| **macOS 12+** Intel | `…-mac-x64.dmg` | Same as above. |
+| **macOS 13+** Apple Silicon | `…-mac-arm64.dmg` | Drag to Applications. The app is not notarized yet, so macOS blocks the first launch: on macOS 15 and later open *System Settings → Privacy & Security* and press **Open Anyway**; on macOS 13–14 right-click the app → *Open*. Or run `xattr -dr com.apple.quarantine "/Applications/JYSV HERA.app"`. Updates from inside the app do not ask again. |
+| **macOS 13+** Intel | `…-mac-x64.dmg` | Same as above. |
 | **Ubuntu 20.04+ / Debian 11+** | `.deb` | `sudo apt install ./JYSV-HERA-*.deb` |
 | **Rocky / Alma / RHEL 9+, Fedora** | `.rpm` | `sudo dnf install ./JYSV-HERA-*.rpm` |
 | **Any Linux** (x64) | `.AppImage` | `chmod +x JYSV-HERA-*.AppImage` and run it. A `.tar.gz` is also there. |

@@ -50,6 +50,9 @@ const body = text =>
 function downloads(version) {
   const v = version.slice(1)
   const file = name => `\`JYSV-HERA-${v}-${name}\``
+  // Electron 44 (0.2.5) dropped macOS 12.
+  const [major, minor, patch] = v.split('.').map(Number)
+  const mac = major > 0 || minor > 2 || (minor === 2 && patch >= 5) ? 13 : 12
 
   return [
     '### Download · 다운로드',
@@ -57,8 +60,8 @@ function downloads(version) {
     '| OS | File · 파일 |',
     '|---|---|',
     `| Windows 10 / 11 (x64) | ${file('win-x64.exe')} (installer · 설치) · ${file('win-x64.zip')} (portable · 휴대용) |`,
-    `| macOS 12+ Apple Silicon | ${file('mac-arm64.dmg')} |`,
-    `| macOS 12+ Intel | ${file('mac-x64.dmg')} |`,
+    `| macOS ${mac}+ Apple Silicon | ${file('mac-arm64.dmg')} |`,
+    `| macOS ${mac}+ Intel | ${file('mac-x64.dmg')} |`,
     `| Ubuntu 20.04+ / Debian 11+ | ${file('linux-amd64.deb')} |`,
     `| Rocky / Alma / RHEL 9+, Fedora | ${file('linux-x86_64.rpm')} |`,
     `| Any Linux (x64) · 그 밖의 Linux | ${file('linux-x86_64.AppImage')} · ${file('linux-x64.tar.gz')} |`,
@@ -67,7 +70,7 @@ function downloads(version) {
     '모든 파일은 각 OS 에서 빌드하고 그 자리에서 자체 시험(실제 터미널 · `hera` CLI · 창)을 통과했습니다. 체크섬은 `SHA256SUMS.txt`.',
     '',
     '- **Windows:** not code-signed yet; if SmartScreen asks, *More info → Run anyway*. · 코드 서명 전이라 SmartScreen 이 막으면 *추가 정보 → 실행*.',
-    '- **macOS:** not notarized yet; the first time, *System Settings → Privacy & Security → Open Anyway* (macOS 12–14: right-click the app → *Open*). · 공증 전이라 처음 한 번은 *시스템 설정 → 개인정보 보호 및 보안 → 그래도 열기* (macOS 12–14 는 우클릭 → *열기*).'
+    `- **macOS:** not notarized yet; the first time, *System Settings → Privacy & Security → Open Anyway* (macOS ${mac}–14: right-click the app → *Open*). · 공증 전이라 처음 한 번은 *시스템 설정 → 개인정보 보호 및 보안 → 그래도 열기* (macOS ${mac}–14 는 우클릭 → *열기*).`
   ].join('\n')
 }
 

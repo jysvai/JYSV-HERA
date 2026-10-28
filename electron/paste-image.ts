@@ -1,4 +1,4 @@
-import { clipboard } from 'electron'
+import { clipboard, nativeImage } from 'electron'
 import crypto from 'node:crypto'
 import fs from 'node:fs'
 import os from 'node:os'
@@ -51,11 +51,32 @@ function sweep(dir: string) {
   }
 }
 
-/** Saves the clipboard image as a PNG and returns its path, or null when there is no image. */
-export function saveClipboardImage(): string | null {
-  const image = clipboard.readImage()
+/** The clipboard image as PNG bytes, or null when the clipboard holds no image. */
+async function clipboardPng(): Promise<Buffer | null> {
+  for (const item of await clipboard.read()) {
+    const type = item.types.includes('image/png') ? 'image/png' : item.types.find(type => type.startsWith('image/'))
 
-  if (image.isEmpty()) return null
+    if (!type) continue
+
+    const blob = (await item.getType(type)) as Blob
+    const bytes = Buffer.from(await blob.arrayBuffer())
+
+    if (type === 'image/png') return bytes.length ? bytes : null
+
+    // Other formats (JPEG, ...) go through nativeImage to become a PNG.
+    const image = nativeImage.createFromBuffer(bytes)
+
+    return image.isEmpty() ? null : image.toPNG()
+  }
+
+  return null
+}
+
+/** Saves the clipboard image as a PNG and returns its path, or null when there is no image. */
+export async function saveClipboardImage(): Promise<string | null> {
+  const png = await clipboardPng()
+
+  if (!png) return null
 
   const dir = pasteDir()
 
@@ -67,7 +88,7 @@ export function saveClipboardImage(): string | null {
   const file = path.join(dir, `paste-${stamp}-${crypto.randomBytes(4).toString('hex')}.png`)
 
   // Exclusive create: never write through a file or link that is already there.
-  fs.writeFileSync(file, image.toPNG(), { flag: 'wx', mode: 0o600 })
+  fs.writeFileSync(file, png, { flag: 'wx', mode: 0o600 })
 
   return file
 }

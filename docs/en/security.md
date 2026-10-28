@@ -32,7 +32,7 @@ The [in-app updater](updates-and-privacy.md) does this check by itself and insta
 | OS | Today | Planned |
 |---|---|---|
 | Windows | Not signed yet: SmartScreen asks *More info → Run anyway* the first time. | Authenticode through SignPath Foundation (free for open source). The release workflow is ready and signs once the account exists. |
-| macOS | Ad-hoc signed, not notarized: the first time, *System Settings → Privacy & Security → Open Anyway* (macOS 12–14: right-click → *Open*). | Developer ID signing and Apple notarization. The release workflow is ready and does both once the certificate is added. |
+| macOS | Ad-hoc signed, not notarized: the first time, *System Settings → Privacy & Security → Open Anyway* (macOS 13–14: right-click → *Open*). | Developer ID signing and Apple notarization. The release workflow is ready and does both once the certificate is added. |
 | Linux | Checksums and provenance (Linux packages are not usually signed). | — |
 
 Until then, the provenance check above is the way to know a file is genuine.

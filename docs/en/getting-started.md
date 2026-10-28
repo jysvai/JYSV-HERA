@@ -13,7 +13,7 @@ HERA has no AI of its own. It is a window that opens terminals, and the AI tools
 Download the file for your computer from [Releases](https://github.com/jysvai/JYSV-HERA/releases/latest) and install it. The [Install](../../README.md#install) table says which file to pick.
 
 - **Windows:** the app is not code-signed yet, so a blue "Windows protected your PC" window may appear. Click *More info*, then *Run anyway*. No administrator rights are needed.
-- **macOS:** open the `.dmg` and drag HERA to Applications. macOS blocks the first launch. On macOS 15 and later, go to *System Settings → Privacy & Security* and press **Open Anyway**. On macOS 12–14, right-click the app and choose *Open*.
+- **macOS:** open the `.dmg` and drag HERA to Applications. macOS blocks the first launch. On macOS 15 and later, go to *System Settings → Privacy & Security* and press **Open Anyway**. On macOS 13–14, right-click the app and choose *Open*.
 
 The window follows your computer's language (Korean or English). To change it, open *Settings → Display language* (언어 · Language).
 

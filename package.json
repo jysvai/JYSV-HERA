@@ -52,7 +52,7 @@
     "@xterm/addon-webgl": "0.19.0",
     "@xterm/xterm": "6.0.0",
     "clsx": "2.1.1",
-    "electron": "40.10.2",
+    "electron": "44.10.0",
     "electron-builder": "26.15.3",
     "esbuild": "0.28.1",
     "nanostores": "1.4.2",
@@ -61,7 +61,7 @@
     "tailwind-merge": "3.6.0",
     "tailwindcss": "4.3.3",
     "typescript": "6.0.3",
-    "vite": "8.2.0"
+    "vite": "8.3.5"
   },
   "build": {
     "appId": "com.jysvai.hera",
@@ -177,7 +177,7 @@
       ],
       "identity": "-",
       "gatekeeperAssess": false,
-      "minimumSystemVersion": "12.0",
+      "minimumSystemVersion": "13.0",
       "executableName": "JYSV HERA"
     },
     "linux": {

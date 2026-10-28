@@ -10,7 +10,7 @@
 [![License: AGPL-3.0](https://img.shields.io/badge/license-AGPL--3.0-blue.svg)](LICENSE)
 <br>
 [![Windows](https://img.shields.io/badge/Windows-10%20%7C%2011-0078d4?logo=windows&logoColor=white)](https://github.com/jysvai/JYSV-HERA/releases/latest)
-[![macOS](https://img.shields.io/badge/macOS-12%2B%20·%20Intel%20%7C%20Apple%20Silicon-555?logo=apple&logoColor=white)](https://github.com/jysvai/JYSV-HERA/releases/latest)
+[![macOS](https://img.shields.io/badge/macOS-13%2B%20·%20Intel%20%7C%20Apple%20Silicon-555?logo=apple&logoColor=white)](https://github.com/jysvai/JYSV-HERA/releases/latest)
 [![Linux](https://img.shields.io/badge/Linux-AppImage%20·%20deb%20·%20rpm-e95420?logo=linux&logoColor=white)](https://github.com/jysvai/JYSV-HERA/releases/latest)
 [![Works with lanes](https://img.shields.io/badge/works%20with-lanes-7b5cff)](https://github.com/jysvai/lanes)
 
@@ -137,8 +137,8 @@ Windows 11(논리 코어 16개)에서 각 앱에 Windows PowerShell 5.1 터미�
 | OS | 파일 | 방법 |
 |---|---|---|
 | **Windows 10 / 11** (x64) | `…-win-x64.exe` | 사용자 단위 설치, 관리자 권한 불필요. 아직 코드 서명이 없어서 SmartScreen 이 막으면 *추가 정보 → 실행*. 설치 없이 쓰는 `…-win-x64.zip` 도 있습니다. |
-| **macOS 12+** Apple Silicon | `…-mac-arm64.dmg` | 응용 프로그램 폴더로 끌어다 놓기. 아직 공증(notarize)되지 않아 처음 실행이 막힙니다. macOS 15 이상은 *시스템 설정 → 개인정보 보호 및 보안* 에서 **그래도 열기**, macOS 12–14 는 앱을 우클릭 → *열기*. 또는 `xattr -dr com.apple.quarantine "/Applications/JYSV HERA.app"`. 앱 안에서 받는 업데이트는 다시 묻지 않습니다. |
-| **macOS 12+** Intel | `…-mac-x64.dmg` | 위와 같음. |
+| **macOS 13+** Apple Silicon | `…-mac-arm64.dmg` | 응용 프로그램 폴더로 끌어다 놓기. 아직 공증(notarize)되지 않아 처음 실행이 막힙니다. macOS 15 이상은 *시스템 설정 → 개인정보 보호 및 보안* 에서 **그래도 열기**, macOS 13–14 는 앱을 우클릭 → *열기*. 또는 `xattr -dr com.apple.quarantine "/Applications/JYSV HERA.app"`. 앱 안에서 받는 업데이트는 다시 묻지 않습니다. |
+| **macOS 13+** Intel | `…-mac-x64.dmg` | 위와 같음. |
 | **Ubuntu 20.04+ / Debian 11+** | `.deb` | `sudo apt install ./JYSV-HERA-*.deb` |
 | **Rocky / Alma / RHEL 9+, Fedora** | `.rpm` | `sudo dnf install ./JYSV-HERA-*.rpm` |
 | **모든 Linux** (x64) | `.AppImage` | `chmod +x JYSV-HERA-*.AppImage` 후 실행. `.tar.gz` 도 있습니다. |

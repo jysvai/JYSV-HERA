@@ -120,7 +120,7 @@
   - `HERA_SMOKE=<file>` (`electron/smoke.ts`) opens a real terminal with the default shell, checks that a command runs and that the bundled `hera` CLI answers `--version`, checks that the window rendered, writes the result and exits 0 or 1.
   - `scripts/smoke.sh` runs that on each runner, under `xvfb-run` on Linux.
 - **Windows:** NSIS installer and a zip, x64.
-- **macOS:** dmg and zip for x64 and arm64, ad-hoc signed. No Developer ID yet; hardened runtime is off because ad-hoc signing would fail Electron's library validation. Minimum macOS 12.
+- **macOS:** dmg and zip for x64 and arm64, ad-hoc signed. No Developer ID yet; hardened runtime is off because ad-hoc signing would fail Electron's library validation. Minimum macOS 13 (Electron 44 dropped 12).
 - **Linux:** AppImage, deb, rpm and tar.gz, x64. node-pty has no Linux prebuild, so it is compiled in a `node:22-bullseye` container (glibc 2.31) and placed in `prebuilds/linux-x64`. The result loads on Ubuntu 20.04+, Debian 11+, Fedora and Rocky / Alma / RHEL 9+.
 - Packaging keeps only the target platform's node-pty binaries (`win.files`, `mac.files`, `linux.files` excludes).
 - A final job collects every file, writes `SHA256SUMS.txt` and publishes the GitHub release with the notes from `.github/release-notes/<tag>.md`.
