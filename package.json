@@ -142,7 +142,8 @@
       "perMachine": false,
       "allowToChangeInstallationDirectory": true,
       "shortcutName": "JYSV HERA",
-      "uninstallDisplayName": "JYSV HERA"
+      "uninstallDisplayName": "JYSV HERA",
+      "include": "build/installer.nsh"
     },
     "mac": {
       "icon": "resources/icon.icns",
