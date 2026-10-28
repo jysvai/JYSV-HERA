@@ -2,7 +2,7 @@ import { useStore } from '@nanostores/react'
 import { IconRefresh } from '@tabler/icons-react'
 import { useEffect, useState } from 'react'
 
-import { t } from '../../../shared/i18n'
+import { locale, t } from '../../../shared/i18n'
 import type { AgentUsage, RateWindow, UsageBucket } from '../../../shared/types'
 import { formatTokens } from '../../../shared/util'
 import { Button, PageHeader, Section } from '../../components/ui/primitives'
@@ -22,7 +22,7 @@ function resetText(at: number | null) {
   if (minutes < 60) return t('{minutes}분 후 초기화', { minutes })
   if (minutes < 60 * 24) return t('{hours}시간 {minutes}분 후 초기화', { hours: Math.floor(minutes / 60), minutes: minutes % 60 })
 
-  return t('{date} 초기화', { date: new Date(at).toLocaleString(undefined, { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' }) })
+  return t('{date} 초기화', { date: new Date(at).toLocaleString(locale(), { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' }) })
 }
 
 export function LimitBar({ limit, warn = 80, compact = false }: { limit: RateWindow; warn?: number; compact?: boolean }) {
@@ -74,7 +74,7 @@ function Stat({ label, bucket, showCost }: { label: string; bucket: UsageBucket;
       <div className="text-[11px] text-(--ui-text-tertiary)">{label}</div>
       <div className="mt-0.5 text-[17px] font-semibold tabular-nums">{formatTokens(bucketTokens(bucket))}</div>
       <div className="text-[11px] text-(--ui-text-tertiary) tabular-nums">
-        {t('{count} 응답', { count: bucket.messages.toLocaleString() })}{showCost && bucket.costUsd > 0 ? ` · ≈$${bucket.costUsd.toFixed(2)}` : ''}
+        {t('{count} 응답', { count: bucket.messages.toLocaleString(locale()) })}{showCost && bucket.costUsd > 0 ? ` · ≈$${bucket.costUsd.toFixed(2)}` : ''}
       </div>
     </div>
   )

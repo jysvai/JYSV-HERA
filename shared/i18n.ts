@@ -25,6 +25,11 @@ export function language(): Lang {
   return current
 }
 
+/** Dates and numbers follow the window language, not the OS locale (an English window on a Korean PC). */
+export function locale(): string {
+  return current === 'ko' ? 'ko-KR' : 'en-US'
+}
+
 function fill(text: string, vars?: Record<string, string | number | null | undefined>): string {
   if (!vars) return text
 

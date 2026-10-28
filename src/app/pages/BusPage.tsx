@@ -1,7 +1,7 @@
 import { useStore } from '@nanostores/react'
 import { useMemo } from 'react'
 
-import { t } from '../../../shared/i18n'
+import { locale, t } from '../../../shared/i18n'
 import { Badge, EmptyState, PageHeader } from '../../components/ui/primitives'
 import { $bus, $config, $projectId } from '../../store/app'
 
@@ -45,7 +45,7 @@ export function BusPage() {
                   <span className="font-medium">{message.toName}</span>
                   <span className="ml-auto text-[11px] text-(--ui-text-tertiary)">
                     {project?.name ? `${project.name} · ` : ''}
-                    {new Date(message.t).toLocaleString()}
+                    {new Date(message.t).toLocaleString(locale())}
                   </span>
                 </div>
                 <div className="mt-1.5 text-[12.5px] leading-relaxed whitespace-pre-wrap text-(--ui-text-secondary) select-text">

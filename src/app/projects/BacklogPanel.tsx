@@ -13,7 +13,7 @@ import {
 } from '@tabler/icons-react'
 import { useEffect, useRef, useState } from 'react'
 
-import { t } from '../../../shared/i18n'
+import { locale, t } from '../../../shared/i18n'
 import type { ProjectInsight, StartWorkResult } from '../../../shared/types'
 import { newId, relTime } from '../../../shared/util'
 import { Badge, Button, Section, StatusDot, Tip } from '../../components/ui/primitives'
@@ -124,7 +124,7 @@ export function BacklogPanel() {
             <div className="text-[12.5px]">
               <span className="font-medium">{relTime(insight.lastLaunch.t)}</span>
               <span className="text-(--ui-text-tertiary)"> · {insight.lastLaunch.label}</span>
-              <div className="mt-0.5 text-[11px] text-(--ui-text-tertiary)">{new Date(insight.lastLaunch.t).toLocaleString()}</div>
+              <div className="mt-0.5 text-[11px] text-(--ui-text-tertiary)">{new Date(insight.lastLaunch.t).toLocaleString(locale())}</div>
             </div>
           ) : (
             <div className="text-[12px] text-(--ui-text-tertiary)">{t('HERA 에서 아직 실행한 적이 없습니다.')}</div>

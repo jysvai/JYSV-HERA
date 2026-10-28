@@ -7,7 +7,7 @@ import { execFile } from 'node:child_process'
 import fs from 'node:fs'
 import path from 'node:path'
 
-import { t } from '../shared/i18n'
+import { locale, t } from '../shared/i18n'
 import type { AccountProfile, AccountStatus } from '../shared/types'
 import { newId } from '../shared/util'
 
@@ -55,7 +55,7 @@ async function claudeStatus(profile: AccountProfile, dir: string): Promise<Accou
     const refreshExpiry = typeof oauth.refreshTokenExpiresAt === 'number' ? oauth.refreshTokenExpiresAt : null
     // The CLI refreshes access tokens itself; only an expired refresh token needs a re-login.
     status.loggedIn = refreshExpiry ? refreshExpiry > Date.now() : true
-    status.detail = refreshExpiry ? t('재로그인 필요 시점: {date}', { date: new Date(refreshExpiry).toLocaleDateString() }) : undefined
+    status.detail = refreshExpiry ? t('재로그인 필요 시점: {date}', { date: new Date(refreshExpiry).toLocaleDateString(locale()) }) : undefined
   } else if (isMac && profile.configDir === null) {
     status.loggedIn = await claudeKeychainHasCredentials()
     status.method = status.loggedIn ? t('macOS 키체인') : undefined

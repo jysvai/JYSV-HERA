@@ -24,7 +24,12 @@ export function Menu({
     if (!open || !anchor.current) return
     const rect = anchor.current.getBoundingClientRect()
     const left = align === 'end' ? rect.right - width : rect.left
-    setPosition({ top: rect.bottom + 4, left: Math.max(8, Math.min(left, window.innerWidth - width - 8)) })
+    // Open upwards when it does not fit below (a to-do near the bottom of the window).
+    const height = panel.current?.offsetHeight ?? 0
+    const below = rect.bottom + 4
+    const above = rect.top - 4 - height
+    const top = below + height > window.innerHeight - 8 && above >= 8 ? above : Math.max(8, Math.min(below, window.innerHeight - 8 - height))
+    setPosition({ top, left: Math.max(8, Math.min(left, window.innerWidth - width - 8)) })
   }, [open, align, width])
 
   useEffect(() => {

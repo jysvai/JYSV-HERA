@@ -304,7 +304,7 @@ export function AgentsPage() {
                   <AgentGlyph key={index} agent={config.agents.find(agent => agent.id === pane.agentId) || null} size={18} />
                 ))}
               </div>
-              <span className="text-[13px]">{team.name}</span>
+              <span className="text-[13px]">{t(team.name)}</span>
               <span className="text-[11px] text-(--ui-text-tertiary)">
                 {team.panes.map(pane => `${pane.role === 'main' ? t('메인') : t('보조')}:${pane.agentId}`).join(' · ')}
               </span>

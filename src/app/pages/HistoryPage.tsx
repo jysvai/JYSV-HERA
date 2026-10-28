@@ -2,7 +2,7 @@ import { useStore } from '@nanostores/react'
 import { IconCopy, IconFolder, IconFolderQuestion, IconStack2 } from '@tabler/icons-react'
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 
-import { t } from '../../../shared/i18n'
+import { locale, t } from '../../../shared/i18n'
 import type { HistoryHit, Project } from '../../../shared/types'
 import { relTime } from '../../../shared/util'
 import { Button, PageHeader, SearchField } from '../../components/ui/primitives'
@@ -118,7 +118,7 @@ export function HistoryPage() {
                   <div className="min-w-0 flex-1">
                     <div className="text-[12.5px] leading-relaxed [overflow-wrap:anywhere] whitespace-pre-wrap select-text">{hit.text}</div>
                     <div className="mt-0.5 truncate text-[11px] text-(--ui-text-tertiary)">
-                      {relTime(hit.t)} · {new Date(hit.t).toLocaleString()}
+                      {relTime(hit.t)} · {new Date(hit.t).toLocaleString(locale())}
                       {current === ALL && hit.project ? ` · ${hit.project}` : ''}
                     </div>
                   </div>

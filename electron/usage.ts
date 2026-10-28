@@ -2,7 +2,7 @@ import path from 'node:path'
 
 import { utilityProcess } from 'electron'
 
-import { t } from '../shared/i18n'
+import { locale, t } from '../shared/i18n'
 import type { AgentUsage, Project, ProjectUsageEntry, UsageBucket } from '../shared/types'
 import { localDay } from '../shared/util'
 
@@ -295,7 +295,7 @@ function withLimits(usages: AgentUsage[]): AgentUsage[] {
     const limits = claudeRateLimits(dataDir())
 
     claude.limits = limits?.limits || []
-    claude.limitsSource = limits ? `${limits.source} · ${new Date(limits.at).toLocaleTimeString()}` : undefined
+    claude.limitsSource = limits ? `${limits.source} · ${new Date(limits.at).toLocaleTimeString(locale())}` : undefined
     claude.note = limits ? undefined : t('한도 %는 Claude Code 상태줄 연동(설정 → Claude 한도 연동)을 켜면 표시됩니다.')
   }
 
@@ -303,7 +303,7 @@ function withLimits(usages: AgentUsage[]): AgentUsage[] {
     const limits = codexRateLimits(codexHomes())
 
     codex.limits = limits?.limits || []
-    codex.limitsSource = limits ? `${t('Codex 세션 로그')} · ${new Date(limits.at).toLocaleTimeString()}${limits.plan ? ` · ${limits.plan}` : ''}` : undefined
+    codex.limitsSource = limits ? `${t('Codex 세션 로그')} · ${new Date(limits.at).toLocaleTimeString(locale())}${limits.plan ? ` · ${limits.plan}` : ''}` : undefined
   }
 
   return usages

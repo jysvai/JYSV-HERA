@@ -19,7 +19,7 @@ import { Terminal as HeadlessTerminal } from '@xterm/headless'
 import * as nodePty from 'node-pty'
 
 import { GENERIC_APPROVAL, GENERIC_BUSY } from '../shared/defaults'
-import { t } from '../shared/i18n'
+import { locale, t } from '../shared/i18n'
 import type { AgentDef, CreateSessionRequest, SessionInfo, SessionStatus } from '../shared/types'
 import { newId, safeRegex } from '../shared/util'
 
@@ -977,7 +977,7 @@ export function revive(id: string, resume = true, auto = false): SessionInfo | n
   session.shellKind = spec.kind
   if (!isDir(session.cwd)) session.cwd = safeCwd(projectById(session.projectId)?.path)
   // Keep the previous screen above; the restarted shell continues below it.
-  session.term.write(`\r\n\x1b[2m── ${auto ? t('재부팅/재시작 후 이어서 실행') : t('다시 시작함')} · ${new Date().toLocaleString()} ──\x1b[0m\r\n`)
+  session.term.write(`\r\n\x1b[2m── ${auto ? t('재부팅/재시작 후 이어서 실행') : t('다시 시작함')} · ${new Date().toLocaleString(locale())} ──\x1b[0m\r\n`)
   spawn(session, spec)
 
   if (session.attached) {
@@ -1135,7 +1135,7 @@ export function restoreSessions() {
   for (const entry of saved) {
     const id = newId('s_')
     const { term, serializer } = headlessTerminal(120, 32, config.settings.scrollback)
-    const when = entry.savedAt ? ` · ${t('{when} 저장', { when: new Date(entry.savedAt).toLocaleString() })}` : ''
+    const when = entry.savedAt ? ` · ${t('{when} 저장', { when: new Date(entry.savedAt).toLocaleString(locale()) })}` : ''
     const revive = `${entry.snapshot}\r\n\x1b[2m── ${t('이전 실행에서 복원된 화면')}${when} ──\x1b[0m\r\n`
     term.write(revive)
     const projectId = entry.projectId && config.projects.some(project => project.id === entry.projectId) ? entry.projectId : null
