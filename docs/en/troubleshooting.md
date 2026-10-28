@@ -12,6 +12,14 @@
   ```
 - **Linux AppImage** will not start: `chmod +x JYSV-HERA-*.AppImage`, then run it.
 
+## No terminal opens: the screen only says "Register a project"
+
+Terminals open inside a project, and a project is a folder you registered. Drag a folder onto the left sidebar, or press **Add folder** (폴더 추가), then click the project. The start screen offers *Terminal* and one card per installed AI. Step by step: [Getting started](getting-started.md).
+
+## I installed an AI CLI, but HERA does not show it
+
+HERA reads your PATH when it starts. Quit it completely (closing the window only hides it in the tray: right-click the tray icon → *Quit*) and start it again. If it is still missing, see [An AI CLI does not appear in the launch menus](#an-ai-cli-does-not-appear-in-the-launch-menus).
+
 ## The mouse wheel does nothing (or sends arrow keys) in Claude Code, vim or htop
 
 On Windows this is the ConPTY difference described in [Terminal](terminal.md#conpty-bundled-or-system-windows). Since 0.2.1 HERA uses Windows Terminal's engine by default. Check Settings, Terminal, **Use the latest ConPTY** (최신 ConPTY 사용) is on, then open a *new* terminal: the setting only affects terminals started after you change it. If you turned it off to work around another problem, that is the cause.

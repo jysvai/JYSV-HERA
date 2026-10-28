@@ -6,6 +6,7 @@ HERA is a terminal for people who work with AI coding agents. These pages explai
 
 | Page | What it covers |
 |---|---|
+| [Getting started](getting-started.md) | For beginners: install an AI tool, register a folder, open a terminal, the first conversation |
 | [Projects](projects.md) | Registering folders (drag and drop), the start screen, project settings, the folder tree, the backlog panel |
 | [Terminal](terminal.md) | Tabs, split view, copy and paste, zoom, fonts, cursor, shells, ConPTY, Windows Terminal import |
 | [Agents](agents.md) | The 32 built-in AI CLIs, adding your own, status detection, notifications, accounts |
@@ -18,4 +19,4 @@ HERA is a terminal for people who work with AI coding agents. These pages explai
 | [Security](security.md) | Checking a download (signed build provenance, checksums), code signing, how the app is hardened |
 | [Troubleshooting](troubleshooting.md) | Fixes for the problems people run into most |
 
-Screens in HERA are in Korean by default. Button names in these pages are given in English with the Korean label in parentheses where it helps you find it.
+HERA shows its screens in English or Korean, following your computer's language; change it in *Settings → Display language*. These pages give the Korean label in parentheses where it helps you find a button.

@@ -9,9 +9,9 @@
 [![Downloads](https://img.shields.io/github/downloads/jysvai/JYSV-HERA/total?color=2ea44f)](https://github.com/jysvai/JYSV-HERA/releases)
 [![License: AGPL-3.0](https://img.shields.io/badge/license-AGPL--3.0-blue.svg)](LICENSE)
 <br>
-![Windows](https://img.shields.io/badge/Windows-10%20%7C%2011-0078d4?logo=windows&logoColor=white)
-![macOS](https://img.shields.io/badge/macOS-12%2B%20·%20Intel%20%7C%20Apple%20Silicon-555?logo=apple&logoColor=white)
-![Linux](https://img.shields.io/badge/Linux-AppImage%20·%20deb%20·%20rpm-e95420?logo=linux&logoColor=white)
+[![Windows](https://img.shields.io/badge/Windows-10%20%7C%2011-0078d4?logo=windows&logoColor=white)](https://github.com/jysvai/JYSV-HERA/releases/latest)
+[![macOS](https://img.shields.io/badge/macOS-12%2B%20·%20Intel%20%7C%20Apple%20Silicon-555?logo=apple&logoColor=white)](https://github.com/jysvai/JYSV-HERA/releases/latest)
+[![Linux](https://img.shields.io/badge/Linux-AppImage%20·%20deb%20·%20rpm-e95420?logo=linux&logoColor=white)](https://github.com/jysvai/JYSV-HERA/releases/latest)
 [![Works with lanes](https://img.shields.io/badge/works%20with-lanes-7b5cff)](https://github.com/jysvai/lanes)
 
 **English** · [한국어](README.ko.md)
@@ -89,7 +89,7 @@ Google's Gemini CLI was replaced by Antigravity for Google accounts, so it is no
 
 ## Documentation
 
-One page per feature, in [English](docs/en/README.md) and [Korean](docs/ko/README.md). Also: [Troubleshooting](docs/en/troubleshooting.md) · [Updates and privacy](docs/en/updates-and-privacy.md) · [Security](docs/en/security.md) · [Patch notes](docs/patch-notes/README.md) · [Architecture](docs/architecture.md).
+One page per feature, in [English](docs/en/README.md) and [Korean](docs/ko/README.md). New here? Start with [Getting started](docs/en/getting-started.md). Also: [Troubleshooting](docs/en/troubleshooting.md) · [Updates and privacy](docs/en/updates-and-privacy.md) · [Security](docs/en/security.md) · [Patch notes](docs/patch-notes/README.md) · [Architecture](docs/architecture.md).
 
 <table>
 <tr>
@@ -149,7 +149,10 @@ Daily use so far has been on Windows; macOS and Linux builds pass the self-test 
 
 ## Quick start
 
-1. **Add projects:** the 📁+ button adds folders; 🔍 scans a parent folder (for example `Desktop`) and finds projects by `.git`, `package.json`, `pyproject.toml` and more.
+> **New to terminals or AI tools?** Follow [Getting started](docs/en/getting-started.md): install an AI tool, register a folder and have your first conversation, step by step.
+
+0. **Install an AI CLI** you want to use, for example `npm i -g @anthropic-ai/claude-code` or `npm i -g @openai/codex` (needs [Node.js](https://nodejs.org/)). Restart HERA afterwards (tray → *Quit*) so it sees the new tool.
+1. **Add projects:** terminals always open inside a registered folder, so start here. Drag a folder onto the sidebar, or use the 📁+ button; 🔍 scans a parent folder (for example `Desktop`) and finds projects by `.git`, `package.json`, `pyproject.toml` and more.
 2. **Open:** pick a project. The start screen shows *Terminal*, every installed AI and team presets. ▶ resumes that AI's last conversation.
 3. **Work:** tabs at the top, split view for up to 4, and the right panel for *Backlog · Usage · Lanes*.
 4. **Close freely:** closing the window keeps terminals running in the tray. Quitting and reopening, or a reboot, brings every session back.

@@ -9,9 +9,9 @@
 [![Downloads](https://img.shields.io/github/downloads/jysvai/JYSV-HERA/total?color=2ea44f)](https://github.com/jysvai/JYSV-HERA/releases)
 [![License: AGPL-3.0](https://img.shields.io/badge/license-AGPL--3.0-blue.svg)](LICENSE)
 <br>
-![Windows](https://img.shields.io/badge/Windows-10%20%7C%2011-0078d4?logo=windows&logoColor=white)
-![macOS](https://img.shields.io/badge/macOS-12%2B%20·%20Intel%20%7C%20Apple%20Silicon-555?logo=apple&logoColor=white)
-![Linux](https://img.shields.io/badge/Linux-AppImage%20·%20deb%20·%20rpm-e95420?logo=linux&logoColor=white)
+[![Windows](https://img.shields.io/badge/Windows-10%20%7C%2011-0078d4?logo=windows&logoColor=white)](https://github.com/jysvai/JYSV-HERA/releases/latest)
+[![macOS](https://img.shields.io/badge/macOS-12%2B%20·%20Intel%20%7C%20Apple%20Silicon-555?logo=apple&logoColor=white)](https://github.com/jysvai/JYSV-HERA/releases/latest)
+[![Linux](https://img.shields.io/badge/Linux-AppImage%20·%20deb%20·%20rpm-e95420?logo=linux&logoColor=white)](https://github.com/jysvai/JYSV-HERA/releases/latest)
 [![Works with lanes](https://img.shields.io/badge/works%20with-lanes-7b5cff)](https://github.com/jysvai/lanes)
 
 [English](README.md) · **한국어**
@@ -89,7 +89,7 @@ Google 의 Gemini CLI 는 Google 계정 사용자에게 Antigravity 로 대체�
 
 ## 문서
 
-기능마다 한 페이지씩, [한국어](docs/ko/README.md) 와 [영어](docs/en/README.md) 로 있습니다. 그 밖에: [문제 해결](docs/ko/troubleshooting.md) · [업데이트와 개인정보](docs/ko/updates-and-privacy.md) · [보안](docs/ko/security.md) · [패치노트](docs/patch-notes/README.md) · [구조](docs/architecture.md).
+기능마다 한 페이지씩, [한국어](docs/ko/README.md) 와 [영어](docs/en/README.md) 로 있습니다. 처음이라면 [처음 시작하기](docs/ko/getting-started.md) 부터 보세요. 그 밖에: [문제 해결](docs/ko/troubleshooting.md) · [업데이트와 개인정보](docs/ko/updates-and-privacy.md) · [보안](docs/ko/security.md) · [패치노트](docs/patch-notes/README.md) · [구조](docs/architecture.md).
 
 <table>
 <tr>
@@ -149,7 +149,10 @@ Windows 11(논리 코어 16개)에서 각 앱에 Windows PowerShell 5.1 터미�
 
 ## 처음 쓰기
 
-1. **프로젝트 등록**: 📁+ 로 폴더를 추가하거나, 🔍 로 상위 폴더(예: `Desktop`)를 골라 `.git`, `package.json`, `pyproject.toml` 등으로 프로젝트를 찾아 한 번에 등록합니다.
+> **터미널이나 AI 도구가 처음이라면** [처음 시작하기](docs/ko/getting-started.md) 를 따라 하세요. AI 도구 설치, 폴더 등록, 첫 대화까지 한 단계씩 안내합니다.
+
+0. **쓰려는 AI CLI 설치**: 예를 들어 `npm i -g @anthropic-ai/claude-code` 나 `npm i -g @openai/codex` ([Node.js](https://nodejs.org/) 필요). 설치한 뒤 HERA 를 다시 켜야(트레이 → *종료*) 새 도구가 보입니다.
+1. **프로젝트 등록**: 터미널은 항상 등록한 폴더 안에서 열리므로 여기부터 시작합니다. 폴더를 사이드바로 끌어다 놓거나 📁+ 로 추가하거나, 🔍 로 상위 폴더(예: `Desktop`)를 골라 `.git`, `package.json`, `pyproject.toml` 등으로 프로젝트를 찾아 한 번에 등록합니다.
 2. **열기**: 프로젝트를 고르면 시작 화면에 *터미널*, 설치된 AI, 팀 버튼이 나옵니다. ▶ 는 그 AI 의 마지막 대화를 이어서 엽니다.
 3. **작업**: 위쪽 탭, 최대 4개 분할, 오른쪽 패널의 *백로그 · 사용량 · Lanes*.
 4. **편하게 닫기**: 창을 닫아도 트레이에서 터미널은 계속 돕니다. 종료 후 다시 켜거나 재부팅해도 모든 세션이 돌아옵니다.
