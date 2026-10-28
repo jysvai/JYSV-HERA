@@ -6,6 +6,7 @@ One file per release and language. A release on GitHub is written from these fil
 
 | Version | Date | Summary | Notes |
 |---|---|---|---|
+| [v0.2.5](https://github.com/jysvai/JYSV-HERA/releases/tag/v0.2.5) | 2026-10-28 | A security update: a current Electron, the CodeQL fixes in the app itself, and a single image when you paste a screenshot on macOS. | [English](en/v0.2.5.md) · [한국어](ko/v0.2.5.md) |
 | [v0.2.4](https://github.com/jysvai/JYSV-HERA/releases/tag/v0.2.4) | 2026-10-28 | Start multi-agent work straight from the backlog or an open session, and check for yourself that a download is genuine. | [English](en/v0.2.4.md) · [한국어](ko/v0.2.4.md) |
 | [v0.2.3](https://github.com/jysvai/JYSV-HERA/releases/tag/v0.2.3) | 2026-10-27 | HERA updates itself and your AI CLIs now, speaks English as well as Korean, and keeps your Codex login across restarts. | [English](en/v0.2.3.md) · [한국어](ko/v0.2.3.md) |
 | [v0.2.2](https://github.com/jysvai/JYSV-HERA/releases/tag/v0.2.2) | 2026-10-27 | Usage numbers that keep themselves current. | [English](en/v0.2.2.md) · [한국어](ko/v0.2.2.md) |

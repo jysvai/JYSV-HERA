@@ -2,6 +2,23 @@
 
 Full patch notes, one file per release in English and Korean: [docs/patch-notes](docs/patch-notes/README.md).
 
+## 0.2.5 — 2026-10-28
+
+### Security
+
+- Electron 40.10.2 → 44.10.0 (Chromium 152): closes 14 Electron advisories. The clipboard image paste moved to the async `clipboard.read()` API.
+- CodeQL fixes now ship in the app: CSPRNG ids, private paste folder with exclusive file creation, lanes settings race, refused `.cmd` arguments with shell-breaking characters.
+- Dev tooling: Vite 8.3.5; `extract-zip` and `launch-editor` gone from the tree.
+
+### Fixed
+
+- macOS: pasting a screenshot attached it twice (HERA's file path plus the agent reading the clipboard after xterm's empty paste).
+
+### Changed
+
+- macOS 13+ (Electron 44 dropped macOS 12).
+- `npm run dev` downloads the Electron binary on first run (Electron 42+ no longer does it on install).
+
 ## 0.2.4 — 2026-10-28
 
 ### Added
