@@ -196,12 +196,24 @@ export function setLaneOptions(patch: Record<string, string | number | boolean |
 
   const { schema } = readSchema(where.root)
   const file = settingsFile()
-  const text = fs.existsSync(file) ? fs.readFileSync(file, 'utf8') : '{}'
+  let text = '{}'
+
+  try {
+    text = fs.readFileSync(file, 'utf8')
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error
+  }
+
   // A file we cannot parse is not ours to rewrite.
   const settings = JSON.parse(text.replace(/^\uFEFF/, '')) as ClaudeSettings
   const backup = dataPath('claude-settings.backup.json')
 
-  if (!fs.existsSync(backup)) fs.writeFileSync(backup, text, 'utf8')
+  try {
+    // The first backup is the user's original; never overwrite it.
+    fs.writeFileSync(backup, text, { encoding: 'utf8', flag: 'wx' })
+  } catch {
+    // already there
+  }
 
   const configs = (settings.pluginConfigs ||= {})
   const entry = (configs[where.key] ||= {})

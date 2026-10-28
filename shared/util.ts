@@ -1,7 +1,8 @@
 import { t } from './i18n'
 
 export function newId(prefix = ''): string {
-  const random = Math.random().toString(36).slice(2, 8)
+  // Ids name sessions on the hera bus, so they come from the system CSPRNG.
+  const random = Array.from(globalThis.crypto.getRandomValues(new Uint8Array(6)), byte => (byte % 36).toString(36)).join('')
   const time = Date.now().toString(36).slice(-5)
 
   return `${prefix}${time}${random}`

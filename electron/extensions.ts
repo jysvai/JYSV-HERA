@@ -103,7 +103,12 @@ function run(file: string, args: string[], timeout: number): Promise<{ ok: boole
     }
     const done = (error: Error | null, stdout: string | Buffer) => resolve({ ok: !error, stdout: String(stdout || '') })
     // .cmd shims (npm, CLIs installed by npm on Windows) need a shell; the args are this file's own.
-    if (/\.(cmd|bat)$/i.test(file)) exec([file, ...args].map(part => `"${part}"`).join(' '), options, done)
+    if (/\.(cmd|bat)$/i.test(file)) {
+      const parts = [file, ...args]
+      // Nothing that could break out of the quotes reaches the shell.
+      if (parts.some(part => /["%\r\n]/.test(part))) resolve({ ok: false, stdout: '' })
+      else exec(parts.map(part => `"${part}"`).join(' '), options, done)
+    }
     else execFile(file, args, options, done)
   })
 }

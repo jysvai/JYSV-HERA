@@ -110,7 +110,7 @@ jobs:
 
       - name: Sign app (SignPath)
         if: runner.os == 'Windows' && env.WIN_SIGNPATH == 'true'
-        uses: signpath/github-action-submit-signing-request@v2
+        uses: signpath/github-action-submit-signing-request@c92b958760219087e01f8d67a1669ed57afe2627 # v2
         with:
           api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
           organization-id: ${{ vars.SIGNPATH_ORGANIZATION_ID }}
@@ -140,7 +140,7 @@ jobs:
 
       - name: Sign installer (SignPath)
         if: runner.os == 'Windows' && env.WIN_SIGNPATH == 'true'
-        uses: signpath/github-action-submit-signing-request@v2
+        uses: signpath/github-action-submit-signing-request@c92b958760219087e01f8d67a1669ed57afe2627 # v2
         with:
           api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
           organization-id: ${{ vars.SIGNPATH_ORGANIZATION_ID }}
@@ -215,7 +215,7 @@ jobs:
         with:
           subject-path: out/*
 
-      - uses: softprops/action-gh-release@v2
+      - uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2
         with:
           name: JYSV HERA ${{ github.ref_name }}
           body_path: release-body.md

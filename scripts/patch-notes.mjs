@@ -105,7 +105,7 @@ function index() {
     const summary = (read('en', version) || '').split('\n').find(line => line && !line.startsWith('#')) || ''
     const link = lang => (read(lang, version) ? `[${lang === 'en' ? 'English' : '한국어'}](${lang}/${version}.md)` : '—')
 
-    return `| [${version}](${REPO}/releases/tag/${version}) | ${title} | ${summary.replace(/\|/g, '\\|')} | ${link('en')} · ${link('ko')} |`
+    return `| [${version}](${REPO}/releases/tag/${version}) | ${title} | ${summary.replace(/\\/g, '\\\\').replace(/\|/g, '\\|')} | ${link('en')} · ${link('ko')} |`
   })
 
   return [

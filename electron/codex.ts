@@ -32,7 +32,11 @@ export function codexSupportsNoDaemon(command = 'codex'): Promise<boolean> {
     const done = (error: Error | null, stdout: string) => resolve(!error && String(stdout).includes(FLAG))
     const options = { timeout: 15_000, windowsHide: true, maxBuffer: 4 << 20 }
     // npm installs a .cmd shim on Windows, which only runs through the shell.
-    if (isWin && /\.(cmd|bat)$/i.test(exe)) exec(`"${exe}" --help`, options, done)
+    // The path comes from PATH; one that could break out of the quotes is not run.
+    if (isWin && /\.(cmd|bat)$/i.test(exe)) {
+      if (/["%\r\n]/.test(exe)) resolve(false)
+      else exec(`"${exe}" --help`, options, done)
+    }
     else execFile(exe, ['--help'], options, done)
   }).then(supported => {
     known.set(exe, { supported, at: Date.now() })
