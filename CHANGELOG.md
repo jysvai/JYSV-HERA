@@ -2,6 +2,18 @@
 
 Full patch notes, one file per release in English and Korean: [docs/patch-notes](docs/patch-notes/README.md).
 
+## 0.2.6 — 2026-10-28
+
+### Fixed
+
+- Dates and times follow the window language (`locale()` in shared/i18n), not the OS locale.
+- Team preset names on the Agents page go through `t()`.
+- Menus open upwards when they do not fit below their button.
+
+### Docs
+
+- Picture-led Getting started (annotated demo screenshots and three drawings, en and ko).
+
 ## 0.2.5 — 2026-10-28
 
 ### Security
