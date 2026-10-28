@@ -5,6 +5,7 @@ import {
   IconLayoutSidebarRight,
   IconSend,
   IconSquare,
+  IconUsersGroup,
   IconX
 } from '@tabler/icons-react'
 import { useMemo, useState } from 'react'
@@ -18,6 +19,7 @@ import { $config, $layouts, $project, $projectSessions, $rightPanel, closeSessio
 import { addProjectsFlow } from '../projects/flows'
 import { TerminalView } from '../terminal/TerminalView'
 import { AgentGlyph, LaunchMenu, LaunchPad } from './launch'
+import { AddHelpersMenu } from './WorkMenu'
 
 function SessionTab({
   session,
@@ -161,6 +163,7 @@ export function Workspace() {
   const active = layout.active && ids.has(layout.active) ? layout.active : sessions[sessions.length - 1]?.id || null
   const split = layout.split.filter(id => ids.has(id))
   const panes = layout.mode === 'split' && split.length > 1 ? split : active ? [active] : []
+  const focused = sessions.find(session => session.id === (layout.mode === 'split' ? focusedId || active : active))
 
   if (!project) {
     return (
@@ -221,6 +224,18 @@ export function Workspace() {
           ))}
           <LaunchMenu project={project} split={layout.mode === 'split'} />
         </div>
+        {focused?.activeAgentId && !focused.lane && !focused.dormant && focused.projectId && (
+          <AddHelpersMenu
+            lead={focused}
+            trigger={toggle => (
+              <Tip label={t('멀티 에이전트: {name} 에 보조 붙이기', { name: focused.name })}>
+                <Button size="icon-sm" variant="ghost" aria-label={t('보조 붙이기')} onClick={toggle}>
+                  <IconUsersGroup />
+                </Button>
+              </Tip>
+            )}
+          />
+        )}
         {sessions.length > 1 && (
           <Tip label={layout.mode === 'split' ? t('한 화면 보기') : t('분할 보기 (최대 4개)')}>
             <Button size="icon-sm" variant="ghost" aria-label={t('분할 전환')} onClick={toggleSplit}>

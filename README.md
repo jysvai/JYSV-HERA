@@ -4,6 +4,8 @@
 
 [![Release](https://img.shields.io/github/v/release/jysvai/JYSV-HERA?color=c9a227&label=release)](https://github.com/jysvai/JYSV-HERA/releases/latest)
 [![Build](https://img.shields.io/github/actions/workflow/status/jysvai/JYSV-HERA/release.yml?label=build%20%26%20self-test)](https://github.com/jysvai/JYSV-HERA/actions/workflows/release.yml)
+[![CodeQL](https://img.shields.io/github/actions/workflow/status/jysvai/JYSV-HERA/codeql.yml?label=CodeQL)](https://github.com/jysvai/JYSV-HERA/actions/workflows/codeql.yml)
+[![Build provenance](https://img.shields.io/badge/build%20provenance-signed-2ea44f)](docs/en/security.md#check-a-download)
 [![Downloads](https://img.shields.io/github/downloads/jysvai/JYSV-HERA/total?color=2ea44f)](https://github.com/jysvai/JYSV-HERA/releases)
 [![License: AGPL-3.0](https://img.shields.io/badge/license-AGPL--3.0-blue.svg)](LICENSE)
 <br>
@@ -43,8 +45,8 @@ HERA keeps the shell you already use (PowerShell, cmd, Git Bash, bash, zsh, fish
 | **Tabs and split view** | Tabs, up to 4 terminals side by side, broadcast one prompt to several agents at once. Drag a file onto a terminal to paste its quoted path. `Ctrl` `+` / `-` / `0` or `Ctrl` + wheel zooms the terminals (`⌘` on macOS). |
 | **Live status** | Working / idle / waiting-for-approval detected per session; desktop notifications when an agent finishes or needs you. |
 | **Folder tree** | A *Folders* tab beside the terminals shows the project's files with git changes; open a file, show it in Explorer / Finder, copy its path or drag it into a terminal. |
-| **Backlog panel** | Last run (when and with what), git branch, last commit and changed files, each AI's last prompt, todos and notes per project. |
-| **Multi-agent bus** | `hera ask / send / reply / peek / key / spawn` between sessions; every message is logged on the *Agent conversations* page. |
+| **Backlog panel** | Last run (when and with what), git branch, last commit and changed files, each AI's last prompt, todos and notes per project. ▶ on a to-do hands it to an agent or a multi-agent team. |
+| **Multi-agent work** | Hand a task to a lead from the backlog, or add helpers next to an open session: HERA opens them side by side, briefs the lead and passes results back, with no `hera` typed by you. Agents use `hera ask / send / reply / peek / key / spawn` between themselves; every message is logged on the *Agent conversations* page. |
 | **Session memory** | Autosave every 45 s and on every change; exact conversation resume for Claude Code (`--session-id` / `--resume <id>`) and Codex (`resume <id>`); optional launch at login. |
 | **Usage** | Limits, today / 7-day / 30-day tokens and API-price cost per AI, per registered project and in total, parsed locally in a short-lived worker. |
 | **Accounts** | Profiles with separate config folders per CLI (`CLAUDE_CONFIG_DIR`, `CODEX_HOME`, ...) so work and personal logins stay apart. |
@@ -87,7 +89,7 @@ Google's Gemini CLI was replaced by Antigravity for Google accounts, so it is no
 
 ## Documentation
 
-One page per feature, in [English](docs/en/README.md) and [Korean](docs/ko/README.md). Also: [Troubleshooting](docs/en/troubleshooting.md) · [Updates and privacy](docs/en/updates-and-privacy.md) · [Patch notes](docs/patch-notes/README.md) · [Architecture](docs/architecture.md).
+One page per feature, in [English](docs/en/README.md) and [Korean](docs/ko/README.md). Also: [Troubleshooting](docs/en/troubleshooting.md) · [Updates and privacy](docs/en/updates-and-privacy.md) · [Security](docs/en/security.md) · [Patch notes](docs/patch-notes/README.md) · [Architecture](docs/architecture.md).
 
 <table>
 <tr>
@@ -141,7 +143,7 @@ Download from **[Releases](https://github.com/jysvai/JYSV-HERA/releases/latest)*
 | **Rocky / Alma / RHEL 9+, Fedora** | `.rpm` | `sudo dnf install ./JYSV-HERA-*.rpm` |
 | **Any Linux** (x64) | `.AppImage` | `chmod +x JYSV-HERA-*.AppImage` and run it. A `.tar.gz` is also there. |
 
-`SHA256SUMS.txt` lists the checksum of every file. You also need the AI CLIs you want to use (for example [Claude Code](https://claude.com/claude-code) or [Codex](https://github.com/openai/codex)) installed and on `PATH`.
+`SHA256SUMS.txt` lists the checksum of every file, and every file has a signed build-provenance attestation: `gh attestation verify <file> --repo jysvai/JYSV-HERA` proves it was built by this repository's workflow ([Security](docs/en/security.md)). You also need the AI CLIs you want to use (for example [Claude Code](https://claude.com/claude-code) or [Codex](https://github.com/openai/codex)) installed and on `PATH`.
 
 Daily use so far has been on Windows; macOS and Linux builds pass the self-test above. Please report anything that behaves differently there.
 
@@ -232,6 +234,14 @@ Verified end to end: a main Claude in HERA sent `/lane low …`, the low lane ru
 - **No telemetry.** Usage numbers come from the logs the CLIs already write on your machine.
 - **No secrets read.** Account pages show only non-secret fields such as plan, email and expiry; token values are never read.
 - **Your data stays local.** It lives in `%APPDATA%\JYSV HERA` (macOS `~/Library/Application Support/JYSV HERA`, Linux `~/.config/JYSV HERA`). Set `HERA_HOME` to use another folder; that also runs a separate, independent instance.
+
+## Security
+
+- **Verifiable builds.** Releases are built in public by GitHub Actions, and each file carries a Sigstore-signed build-provenance attestation and a SHA-256 checksum. Code signing (Windows SignPath, macOS notarization) is wired into the release workflow and switches on once the certificates exist.
+- **Hardened app.** Sandboxed UI with a fixed call allowlist, Electron fuses (no `NODE_OPTIONS`, no inspector, code only from an integrity-checked `app.asar`), and a local-only, token-protected `hera` bus.
+- **Checked on every push.** CodeQL security queries and `npm audit` of the shipped dependencies.
+
+Details and how to verify a download: [Security](docs/en/security.md). Report a vulnerability privately: [SECURITY.md](SECURITY.md).
 
 ## Build from source
 

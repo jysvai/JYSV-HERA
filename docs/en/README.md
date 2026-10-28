@@ -15,6 +15,7 @@ HERA is a terminal for people who work with AI coding agents. These pages explai
 | [Usage](usage.md) | Limits, tokens and cost per agent and per project |
 | [Themes](themes.md) | Dark, light, presets, accent colors, your own colors |
 | [Updates and privacy](updates-and-privacy.md) | Version check, updating from the app, patch notes, where data is stored |
+| [Security](security.md) | Checking a download (signed build provenance, checksums), code signing, how the app is hardened |
 | [Troubleshooting](troubleshooting.md) | Fixes for the problems people run into most |
 
 Screens in HERA are in Korean by default. Button names in these pages are given in English with the Korean label in parentheses where it helps you find it.

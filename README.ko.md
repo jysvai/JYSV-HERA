@@ -4,6 +4,8 @@
 
 [![Release](https://img.shields.io/github/v/release/jysvai/JYSV-HERA?color=c9a227&label=release)](https://github.com/jysvai/JYSV-HERA/releases/latest)
 [![Build](https://img.shields.io/github/actions/workflow/status/jysvai/JYSV-HERA/release.yml?label=build%20%26%20self-test)](https://github.com/jysvai/JYSV-HERA/actions/workflows/release.yml)
+[![CodeQL](https://img.shields.io/github/actions/workflow/status/jysvai/JYSV-HERA/codeql.yml?label=CodeQL)](https://github.com/jysvai/JYSV-HERA/actions/workflows/codeql.yml)
+[![Build provenance](https://img.shields.io/badge/build%20provenance-signed-2ea44f)](docs/ko/security.md#받은-파일-확인하기)
 [![Downloads](https://img.shields.io/github/downloads/jysvai/JYSV-HERA/total?color=2ea44f)](https://github.com/jysvai/JYSV-HERA/releases)
 [![License: AGPL-3.0](https://img.shields.io/badge/license-AGPL--3.0-blue.svg)](LICENSE)
 <br>
@@ -43,8 +45,8 @@ HERA 는 원래 쓰던 셸(PowerShell, cmd, Git Bash, bash, zsh, fish)을 그대
 | **탭 · 분할** | 탭, 최대 4개 나란히 보기, 한 질문을 여러 AI 에게 동시에 보내기. 파일을 끌어다 놓으면 셸에 맞게 따옴표 처리된 경로 입력. `Ctrl` `+` / `-` / `0` 또는 `Ctrl` + 휠로 터미널 확대 · 축소 (macOS 는 `⌘`). |
 | **실시간 상태** | 세션마다 작업 중 / 대기 / 승인 대기를 판정하고, AI 가 끝났거나 내가 필요할 때 알림. |
 | **폴더 트리** | 터미널 옆 *폴더* 탭에 프로젝트 파일과 git 변경 표시. 파일 열기, 탐색기 · Finder 에서 보기, 경로 복사, 터미널로 끌어다 경로 입력. |
-| **백로그 패널** | 마지막 실행(언제 · 무엇으로), git 브랜치 · 마지막 커밋 · 변경 파일, AI 별 마지막 지시, 할 일과 메모. |
-| **멀티 에이전트 버스** | 세션 사이의 `hera ask / send / reply / peek / key / spawn`. 모든 메시지는 *에이전트 대화* 페이지에 기록. |
+| **백로그 패널** | 마지막 실행(언제 · 무엇으로), git 브랜치 · 마지막 커밋 · 변경 파일, AI 별 마지막 지시, 할 일과 메모. 할 일의 ▶ 로 에이전트나 멀티 에이전트 팀에게 바로 맡김. |
+| **멀티 에이전트 작업** | 백로그에서 이끌 에이전트에게 일을 주거나, 열린 세션 옆에 보조를 붙입니다. HERA 가 화면을 나란히 열고 메인에게 협업 방법을 알려 주며 결과도 넘겨 줘서, 사용자가 `hera` 를 칠 일이 없습니다. 에이전트끼리는 `hera ask / send / reply / peek / key / spawn` 을 쓰고, 모든 메시지는 *에이전트 대화* 페이지에 기록. |
 | **세션 기억** | 45초마다 · 변경 때마다 자동 저장, Claude Code(`--session-id` / `--resume <id>`)와 Codex(`resume <id>`)는 정확히 그 대화로 재개, 로그인 시 자동 실행. |
 | **사용량** | 한도, AI 별 · 등록 프로젝트별 · 전체의 오늘 / 7일 / 30일 토큰과 API 정가 환산 비용. 별도 프로세스에서 로컬 기록만 읽음. |
 | **계정** | CLI 마다 설정 폴더를 따로 둔 프로필(`CLAUDE_CONFIG_DIR`, `CODEX_HOME` …)로 회사 / 개인 로그인을 분리. |
@@ -87,7 +89,7 @@ Google 의 Gemini CLI 는 Google 계정 사용자에게 Antigravity 로 대체�
 
 ## 문서
 
-기능마다 한 페이지씩, [한국어](docs/ko/README.md) 와 [영어](docs/en/README.md) 로 있습니다. 그 밖에: [문제 해결](docs/ko/troubleshooting.md) · [업데이트와 개인정보](docs/ko/updates-and-privacy.md) · [패치노트](docs/patch-notes/README.md) · [구조](docs/architecture.md).
+기능마다 한 페이지씩, [한국어](docs/ko/README.md) 와 [영어](docs/en/README.md) 로 있습니다. 그 밖에: [문제 해결](docs/ko/troubleshooting.md) · [업데이트와 개인정보](docs/ko/updates-and-privacy.md) · [보안](docs/ko/security.md) · [패치노트](docs/patch-notes/README.md) · [구조](docs/architecture.md).
 
 <table>
 <tr>
@@ -141,7 +143,7 @@ Windows 11(논리 코어 16개)에서 각 앱에 Windows PowerShell 5.1 터미�
 | **Rocky / Alma / RHEL 9+, Fedora** | `.rpm` | `sudo dnf install ./JYSV-HERA-*.rpm` |
 | **모든 Linux** (x64) | `.AppImage` | `chmod +x JYSV-HERA-*.AppImage` 후 실행. `.tar.gz` 도 있습니다. |
 
-모든 파일의 체크섬은 `SHA256SUMS.txt` 에 있습니다. 쓰려는 AI CLI(예: [Claude Code](https://claude.com/claude-code), [Codex](https://github.com/openai/codex))는 따로 설치되어 `PATH` 에 있어야 합니다.
+모든 파일의 체크섬은 `SHA256SUMS.txt` 에 있고, 파일마다 서명된 빌드 출처 증명이 있어서 `gh attestation verify <파일> --repo jysvai/JYSV-HERA` 로 이 저장소의 워크플로가 만든 파일인지 확인할 수 있습니다([보안](docs/ko/security.md)). 쓰려는 AI CLI(예: [Claude Code](https://claude.com/claude-code), [Codex](https://github.com/openai/codex))는 따로 설치되어 `PATH` 에 있어야 합니다.
 
 지금까지 실사용은 Windows 에서 했고, macOS · Linux 빌드는 위의 자체 시험을 통과한 상태입니다. 그 OS 에서 다르게 동작하는 점이 있으면 알려 주세요.
 
@@ -232,6 +234,14 @@ lanes 는 Claude Code 프롬프트에서 한 번 설치하고, *Lanes → HERA �
 - **원격 수집 없음.** 사용량은 각 CLI 가 이미 이 컴퓨터에 남긴 기록에서 계산합니다.
 - **비밀 값은 읽지 않음.** 계정 화면은 플랜 · 이메일 · 만료일처럼 비밀이 아닌 값만 보여 주고, 토큰 값은 읽지 않습니다.
 - **데이터는 내 컴퓨터에.** `%APPDATA%\JYSV HERA`(macOS `~/Library/Application Support/JYSV HERA`, Linux `~/.config/JYSV HERA`)에 있습니다. `HERA_HOME` 환경변수로 다른 폴더를 지정하면 그 폴더를 쓰는 별도 인스턴스로 실행됩니다.
+
+## 보안
+
+- **검증할 수 있는 빌드.** 릴리스는 GitHub Actions 가 공개적으로 빌드하고, 파일마다 Sigstore 로 서명한 빌드 출처 증명과 SHA-256 체크섬이 붙습니다. 코드 서명(Windows SignPath, macOS 공증)은 릴리스 워크플로에 연결돼 있어서 인증서가 생기면 바로 켜집니다.
+- **단단하게 만든 앱.** 정해진 호출만 허용하는 격리된 화면, Electron fuses(`NODE_OPTIONS` · 디버거 차단, 무결성을 확인한 `app.asar` 에서만 코드 실행), 로컬 전용 · 토큰 보호 `hera` 버스.
+- **푸시마다 검사.** CodeQL 보안 검사와 앱에 들어가는 의존성의 `npm audit`.
+
+자세한 내용과 받은 파일 확인 방법: [보안](docs/ko/security.md). 취약점은 비공개로 알려 주세요: [SECURITY.md](SECURITY.md).
 
 ## 소스에서 빌드
 

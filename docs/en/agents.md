@@ -80,6 +80,18 @@ A team preset opens several agents in one folder. Create one on the Agents page 
 
 Teams appear as **Start as a team** on a project's start screen.
 
+## Multi-agent work without typing `hera`
+
+You never have to type `hera ask` or `hera send` yourself. Give the work to a lead, and HERA sets up the rest:
+
+- **From the backlog.** Hover a to-do and press ▶, or type a request in the add-to-do box and press the team button next to it. Choose:
+  - **Multi-agent: *claude-1* leads**: an open agent session leads, keeping its conversation. The other agents already open in the project become its helpers; if there are none, the first team's helpers open.
+  - **A team** (for example *Claude main + Codex helper*): the team starts fresh.
+  - **One agent**: an open session or a new one does it alone.
+- **From an open session.** The team button in the tab bar (보조 붙이기) adds helpers next to the focused agent session, from an agent or a team's helpers. The conversation is kept.
+
+HERA opens the panes side by side, waits until every agent is on screen and idle (it never types into a starting CLI or a trust prompt), then briefs the lead on its helpers and the `hera` protocol and hands it the task. The lead splits the work and the helpers report back by themselves. If a helper finishes without replying, HERA sends its last screen to the lead after 20 quiet seconds, and tells the lead when a helper waits for an approval. The to-do shows which session is on it; click it to jump there. Every message is logged on the **Agent chat** page.
+
 ## See also
 
 - [The hera CLI](hera-cli.md) for how agents talk to each other.

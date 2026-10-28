@@ -75,7 +75,7 @@ Press `Ctrl+Shift+B` (`⌘B` on macOS) or use the panel button in the top right.
 - **Last change**: git branch, commits ahead and behind, number of changed files, the last commit and a sample of changed files. Without git it lists recently modified files.
 - **Token usage** for this project.
 - **AI work log**: for each agent, the last time it ran, how many sessions, and the last prompt you gave it, with a **Continue** (이어하기) button.
-- **To-dos**: a checklist for the project.
+- **To-dos**: a checklist for the project. ▶ on a to-do (or the team button next to the input) hands it to an agent or a multi-agent team; see [Agents](agents.md#multi-agent-work-without-typing-hera).
 - **Notes**: free text, saved automatically about 0.6 seconds after you stop typing.
 - **Run history**: the last 12 runs.
 

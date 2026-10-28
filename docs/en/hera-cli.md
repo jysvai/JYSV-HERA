@@ -95,7 +95,7 @@ Messages to an AI agent are wrapped so it knows where they came from:
 [HERA msg from claude-1] <your text> …
 ```
 
-The wrapper also asks the agent to run `hera reply claude-1 "<summary>"` when it is done. A reply arrives as `[HERA reply from codex-1] …`. Messages longer than 1,500 characters are saved as a file in the data folder (`mail/…`) and the agent is given its path. A target that is a plain shell (not an agent) receives the raw text; a reply sent to a plain shell is only logged, never typed.
+The wrapper also asks the agent to run `hera reply claude-1 "<summary>"` when it is done. A reply arrives as `[HERA reply from codex-1] …`. If the agent that got a `hera send` finishes without replying, HERA replies for it after 20 quiet seconds with its last screen ("(automatic reply) …"), and tells the sender when it waits for an approval. Messages longer than 1,500 characters are saved as a file in the data folder (`mail/…`) and the agent is given its path. A target that is a plain shell (not an agent) receives the raw text; a reply sent to a plain shell is only logged, never typed.
 
 Everything sent through `hera` is listed on the **Agent chat** (에이전트 대화) page.
 

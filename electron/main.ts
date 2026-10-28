@@ -26,7 +26,7 @@ import {
 
 import { resolveLanguage, setLanguage, t } from '../shared/i18n'
 import { resolveTheme } from '../shared/themes'
-import type { BusMessage, CreateSessionRequest, HeraConfig, LaneTier, SessionInfo, TeamPreset, UpdateInfo } from '../shared/types'
+import type { BusMessage, CreateSessionRequest, HeraConfig, LaneTier, SessionInfo, StartWorkRequest, UpdateInfo } from '../shared/types'
 
 import { accountStatuses, createProfile, installStatuslineTap, removeProfile, statuslineTapState, uninstallStatuslineTap } from './accounts'
 import { claudeLiveSessions } from './agent-data'
@@ -56,6 +56,7 @@ import {
 import { runSmoke } from './smoke'
 import { availableShells, detectTerminalImport } from './terminal-import'
 import { checkForUpdate, cleanUpdateDownloads, downloadUpdate, installUpdate, updateState } from './update'
+import { startWork, teamBrief } from './teamwork'
 import { getUsage } from './usage'
 
 const DEV_URL = process.env.HERA_DEV_SERVER
@@ -464,24 +465,6 @@ setLaneTabs(
   id => pty.kill(id)
 )
 
-function teamBrief(team: TeamPreset, helpers: SessionInfo[]): string {
-  const agents = getConfig().agents
-  const roster = helpers
-    .map(helper => `${helper.name} (${agents.find(agent => agent.id === helper.agentId)?.name || helper.agentId})`)
-    .join(', ')
-
-  return [
-    `너는 JYSV HERA 팀 '${team.name}'의 메인 에이전트다.`, // i18n-ignore
-    `같은 프로젝트에 보조 에이전트 세션이 떠 있다: ${roster}.`, // i18n-ignore
-    '셸에서 hera CLI로 협업한다:', // i18n-ignore
-    "hera list (세션 목록·상태) / hera ask <이름> '작업' (맡기고 끝날 때까지 기다려 화면 결과를 받음) /", // i18n-ignore
-    "hera send <이름> '작업' (비동기로 맡김; 결과는 [HERA reply ...] 메시지로 네 입력창에 도착) /", // i18n-ignore
-    'hera peek <이름> (상대 화면 보기) / hera key <이름> enter (승인 프롬프트 응답) / hera spawn <에이전트> (보조 추가).', // i18n-ignore
-    '서로 독립적인 하위 작업을 각 보조의 강점에 맞게 나눠 맡기고, 돌아온 결과는 직접 검증한 뒤 반영해라.', // i18n-ignore
-    '긴 지시는 파일로 자동 전달되니 그대로 보내도 된다.' // i18n-ignore
-  ].join(' ')
-}
-
 function launchTeam(projectId: string, teamId: string): SessionInfo[] {
   const config = getConfig()
   const team = config.teams.find(entry => entry.id === teamId)
@@ -504,7 +487,7 @@ function launchTeam(projectId: string, teamId: string): SessionInfo[] {
 
     if (team.brief && agent?.systemPromptFlag) {
       const kind = resolveShell(project.shell || config.settings.defaultShell).kind
-      extraArgs = `${agent.systemPromptFlag} ${quoteArg(kind, teamBrief(team, helpers))}`
+      extraArgs = `${agent.systemPromptFlag} ${quoteArg(kind, teamBrief(t(team.name), helpers))}`
     }
 
     out.push(launch({ projectId, agentId: mainPane.agentId, role: 'main', profileId: mainPane.profileId || null, extraArgs }))
@@ -682,6 +665,7 @@ function registerIpc() {
   handle('sessions:list', () => pty.listSessions())
   handle('sessions:create', (req: CreateSessionRequest) => launch(req))
   handle('sessions:team', (projectId: string, teamId: string) => launchTeam(projectId, teamId))
+  handle('work:start', (req: StartWorkRequest) => startWork(req, launch))
   handle('sessions:write', (id: string, data: string) => pty.write(id, data))
   // Keystroke hot path: one-way, no reply round-trip.
   ipcMain.on('pty:write', (_event, id: string, data: string) => {

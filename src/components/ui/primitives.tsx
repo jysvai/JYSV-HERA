@@ -186,11 +186,12 @@ export function Dialog({
 }
 
 /** Tooltip only where hover teaches something new. */
-export function Tip({ label, children, side = 'bottom' }: { label: ReactNode; children: ReactNode; side?: 'bottom' | 'top' | 'right' }) {
+export function Tip({ label, children, side = 'bottom' }: { label: ReactNode; children: ReactNode; side?: 'bottom' | 'top' | 'right' | 'left' }) {
   const position = {
     bottom: 'top-full left-1/2 -translate-x-1/2 mt-1.5',
     top: 'bottom-full left-1/2 -translate-x-1/2 mb-1.5',
-    right: 'left-full top-1/2 -translate-y-1/2 ml-1.5'
+    right: 'left-full top-1/2 -translate-y-1/2 ml-1.5',
+    left: 'right-full top-1/2 -translate-y-1/2 mr-1.5'
   }[side]
 
   return (

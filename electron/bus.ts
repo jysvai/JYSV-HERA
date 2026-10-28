@@ -14,7 +14,7 @@ import { HOST_PASSED_ENV, newId } from '../shared/util'
 
 import { hostLane } from './lanes'
 import { dataPath, isWin, pipePath, subDir } from './paths'
-import { createSession, getSession, listSessions, screenLines, sendKeys, typeMessage } from './pty-host'
+import { createSession, getSession, listSessions, ptyEvents, screenLines, sendKeys, typeMessage } from './pty-host'
 import { addProject, busMessages, getConfig, projectById, projectForPath, recordBus } from './store'
 
 type Handler = (params: Record<string, unknown>, caller: SessionInfo | null) => Promise<unknown> | unknown
@@ -28,6 +28,8 @@ export interface BusHooks {
 }
 
 const INLINE_LIMIT = 1500
+/** How long a helper stays quiet after work before HERA answers for it. */
+const AUTO_REPLY_QUIET_MS = 20_000
 let server: net.Server | null = null
 let token = ''
 
@@ -184,6 +186,61 @@ function deliver(
   return message
 }
 
+// Work one agent handed to another with `hera send`, keyed by the helper's session id.
+// When the helper goes quiet without `hera reply`, HERA sends its last screen to the
+// agent that handed the work off, so a team keeps going without the user relaying.
+interface Awaiting {
+  from: string
+  at: number
+  noticed?: boolean
+}
+
+const awaiting = new Map<string, Awaiting>()
+
+function expectReply(target: SessionInfo, caller: SessionInfo | null) {
+  if (caller && caller.id !== target.id && caller.activeAgentId && target.activeAgentId) {
+    awaiting.set(target.id, { from: caller.id, at: Date.now() })
+  }
+}
+
+function onHelperStatus(helper: SessionInfo, previous: string) {
+  const entry = awaiting.get(helper.id)
+  if (!entry) return
+
+  const lead = getSession(entry.from)
+
+  if (!lead || lead.dormant || lead.status === 'exited') {
+    awaiting.delete(helper.id)
+    return
+  }
+
+  if (helper.status === 'waiting' && !entry.noticed) {
+    entry.noticed = true
+    deliver('reply', lead, t('(자동 알림) {name} 이(가) 승인을 기다립니다. `hera peek {name}` 으로 보고 `hera key {name} <키>` 로 답하거나, 판단이 필요하면 사용자에게 물어보세요.', { name: helper.name }), helper, {})
+    return
+  }
+
+  if (helper.status !== 'idle' || previous === 'idle') return
+
+  setTimeout(() => {
+    const now = getSession(helper.id)
+
+    // Still the same hand-off, still quiet: it is done (a new busy spell schedules again).
+    if (awaiting.get(helper.id) !== entry || !now || now.status !== 'idle') return
+    if (Date.now() - now.lastOutputAt < AUTO_REPLY_QUIET_MS - 1000) return
+
+    awaiting.delete(helper.id)
+    const screen = screenLines(now.id, 60, true).join('\n').trim()
+    const note = t('(자동 회신) {name} 의 작업이 끝난 것 같아 마지막 화면을 보냅니다. 결과를 확인해 반영하세요.', { name: now.name })
+
+    try {
+      deliver('reply', lead, `${note}\n\n${screen}`, now, {})
+    } catch {
+      // the lead closed meanwhile
+    }
+  }, AUTO_REPLY_QUIET_MS)
+}
+
 /** Send from the HERA window (the user), optionally to several sessions at once. */
 export function sendFromUser(targetIds: string[], text: string, raw = true): BusMessage[] {
   const out: BusMessage[] = []
@@ -291,6 +348,7 @@ const handlers: Record<string, Handler> = {
       raw: params.raw === true,
       enter: params.enter !== false
     })
+    expectReply(target, caller)
 
     return { delivered: true, to: target.name, file: message.file || null }
   },
@@ -298,6 +356,7 @@ const handlers: Record<string, Handler> = {
   reply: (params, caller) => {
     const target = resolveTarget(str(params.target), caller)
     const message = deliver('reply', target, str(params.text), caller, { raw: params.raw === true })
+    if (caller && awaiting.get(caller.id)?.from === target.id) awaiting.delete(caller.id)
 
     return { delivered: true, to: target.name, file: message.file || null }
   },
@@ -495,8 +554,20 @@ async function handle(request: WireRequest): Promise<WireResponse> {
   }
 }
 
+let watching = false
+
 export function startBus(nextHooks: BusHooks): void {
   hooks = nextHooks
+
+  if (!watching) {
+    watching = true
+    ptyEvents.on('status', (info, previous) => onHelperStatus(info, previous))
+    ptyEvents.on('removed', id => {
+      awaiting.delete(id)
+      for (const [helper, entry] of awaiting) if (entry.from === id) awaiting.delete(helper)
+    })
+  }
+
   token = ensureToken()
   const address = pipePath()
 

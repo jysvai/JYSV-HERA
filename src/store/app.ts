@@ -1,7 +1,7 @@
 import { atom, computed, map } from 'nanostores'
 
 import { t } from '../../shared/i18n'
-import type { AgentAvailability, AgentUsage, BusMessage, CreateSessionRequest, HeraConfig, Project, SessionInfo, UpdateInfo } from '../../shared/types'
+import type { AgentAvailability, AgentUsage, BusMessage, CreateSessionRequest, HeraConfig, Project, SessionInfo, StartWorkRequest, StartWorkResult, UpdateInfo } from '../../shared/types'
 import { newId } from '../../shared/util'
 import { api, on } from '../lib/hera'
 
@@ -281,6 +281,36 @@ export async function launchTeam(projectId: string, teamId: string) {
 
   $view.set('workspace')
   refreshActivity()
+}
+
+/** Hand a task (or, without one, helpers) to a lead; the panes open side by side. */
+export async function startWork(req: StartWorkRequest): Promise<StartWorkResult | null> {
+  try {
+    const result = await api.startWork(req)
+    const all = [result.lead, ...result.helpers]
+
+    for (const session of all) $sessions.setKey(session.id, session)
+
+    if (result.helpers.length) {
+      setLayout(req.projectId, { mode: 'split', active: result.lead.id, split: all.map(session => session.id).slice(0, 4) })
+    } else {
+      setLayout(req.projectId, { active: result.lead.id })
+    }
+
+    $view.set('workspace')
+    refreshActivity()
+    toast(
+      req.task
+        ? t('{name} 에게 맡겼습니다. 에이전트가 준비되면 바로 시작합니다.', { name: result.lead.name })
+        : t('{name} 에 보조 {count}개를 붙였습니다.', { name: result.lead.name, count: result.helpers.length })
+    )
+
+    return result
+  } catch (error) {
+    toast(t('시작하지 못했습니다: {error}', { error: (error as Error).message }), 'error')
+
+    return null
+  }
 }
 
 export async function closeSession(id: string) {

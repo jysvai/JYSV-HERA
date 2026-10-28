@@ -16,6 +16,9 @@ export interface TodoItem {
   text: string
   done: boolean
   createdAt: number
+  /** Session the item was handed to from the backlog. */
+  sessionId?: string | null
+  startedAt?: number
 }
 
 export interface Project {
@@ -90,6 +93,30 @@ export interface TeamPreset {
   panes: TeamPane[]
   /** Brief the main agent about its helpers and the hera protocol. */
   brief: boolean
+}
+
+export interface WorkAgent {
+  agentId: string
+  profileId?: string | null
+}
+
+/** Multi-agent work started from the window (backlog item, typed request, or an open session). */
+export interface StartWorkRequest {
+  projectId: string
+  /** What to do. Empty: brief an open lead to hand off parts of what it is already doing. */
+  task?: string
+  /** Open session that leads (keeps its conversation). */
+  leadId?: string | null
+  /** Agent for a new lead when `leadId` is not given. */
+  lead?: WorkAgent | null
+  /** Helpers. An open session of the same agent in the project is reused. */
+  helpers?: WorkAgent[]
+  teamName?: string | null
+}
+
+export interface StartWorkResult {
+  lead: SessionInfo
+  helpers: SessionInfo[]
 }
 
 export type ShellKind = 'auto' | 'powershell' | 'pwsh' | 'cmd' | 'bash' | 'zsh' | 'fish' | 'gitbash'

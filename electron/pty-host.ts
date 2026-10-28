@@ -808,6 +808,21 @@ export function typeMessage(id: string, text: string, opts: { enter?: boolean; d
       } catch {
         // gone
       }
+
+      // A TUI that still took that Enter as a newline leaves the message in its input and
+      // stays quiet: press Enter once more. An empty agent input ignores a second Enter.
+      if (!session.activeAgentId) return
+      const sentAt = Date.now()
+
+      setTimeout(() => {
+        if (session.pty !== pty || session.status === 'busy' || session.status === 'waiting' || session.lastOutputAt > sentAt + 800) return
+
+        try {
+          pty.write('\r')
+        } catch {
+          // gone
+        }
+      }, 4000)
     }, opts.delayMs ?? Math.min(900, 250 + Math.floor(text.length / 8)))
   }
 
@@ -888,6 +903,30 @@ export function killAll() {
   for (const id of [...sessions.keys()]) {
     kill(id)
   }
+}
+
+/** An open session joins (or leaves) a multi-agent team. */
+export function setRole(id: string, role: 'main' | 'helper' | null) {
+  const session = sessions.get(id)
+
+  if (session && session.role !== role) {
+    session.role = role
+    ptyEvents.emit('changed', info(session))
+  }
+}
+
+/** The session's agent is on screen and quiet at its prompt: a typed message lands in its input. */
+export function isReady(id: string): boolean {
+  const session = sessions.get(id)
+
+  if (!session?.pty || session.bootCommand || session.dormant || session.status !== 'idle') return false
+  if (Date.now() - session.lastOutputAt < 1500) return false
+
+  const agent = agentById(session.activeAgentId)
+  if (!agent) return false
+  const signature = safeRegex(agent.signature, '')
+
+  return signature ? signature.test(readScreen(session).join('\n')) : Date.now() - session.createdAt > 8000
 }
 
 export function rename(id: string, title: string) {

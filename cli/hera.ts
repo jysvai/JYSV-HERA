@@ -238,6 +238,8 @@ Good practice for a main agent:
   - prefer \`hera ask\` for short tasks and \`hera send\` + continue working for long ones;
   - verify helpers' results yourself before relying on them.
 When you receive "[HERA msg from X] ..." do the task, then run: hera reply X "<summary>"
+If a helper finishes a \`hera send\` without replying, HERA sends you its last screen
+as a reply after it has been quiet for 20 seconds.
 `
 
 const HELP = `hera — JYSV HERA multi-agent CLI

@@ -22,6 +22,7 @@ const INVOKE = new Set([
   'sessions:list',
   'sessions:create',
   'sessions:team',
+  'work:start',
   'sessions:write',
   'sessions:resize',
   'sessions:attach',

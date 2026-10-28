@@ -8,17 +8,19 @@ import {
   IconPlus,
   IconRefresh,
   IconSettings,
-  IconTrash
+  IconTrash,
+  IconUsersGroup
 } from '@tabler/icons-react'
 import { useEffect, useRef, useState } from 'react'
 
 import { t } from '../../../shared/i18n'
-import type { ProjectInsight } from '../../../shared/types'
+import type { ProjectInsight, StartWorkResult } from '../../../shared/types'
 import { newId, relTime } from '../../../shared/util'
-import { Badge, Button, Section, Tip } from '../../components/ui/primitives'
+import { Badge, Button, Section, StatusDot, Tip } from '../../components/ui/primitives'
 import { api } from '../../lib/hera'
-import { $config, $insightTick, $project, $sessions, launch, updateProject } from '../../store/app'
+import { $config, $insightTick, $project, $sessions, focusSession, launch, updateProject } from '../../store/app'
 import { AgentGlyph } from '../workspace/launch'
+import { WorkMenu } from '../workspace/WorkMenu'
 import { ProjectUsageSection } from '../pages/usage-parts'
 import { $editProjectId } from './flows'
 
@@ -82,6 +84,11 @@ export function BacklogPanel() {
 
   const agentOf = (id: string) => config?.agents.find(agent => agent.id === id) || null
   const live = Object.values(sessions).filter(session => session.projectId === project.id && !session.dormant)
+  const handedTo = (todoId: string) => (result: StartWorkResult) =>
+    updateProject(project.id, draft => {
+      const target = draft.todos.find(entry => entry.id === todoId)
+      if (target) Object.assign(target, { sessionId: result.lead.id, startedAt: Date.now() })
+    })
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
@@ -235,7 +242,33 @@ export function BacklogPanel() {
                 >
                   {item.done && <IconCheck size={11} />}
                 </button>
-                <span className={`flex-1 leading-snug ${item.done ? 'text-(--ui-text-tertiary) line-through' : ''}`}>{item.text}</span>
+                <div className="min-w-0 flex-1">
+                  <span className={`leading-snug ${item.done ? 'text-(--ui-text-tertiary) line-through' : ''}`}>{item.text}</span>
+                  {!item.done && item.sessionId && sessions[item.sessionId] && !sessions[item.sessionId].dormant && (
+                    <button
+                      type="button"
+                      onClick={() => focusSession(sessions[item.sessionId!])}
+                      className="mt-0.5 flex items-center gap-1 text-[11px] text-(--ui-text-tertiary) hover:text-(--ui-text-primary)"
+                    >
+                      <StatusDot status={sessions[item.sessionId].status} />
+                      {t('{name} 이(가) 진행 중', { name: sessions[item.sessionId].name })}
+                    </button>
+                  )}
+                </div>
+                {!item.done && (
+                  <WorkMenu
+                    project={project}
+                    task={() => item.text}
+                    onStarted={handedTo(item.id)}
+                    trigger={toggle => (
+                      <Tip side="left" label={t('에이전트에게 맡기기 · 멀티 에이전트로 진행')}>
+                        <button type="button" aria-label={t('진행')} onClick={toggle} className="text-(--ui-text-tertiary) opacity-0 group-hover:opacity-100 hover:text-(--ui-accent-text)">
+                          <IconPlayerPlay size={13} />
+                        </button>
+                      </Tip>
+                    )}
+                  />
+                )}
                 <button
                   type="button"
                   aria-label={t('삭제')}
@@ -260,8 +293,24 @@ export function BacklogPanel() {
               <input
                 value={todo}
                 onChange={event => setTodo(event.target.value)}
-                placeholder={t('할 일 추가')}
-                className="h-7 flex-1 bg-transparent text-[12.5px] outline-none placeholder:text-(--ui-text-tertiary)"
+                placeholder={t('할 일 추가 · 또는 적고 바로 맡기기')}
+                className="h-7 min-w-0 flex-1 bg-transparent text-[12.5px] outline-none placeholder:text-(--ui-text-tertiary)"
+              />
+              <WorkMenu
+                project={project}
+                task={() => todo}
+                onStarted={result => {
+                  const text = todo.trim()
+                  updateProject(project.id, draft => void draft.todos.push({ id: newId('t_'), text, done: false, createdAt: Date.now(), sessionId: result.lead.id, startedAt: Date.now() }))
+                  setTodo('')
+                }}
+                trigger={toggle => (
+                  <Tip side="left" label={t('적은 내용을 에이전트에게 바로 맡기기')}>
+                    <Button size="icon-xs" variant="ghost" aria-label={t('바로 맡기기')} disabled={!todo.trim()} onClick={toggle}>
+                      <IconUsersGroup />
+                    </Button>
+                  </Tip>
+                )}
               />
             </form>
           </div>

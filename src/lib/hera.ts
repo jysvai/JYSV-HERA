@@ -16,6 +16,8 @@ import type {
   Project,
   ProjectInsight,
   SessionInfo,
+  StartWorkRequest,
+  StartWorkResult,
   TerminalImport,
   ToolPackages,
   UpdateInfo
@@ -85,6 +87,7 @@ export const api = {
   sessions: () => call<SessionInfo[]>('sessions:list'),
   createSession: (req: CreateSessionRequest) => call<SessionInfo>('sessions:create', req),
   launchTeam: (projectId: string, teamId: string) => call<SessionInfo[]>('sessions:team', projectId, teamId),
+  startWork: (req: StartWorkRequest) => call<StartWorkResult>('work:start', req),
   resize: (id: string, cols: number, rows: number) => call<void>('sessions:resize', id, cols, rows),
   attach: (id: string) => call<void>('sessions:attach', id),
   detach: (id: string) => call<void>('sessions:detach', id),

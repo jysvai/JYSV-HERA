@@ -5,6 +5,9 @@ on:
     branches: [main]
   pull_request:
 
+permissions:
+  contents: read
+
 jobs:
   check:
     runs-on: ubuntu-latest
@@ -15,5 +18,7 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+      # What ships in the app: fail on a known high or critical vulnerability.
+      - run: npm audit --omit=dev --audit-level=high
       - run: npm run typecheck
       - run: npm run build

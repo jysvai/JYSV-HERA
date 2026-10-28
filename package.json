@@ -1,7 +1,7 @@
 {
   "name": "jysv-hera",
   "productName": "JYSV HERA",
-  "version": "0.2.3",
+  "version": "0.2.4",
   "description": "JYSV HERA - a lightweight project terminal and multi-AI command center (Claude Code, Codex, Gemini, ...)",
   "author": {
     "name": "jysvai",
@@ -111,6 +111,13 @@
       "**/node-pty/**"
     ],
     "npmRebuild": false,
+    "electronFuses": {
+      "runAsNode": true,
+      "enableNodeOptionsEnvironmentVariable": false,
+      "enableNodeCliInspectArguments": false,
+      "enableEmbeddedAsarIntegrityValidation": true,
+      "onlyLoadAppFromAsar": true
+    },
     "electronLanguages": [
       "en-US",
       "ko"

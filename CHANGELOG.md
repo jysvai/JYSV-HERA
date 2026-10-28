@@ -2,6 +2,22 @@
 
 Full patch notes, one file per release in English and Korean: [docs/patch-notes](docs/patch-notes/README.md).
 
+## 0.2.4 — 2026-10-28
+
+### Added
+
+- Multi-agent work from the backlog (▶ on a to-do, or the team button by the input) and from an open session (team button in the tab bar): HERA opens or reuses helpers, waits until the agents are ready, briefs the lead and hands over the task.
+- Automatic reply: a helper that finishes a `hera send` without `hera reply` has its last screen sent to the sender after 20 quiet seconds; a helper waiting for approval is reported to the lead.
+- Sigstore build-provenance attestation for every release file (`gh attestation verify`).
+- Electron fuses: no `NODE_OPTIONS`, no `--inspect`, code only from the integrity-checked `app.asar`.
+- Code signing wired into the release workflow (Windows SignPath, macOS Developer ID and notarization), active once the secrets exist.
+- CodeQL workflow, `npm audit` of shipped dependencies in CI, SECURITY.md, security docs.
+
+### Fixed
+
+- Right-panel tab labels wrapping.
+- Windows desktop and Start menu icons kept the old picture after an update (installer refreshes the icon cache).
+
 ## 0.2.3 — 2026-10-27
 
 ### Fixed

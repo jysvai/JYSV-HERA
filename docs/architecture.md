@@ -148,7 +148,8 @@
 | `electron/files.ts` | folder tree of a project (listing, open / reveal, git status) |
 | `electron/codex.ts` | `--no-daemon` for HERA's Codex tabs |
 | `shared/i18n.ts`, `shared/i18n/` | UI language: Korean source strings as keys, English dictionaries |
-| `electron/bus.ts` | hera pipe server and handlers |
+| `electron/bus.ts` | hera pipe server and handlers; answers for a helper that finishes a `hera send` without replying |
+| `electron/teamwork.ts` | multi-agent work from the window: reuse or open helpers, wait until the agents are ready, brief the lead and hand over the task |
 | `electron/shell.ts` | shell discovery, boot script, alias files |
 | `electron/insight.ts`, `agent-data.ts` | backlog data (git, Claude/Codex/agy activity) |
 | `electron/usage*.ts` | usage worker and summaries |

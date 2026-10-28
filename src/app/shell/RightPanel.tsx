@@ -20,7 +20,7 @@ function Tab({ active, disabled, onClick, icon, children, hint }: { active: bool
       onClick={onClick}
       title={hint}
       className={cn(
-        'flex h-7 items-center gap-1.5 rounded-md px-2.5 text-[12.5px] transition-colors duration-100 [&_svg]:size-3.5',
+        'flex h-7 shrink-0 items-center gap-1 whitespace-nowrap rounded-md px-1.5 text-[12px] transition-colors duration-100 [&_svg]:size-3.5 [&_svg]:shrink-0',
         active ? 'bg-(--ui-bg-elevated) font-medium text-(--ui-text-primary) shadow-sm' : 'text-(--ui-text-secondary) hover:text-(--ui-text-primary)',
         disabled && 'opacity-40'
       )}
@@ -42,21 +42,23 @@ export function RightPanel() {
   return (
     <aside className="flex h-full w-[340px] shrink-0 flex-col border-l border-(--ui-stroke-tertiary) bg-(--ui-bg-sidebar)">
       <div className="flex h-10 shrink-0 items-center gap-1 border-b border-(--ui-stroke-tertiary) px-2">
-        <Tab active={shown === 'backlog'} disabled={!project} onClick={() => $rightTab.set('backlog')} icon={<IconListDetails />} hint={t('백로그 ({shortcut})', { shortcut: chord('B') })}>
-          {t('백로그')}
-        </Tab>
-        <Tab active={shown === 'files'} disabled={!project} onClick={() => $rightTab.set('files')} icon={<IconFolders />} hint={t('폴더 구조 ({shortcut})', { shortcut: chord('E') })}>
-          {t('폴더')}
-        </Tab>
-        <Tab active={shown === 'usage'} onClick={() => $rightTab.set('usage')} icon={<IconChartBar />} hint={t('사용량 ({shortcut})', { shortcut: chord('U') })}>
-          {t('사용량')}
-        </Tab>
-        {lanesOn && (
-          <Tab active={shown === 'lanes'} disabled={!project} onClick={() => $rightTab.set('lanes')} icon={<IconRoute />} hint={t('lanes (mid · low 보조 세션)')}>
-            Lanes
+        {/* Labels never wrap; if a language's labels outgrow the panel, the tabs scroll instead. */}
+        <div className="flex min-w-0 flex-1 items-center gap-0.5 overflow-x-auto [scrollbar-width:none]">
+          <Tab active={shown === 'backlog'} disabled={!project} onClick={() => $rightTab.set('backlog')} icon={<IconListDetails />} hint={t('백로그 ({shortcut})', { shortcut: chord('B') })}>
+            {t('백로그')}
           </Tab>
-        )}
-        <div className="flex-1" />
+          <Tab active={shown === 'files'} disabled={!project} onClick={() => $rightTab.set('files')} icon={<IconFolders />} hint={t('폴더 구조 ({shortcut})', { shortcut: chord('E') })}>
+            {t('폴더')}
+          </Tab>
+          <Tab active={shown === 'usage'} onClick={() => $rightTab.set('usage')} icon={<IconChartBar />} hint={t('사용량 ({shortcut})', { shortcut: chord('U') })}>
+            {t('사용량')}
+          </Tab>
+          {lanesOn && (
+            <Tab active={shown === 'lanes'} disabled={!project} onClick={() => $rightTab.set('lanes')} icon={<IconRoute />} hint={t('lanes (mid · low 보조 세션)')}>
+              Lanes
+            </Tab>
+          )}
+        </div>
         <Button size="icon-xs" variant="ghost" aria-label={t('패널 닫기')} onClick={() => $rightPanel.set(false)}>
           <IconX />
         </Button>
