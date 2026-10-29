@@ -2,6 +2,26 @@
 
 Full patch notes, one file per release in English and Korean: [docs/patch-notes](docs/patch-notes/README.md).
 
+## 0.3.1 — 2026-10-29
+
+### Fixed
+
+- Delete: `worktreeLoss()` counts unmerged commits in the repository (works when the folder is gone) and uncommitted files; the UI asks with fresh numbers before every delete, including after a merge; `unknown` when git cannot tell.
+- Squash: the project's branch is merged into the copy afterwards (a real merge; `-s ours` would make the next merge revert other project work) and `mergedSha` moves there, so a later merge does not replay the squashed work. On a conflict the copy is left as it was.
+- `revive()` (restart, boot restore) also opens a plain terminal when the copy folder is gone.
+- Merge refuses when the copy is not on its own branch; asks when the copy's agent is busy.
+- A restored tab whose copy folder is gone opens a plain terminal in the project with a notice (no agent).
+- `startRace` rolls back created worktrees and tabs on failure.
+- `git()`: `LC_ALL=C`; errors from stderr/stdout, never Node's command line.
+- Copy auto-commit `--no-verify`; failed create keeps a pre-existing branch; case-insensitive branch collision check; Windows device names; `\p{M}` in names; async copy of `.worktreeinclude` paths; `repoRoot` stored for cleanup.
+- Insight cache invalidated on worktree changes; worktree support refreshed on the panel poll.
+- English: "Worktrees" tab, session counts without wrong plurals.
+- CodeQL js/file-system-race (4): read through one file descriptor; `.gitignore` written with `wx`.
+
+### Docs
+
+- Worktrees guide: four GIFs per language (create, review, merge, compare).
+
 ## 0.3.0 — 2026-10-29
 
 ### Added

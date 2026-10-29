@@ -1,7 +1,7 @@
 {
   "name": "jysv-hera",
   "productName": "JYSV HERA",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "JYSV HERA - a lightweight project terminal and multi-AI command center (Claude Code, Codex, Gemini, ...)",
   "author": {
     "name": "jysvai",
