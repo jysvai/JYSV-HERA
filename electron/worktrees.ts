@@ -9,7 +9,7 @@ import os from 'node:os'
 import path from 'node:path'
 
 import { t } from '../shared/i18n'
-import type { WorktreeActionResult, WorktreeDiff, WorktreeFileDiff, WorktreeInfo, WorktreeStatus, WorktreeSupport } from '../shared/types'
+import type { WorktreeActionResult, WorktreeDiff, WorktreeFileDiff, WorktreeInfo, WorktreeLoss, WorktreeStatus, WorktreeSupport } from '../shared/types'
 import { newId } from '../shared/util'
 import { dataPath, findOnPath, readJson, writeJsonAtomic } from './paths'
 import { createSession, kill, listSessions } from './pty-host'
@@ -39,10 +39,18 @@ function git(cwd: string, args: string[], timeout = 60_000): Promise<GitResult> 
     execFile(
       exe,
       [...pre, ...args],
-      { cwd, timeout, maxBuffer: 64 << 20, windowsHide: true, env: { ...process.env, GIT_TERMINAL_PROMPT: '0' } },
-      (error, stdout, stderr) => resolve({ ok: !error, out: String(stdout), err: String(stderr || error?.message || '').trim() })
+      // English messages: HERA reads some of them (counts, the identity error).
+      { cwd, timeout, maxBuffer: 64 << 20, windowsHide: true, env: { ...process.env, GIT_TERMINAL_PROMPT: '0', LC_ALL: 'C', LANGUAGE: '' } },
+      (error, stdout, stderr) => resolve({ ok: !error, out: String(stdout), err: error ? failure(error, String(stdout), String(stderr)) : String(stderr).trim() })
     )
   )
+}
+
+/** git's own words for a failure (some go to stdout), never the command line Node puts in the error. */
+function failure(error: Error & { killed?: boolean; code?: unknown }, stdout: string, stderr: string): string {
+  if (error.killed) return t('git 이 제시간에 끝나지 않았습니다.')
+
+  return stderr.trim() || stdout.trim() || t('git 이 실패했습니다 (code {code}).', { code: String(error.code ?? '?') })
 }
 
 const firstLine = (text: string) => text.split(/\r?\n/).find(line => line.trim())?.replace(/^(fatal|error): /, '') || text
@@ -84,7 +92,7 @@ export function cleanName(label: string): string {
   const name = label
     .normalize('NFC')
     .trim()
-    .replace(/[^\p{L}\p{N}._-]+/gu, '-')
+    .replace(/[^\p{L}\p{M}\p{N}._-]+/gu, '-')
     .replace(/-+/g, '-')
     .replace(/\.{2,}/g, '.')
     .replace(/^[.-]+|[.-]+$/g, '')
@@ -92,7 +100,10 @@ export function cleanName(label: string): string {
     .replace(/[.-]+$/, '')
     .replace(/\.lock$/i, '-lock')
 
-  return name || 'copy'
+  if (!name) return 'copy'
+
+  // Device names Windows will not take as a folder (con, nul, com1, …, also with an extension).
+  return /^(con|prn|aux|nul|com\d|lpt\d)(\.|$)/i.test(name) ? `hera-${name}` : name
 }
 
 function worktreesRoot(): string {
@@ -187,8 +198,12 @@ export async function initRepository(projectId: string): Promise<WorktreeActionR
 
   if (repo.head) return { ok: true }
 
-  const ignore = path.join(repo.root, '.gitignore')
-  if (!fs.existsSync(ignore)) fs.writeFileSync(ignore, `${STARTER_IGNORE.join('\n')}\n`, 'utf8')
+  try {
+    // 'wx': only when there is none, without a check that could go stale before the write.
+    fs.writeFileSync(path.join(repo.root, '.gitignore'), `${STARTER_IGNORE.join('\n')}\n`, { encoding: 'utf8', flag: 'wx' })
+  } catch {
+    // the project has its own
+  }
 
   const add = await git(repo.root, ['add', '-A'], 180_000)
   if (!add.ok) return { ok: false, message: firstLine(add.err) }
@@ -243,18 +258,19 @@ async function create(projectId: string, options: CreateWorktreeOptions): Promis
   if (!support.ok) throw new Error(support.reason)
   const repo = (await repoOf(project.path))!
 
-  const label = options.label.trim() || t('작업 공간')
+  const label = options.label.trim() || t('새 작업 공간')
   const base = cleanName(options.name || label)
   const parent = path.join(worktreesRoot(), cleanName(project.name))
   const taken = new Set(all().filter(entry => entry.projectId === projectId).map(entry => entry.name.toLowerCase()))
+  const refs = await git(repo.root, ['for-each-ref', '--format=%(refname)', 'refs/heads/hera/'])
+  const branches = new Set(refs.out.split(/\r?\n/).map(line => line.trim().toLowerCase()))
   let name = ''
 
   for (let attempt = 1; attempt <= 30 && !name; attempt++) {
     const candidate = attempt === 1 ? base : `${base}-${attempt}`
-    // Case-insensitive: Windows and macOS folders do not tell `Fix` from `fix`.
-    if (taken.has(candidate.toLowerCase()) || fs.existsSync(path.join(parent, candidate))) continue
-    const branchTaken = await git(repo.root, ['show-ref', '--verify', '--quiet', `refs/heads/hera/${candidate}`])
-    if (!branchTaken.ok) name = candidate
+    // Case-insensitive: Windows and macOS folders (and branch files) do not tell `Fix` from `fix`.
+    if (taken.has(candidate.toLowerCase()) || branches.has(`refs/heads/hera/${candidate}`.toLowerCase()) || fs.existsSync(path.join(parent, candidate))) continue
+    name = candidate
   }
 
   if (!name) throw new Error(t("'{name}' 이름의 작업 공간이 이미 많습니다. 다른 이름을 쓰세요.", { name: base }))
@@ -266,10 +282,12 @@ async function create(projectId: string, options: CreateWorktreeOptions): Promis
   const add = await git(repo.root, ['worktree', 'add', '--no-track', '-b', branch, target, repo.head!], 300_000)
 
   if (!add.ok) {
-    // Leave nothing half-made behind.
-    await git(repo.root, ['worktree', 'remove', '--force', target])
-    await git(repo.root, ['branch', '-D', branch])
-    await git(repo.root, ['worktree', 'prune'])
+    // Leave nothing half-made behind, but never touch a branch or folder that was there before.
+    if (!/already exists/i.test(add.err)) {
+      await git(repo.root, ['worktree', 'remove', '--force', target])
+      await git(repo.root, ['branch', '-D', branch])
+      await git(repo.root, ['worktree', 'prune'])
+    }
     throw new Error(firstLine(add.err))
   }
 
@@ -289,7 +307,8 @@ async function create(projectId: string, options: CreateWorktreeOptions): Promis
     raceId: options.raceId || null,
     task: options.task || null,
     agentId: options.agentId || null,
-    mergedAt: null
+    mergedAt: null,
+    repoRoot: repo.root
   }
   all().push(entry)
   save()
@@ -316,20 +335,16 @@ async function copyIgnored(repoRoot: string, target: string) {
     return
   }
 
-  const include = path.join(repoRoot, '.worktreeinclude')
+  const include = readCapped(path.join(repoRoot, '.worktreeinclude'), 256 << 10)
 
-  try {
-    if (fs.statSync(include).size <= 256 << 10) {
-      for (const raw of fs.readFileSync(include, 'utf8').split(/\r?\n/).slice(0, 1000)) {
-        const line = raw.trim().replace(/\\/g, '/').replace(/\/+$/, '')
-        const parts = line.split('/')
-        // Literal relative paths inside the repo only: no patterns, no way out, never .git.
-        if (!line || line.startsWith('#') || /[*?!]/.test(line) || path.isAbsolute(line) || parts.includes('..') || parts[0] === '.git') continue
-        wanted.add(line)
-      }
+  if (Buffer.isBuffer(include)) {
+    for (const raw of include.toString('utf8').split(/\r?\n/).slice(0, 1000)) {
+      const line = raw.trim().replace(/\\/g, '/').replace(/\/+$/, '')
+      const parts = line.split('/')
+      // Literal relative paths inside the repo only: no patterns, no way out, never .git.
+      if (!line || line.startsWith('#') || /[*?!]/.test(line) || path.isAbsolute(line) || parts.includes('..') || parts[0] === '.git') continue
+      wanted.add(line)
     }
-  } catch {
-    // no list
   }
 
   const existing = [...wanted].filter(rel => fs.existsSync(path.join(repoRoot, rel)))
@@ -340,7 +355,8 @@ async function copyIgnored(repoRoot: string, target: string) {
 
   for (const rel of ignored.out.split(/\r?\n/).map(line => line.trim()).filter(Boolean)) {
     try {
-      fs.cpSync(path.join(repoRoot, rel), path.join(target, rel), { recursive: true, force: false, errorOnExist: false })
+      // Async: a big folder in .worktreeinclude must not freeze every terminal while it copies.
+      await fs.promises.cp(path.join(repoRoot, rel), path.join(target, rel), { recursive: true, force: false, errorOnExist: false })
     } catch {
       // a locked or vanished file: the agent can manage without it
     }
@@ -352,18 +368,32 @@ async function copyIgnored(repoRoot: string, target: string) {
 /** Changes and commits count from here: the start, or the copy's tip when HERA last merged it. */
 const since = (entry: WorktreeInfo) => entry.mergedSha || entry.baseSha
 
+/**
+ * A file's bytes, 'large' when it is over `max`, null when it cannot be read. The size is
+ * checked on the open file, so it is the same file that is read.
+ */
+function readCapped(file: string, max: number): Buffer | 'large' | null {
+  let fd: number | null = null
+
+  try {
+    fd = fs.openSync(file, 'r')
+    if (fs.fstatSync(fd).size > max) return 'large'
+
+    return fs.readFileSync(fd)
+  } catch {
+    return null
+  } finally {
+    if (fd !== null) fs.closeSync(fd)
+  }
+}
+
 /** Lines of a new (untracked) text file, 0 for a large or binary one. */
 function newFileLines(file: string): number {
-  try {
-    if (fs.statSync(file).size > MAX_UNTRACKED_BYTES) return 0
-    const bytes = fs.readFileSync(file)
-    if (bytes.subarray(0, 8000).includes(0)) return 0
-    const text = bytes.toString('utf8')
+  const bytes = readCapped(file, MAX_UNTRACKED_BYTES)
+  if (!Buffer.isBuffer(bytes) || bytes.subarray(0, 8000).includes(0)) return 0
+  const text = bytes.toString('utf8')
 
-    return text ? text.replace(/\r?\n$/, '').split(/\r?\n/).length : 0
-  } catch {
-    return 0
-  }
+  return text ? text.replace(/\r?\n$/, '').split(/\r?\n/).length : 0
 }
 
 export async function worktreeStatus(id: string): Promise<WorktreeStatus> {
@@ -443,25 +473,16 @@ export async function worktreeDiff(id: string): Promise<WorktreeDiff> {
 
     const diff: WorktreeFileDiff = { path: rel, status: '?', added: 0, deleted: 0, binary: false, patch: '' }
 
-    try {
-      const full = path.join(entry.path, rel)
-      const stat = fs.statSync(full)
+    const bytes = readCapped(path.join(entry.path, rel), MAX_UNTRACKED_BYTES)
+    if (!bytes) continue
 
-      if (stat.size > MAX_UNTRACKED_BYTES) {
-        diff.binary = true
-      } else {
-        const bytes = fs.readFileSync(full)
-        if (bytes.subarray(0, 8000).includes(0)) {
-          diff.binary = true
-        } else {
-          const lines = bytes.toString('utf8').replace(/\r?\n$/, '').split(/\r?\n/)
-          diff.added = lines.length
-          diff.patch = `@@ -0,0 +1,${lines.length} @@\n${lines.map(line => `+${line}`).join('\n')}`
-          size += diff.patch.length
-        }
-      }
-    } catch {
-      continue
+    if (bytes === 'large' || bytes.subarray(0, 8000).includes(0)) {
+      diff.binary = true
+    } else {
+      const lines = bytes.toString('utf8').replace(/\r?\n$/, '').split(/\r?\n/)
+      diff.added = lines.length
+      diff.patch = `@@ -0,0 +1,${lines.length} @@\n${lines.map(line => `+${line}`).join('\n')}`
+      size += diff.patch.length
     }
 
     files.push(diff)
@@ -488,7 +509,8 @@ async function commitAll(entry: WorktreeInfo, message: string): Promise<Worktree
   if (!add.ok) return { ok: false, message: firstLine(add.err) }
   const staged = await git(entry.path, ['diff', '--cached', '--quiet'])
   if (staged.ok) return { ok: true, message: t('커밋할 변경이 없습니다.') }
-  const commit = await git(entry.path, ['commit', '-m', message], 120_000)
+  // No hooks: a snapshot of the agent's work in the copy, where hooks often cannot run (no node_modules).
+  const commit = await git(entry.path, ['commit', '--no-verify', '-m', message], 120_000)
 
   return commit.ok ? { ok: true } : { ok: false, message: commitHint(commit.err) }
 }
@@ -527,6 +549,12 @@ export async function mergeWorktree(id: string, mode: 'merge' | 'squash'): Promi
   const dirty = await git(repo.root, ['--no-optional-locks', 'status', '--porcelain=v1', '--untracked-files=no'])
   if (dirty.out.trim()) return { ok: false, message: t('프로젝트 폴더에 커밋하지 않은 변경이 있습니다. 커밋하거나 정리한 뒤 합치세요.') }
 
+  // Only the copy's own branch: the agent may have switched to another one in there.
+  const current = (await git(entry.path, ['symbolic-ref', '--short', '-q', 'HEAD'])).out.trim()
+  if (current !== entry.branch) {
+    return { ok: false, message: t('작업 공간이 {branch} 가 아닌 {current} 에 있습니다. 작업 공간에서 git checkout {branch} 로 돌아간 뒤 합치세요.', { branch: entry.branch, current: current || 'detached HEAD' }) }
+  }
+
   // What the agent did not commit goes in too.
   const saved = await commitAll(entry, entry.task ? clipLine(entry.task) : entry.label)
   if (!saved.ok) return saved
@@ -542,6 +570,12 @@ export async function mergeWorktree(id: string, mode: 'merge' | 'squash'): Promi
       : await git(repo.root, ['merge', '--no-ff', '--no-edit', '-m', `Merge ${entry.branch}: ${subject}`, entry.branch], 180_000)
 
   if (result.ok && mode === 'squash') {
+    if ((await git(repo.root, ['diff', '--cached', '--quiet'])).ok) {
+      // The project has all of it already.
+      await git(repo.root, ['reset', '--merge'])
+      return { ok: false, message: t('합칠 변경이 없습니다.') }
+    }
+
     const commit = await git(repo.root, ['commit', '-m', subject], 120_000)
 
     if (!commit.ok) {
@@ -562,8 +596,21 @@ export async function mergeWorktree(id: string, mode: 'merge' | 'squash'): Promi
       : { ok: false, message: firstLine(result.err) }
   }
 
+  let mergedSha = tip
+
+  if (mode === 'squash') {
+    // A squash leaves no trace on the copy's branch, so merging later work would replay what
+    // is in the project already and conflict. Bring the project's branch into the copy (a real
+    // merge, so the copy also gets what others committed there; "ours" would make the next
+    // merge take those out again): the next merge starts from here.
+    const head = (await git(repo.root, ['rev-parse', 'HEAD'])).out.trim()
+    const sync = await git(entry.path, ['merge', '--no-verify', '--no-edit', '-m', `Merge ${repo.branch} after squashing into it`, head], 180_000)
+    if (sync.ok) mergedSha = (await git(entry.path, ['rev-parse', 'HEAD'])).out.trim() || tip
+    else await git(entry.path, ['merge', '--abort'])
+  }
+
   entry.mergedAt = Date.now()
-  entry.mergedSha = tip
+  entry.mergedSha = mergedSha
   save()
 
   return { ok: true, message: t('{branch} 을(를) {target} 에 합쳤습니다.', { branch: entry.branch, target: repo.branch }) }
@@ -577,28 +624,72 @@ function clipLine(text: string): string {
 
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
 
+/** The repository the copy belongs to: the project's, else the one recorded or the one the copy points at. */
+async function repoRootOf(entry: WorktreeInfo): Promise<string | null> {
+  const project = projectById(entry.projectId)
+  const repo = project && fs.existsSync(project.path) ? await repoOf(project.path) : null
+  if (repo) return repo.root
+  if (entry.repoRoot && fs.existsSync(entry.repoRoot)) return entry.repoRoot
+  if (!fs.existsSync(entry.path)) return null
+
+  const common = await git(entry.path, ['rev-parse', '--path-format=absolute', '--git-common-dir'])
+
+  return common.ok && common.out.trim() ? path.dirname(path.resolve(common.out.trim())) : null
+}
+
 /**
- * Delete the copy and its branch. Without `force`, a copy with uncommitted files or commits
- * that were never merged is kept and the numbers come back for the user to confirm.
+ * What deleting a copy would lose: uncommitted files in it, and commits on its branch the
+ * project never got. The commits are counted in the repository, so a copy whose folder was
+ * deleted by hand still shows them.
+ */
+export async function worktreeLoss(id: string): Promise<WorktreeLoss> {
+  const entry = worktreeById(id)
+  if (!entry) return { uncommitted: 0, unmergedCommits: 0, unknown: false }
+
+  const root = await repoRootOf(entry)
+  let unknown = !root
+  let unmergedCommits = 0
+
+  if (root && (await git(root, ['show-ref', '--verify', '--quiet', `refs/heads/${entry.branch}`])).ok) {
+    const ahead = await git(root, ['rev-list', '--count', `${since(entry)}..${entry.branch}`])
+    if (ahead.ok) unmergedCommits = Number(ahead.out.trim()) || 0
+    else unknown = true
+  }
+
+  let uncommitted = 0
+
+  if (fs.existsSync(entry.path)) {
+    const status = await git(entry.path, ['--no-optional-locks', 'status', '--porcelain=v1', '-z', '--untracked-files=normal'])
+    if (status.ok) uncommitted = statusRows(status.out).length
+    else unknown = true
+  }
+
+  return { uncommitted, unmergedCommits, unknown }
+}
+
+/**
+ * Delete the copy and its branch. Without `force`, a copy that would lose uncommitted files
+ * or unmerged commits (or one git cannot tell about) is kept, and the numbers come back for
+ * the user to confirm.
  */
 export async function removeWorktree(id: string, force = false): Promise<WorktreeActionResult> {
   const entry = worktreeById(id)
   if (!entry) return { ok: true }
-  const project = projectById(entry.projectId)
 
   if (!force) {
-    const status = await worktreeStatus(id)
-    const unmergedCommits = status.commits
-    if (status.uncommitted || unmergedCommits) return { ok: false, confirm: { uncommitted: status.uncommitted, unmergedCommits } }
+    const loss = await worktreeLoss(id)
+    if (loss.uncommitted || loss.unmergedCommits || loss.unknown) return { ok: false, confirm: loss }
   }
+
+  // Before the folder goes: a copy can be the only way left to its repository.
+  const repoDir = await repoRootOf(entry)
 
   // A shell or agent keeps its folder open, and Windows will not delete an open folder.
   const inCopy = listSessions().filter(session => session.worktreeId === id || inside(entry.path, session.cwd))
   for (const session of inCopy) kill(session.id)
   if (inCopy.length) await sleep(700)
 
-  const repoDir = project && fs.existsSync(project.path) ? project.path : path.dirname(entry.path)
-  await git(repoDir, ['worktree', 'remove', '--force', entry.path], 120_000)
+  if (repoDir) await git(repoDir, ['worktree', 'remove', '--force', entry.path], 120_000)
 
   // git can leave folders behind (files an editor or indexer held): delete what is left.
   if (fs.existsSync(entry.path)) {
@@ -609,9 +700,11 @@ export async function removeWorktree(id: string, force = false): Promise<Worktre
     }
   }
 
-  await git(repoDir, ['worktree', 'prune'])
-  // Safe: either nothing would be lost, the work was merged, or the user confirmed.
-  await git(repoDir, ['branch', '-D', entry.branch])
+  if (repoDir) {
+    await git(repoDir, ['worktree', 'prune'])
+    // Safe: either nothing would be lost, the work was merged, or the user confirmed.
+    await git(repoDir, ['branch', '-D', entry.branch])
+  }
 
   entries = all().filter(other => other.id !== id)
   save()

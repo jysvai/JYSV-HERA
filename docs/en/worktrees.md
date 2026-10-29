@@ -28,6 +28,8 @@ In the Worktrees tab, type a name (for example *fix login bug*), press **Create*
 3. copies the project's `.env` files into it (they are not in git, but the project usually needs them);
 4. opens the AI or terminal there. Its tab shows a branch icon, and in split view the pane shows the branch.
 
+![Making a worktree: type a name, press Create and pick Claude Code; an AI tab opens in the copy's folder, and the card's numbers go up as the AI works](../images/worktrees/en-create.gif)
+
 Good to know:
 
 - The copy starts from the **last commit**. Changes you have not committed in the project folder are not in it; the tab tells you how many there are.
@@ -39,18 +41,23 @@ Good to know:
 
 Each worktree is a card with its branch and what changed: files, `+added −deleted` lines, commits, and files not yet committed. The numbers update every few seconds.
 
+![Reviewing: pick a changed file to read it, then write a note and send it; the worktree's AI gets it and makes the fix](../images/worktrees/en-review.gif)
+
 - **Open** (열기): jump to a tab already working in it, or open a new terminal or AI there.
 - **Changes** (변경 보기): every changed file against the starting commit, committed or not, new files included. Under it, write a note and press **Send**: it is typed into the worktree's AI, so you can ask for fixes without leaving the review.
 - **Merge** (합치기) into the branch your project folder is on:
   - **Merge (merge commit)** keeps the copy's commits.
   - **Squash into one commit** brings the whole change in as one commit.
-  - What the AI left uncommitted is committed in the copy first.
+  - What the AI left uncommitted is committed in the copy first. If the AI is still working, HERA asks first, since files it is halfway through writing would go in too.
   - The project folder must be on a branch and have no uncommitted changes, so a failed merge can always be undone completely.
   - **If there is a conflict**, HERA undoes the merge and the project folder is exactly as it was. HERA offers to hand the conflict to the copy's AI: it runs `git merge` of your branch inside the copy, resolves the conflicts and commits. Then merge again.
+  - You can keep using a worktree after a merge. The next merge brings in only what was done since, also after a squash: HERA then merges the project's branch into the worktree, so the worktree continues from the project's latest state.
 - **⋯ → Commit the changes** saves what the AI left uncommitted as a commit on the copy's branch.
-- **⋯ → Discard / Delete** removes the folder and its `hera/…` branch. HERA tells you first how many uncommitted files and unmerged commits would be lost, and closes the tabs working in it.
+- **⋯ → Discard / Delete** removes the folder and its `hera/…` branch. HERA counts again, right then, how many uncommitted files and unmerged commits would be lost, tells you, and closes the tabs working in it. Commits on the branch are counted even if you deleted the folder by hand.
 
-HERA only ever deletes worktrees and `hera/…` branches it made itself. Copies you deleted by hand disappear from the list on the next start.
+![Merging: Squash into one commit brings the work into the project folder as one commit; the card shows Merged and the backlog's last change is that commit](../images/worktrees/en-merge.gif)
+
+HERA only ever deletes worktrees and `hera/…` branches it made itself. Copies you deleted by hand disappear from the list on the next start. A tab whose worktree folder is gone reopens as a terminal in the project folder, without the AI, and says so.
 
 ## Give several AIs the same task and pick one
 
@@ -61,7 +68,9 @@ HERA only ever deletes worktrees and `hera/…` branches it made itself. Copies 
 3. The cards appear together under **Compare: …**. Look at each one's changes; send notes if one needs a fix.
 4. Press **Keep this one** (이걸로 고르기) on the best result. HERA merges it as one commit and offers to delete the comparison's worktrees.
 
-Each AI uses its own quota, so a comparison costs as many runs as AIs.
+![Comparing AIs: write the task and start with Claude Code and Codex; they work side by side, and Keep this one merges only that result and tidies up the comparison](../images/worktrees/en-compare.gif)
+
+Each AI uses its own quota, so a comparison costs as many runs as AIs. If starting any of them fails, HERA takes back the worktrees and tabs it made.
 
 ## Helpers in their own worktrees
 

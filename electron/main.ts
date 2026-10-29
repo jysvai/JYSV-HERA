@@ -69,6 +69,7 @@ import {
   worktreeById,
   worktreeDiff,
   worktreeEvents,
+  worktreeLoss,
   worktreeStatus,
   worktreeSupport
 } from './worktrees'
@@ -548,7 +549,11 @@ function trayTooltip(): string {
 pty.ptyEvents.on('data', (id, data) => send('pty:data', id, data))
 pty.ptyEvents.on('snapshot', (id, data) => send('pty:snapshot', id, data))
 pty.ptyEvents.on('changed', info => send('sessions:changed', info))
-worktreeEvents.on('changed', () => send('worktrees:changed', listWorktrees()))
+worktreeEvents.on('changed', () => {
+  // A merge adds a commit to the project folder: its "last change" must be read again.
+  invalidateInsight()
+  send('worktrees:changed', listWorktrees())
+})
 pty.ptyEvents.on('removed', id => send('sessions:removed', id))
 
 // ---------------------------------------------------------------- metrics
@@ -697,6 +702,7 @@ function registerIpc() {
   handle('worktrees:diff', (id: string) => worktreeDiff(String(id)))
   handle('worktrees:commit', (id: string, message: string) => commitWorktree(String(id), String(message || '')))
   handle('worktrees:merge', (id: string, mode: string) => mergeWorktree(String(id), mode === 'squash' ? 'squash' : 'merge'))
+  handle('worktrees:loss', (id: string) => worktreeLoss(String(id)))
   handle('worktrees:remove', (id: string, force: boolean) => removeWorktree(String(id), force === true))
   handle('worktrees:openFolder', (id: string) => {
     const worktree = worktreeById(String(id))

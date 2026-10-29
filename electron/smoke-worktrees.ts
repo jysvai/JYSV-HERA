@@ -62,6 +62,11 @@ export async function smokeWorktrees(record: Step) {
       diff.files.map(file => `${file.status} ${file.path}`).join(', ')
     )
 
+    // Someone else's work lands in the project before the squash: no later merge of this copy may take it out.
+    fs.writeFileSync(path.join(repo, 'g.txt'), 'project work\n')
+    git('add', 'g.txt')
+    git('commit', '-m', 'project work')
+
     const merged = await mergeWorktree(copy.id, 'squash')
     record(
       'worktrees: squash merge into the project folder',
@@ -82,8 +87,10 @@ export async function smokeWorktrees(record: Step) {
       JSON.stringify(conflict)
     )
 
+    // Its folder deleted by hand: the commit on its branch still counts.
+    fs.rmSync(rival.path, { recursive: true, force: true })
     const ask = await removeWorktree(rival.id)
-    record('worktrees: deleting unmerged work asks first', !ask.ok && Boolean(ask.confirm?.unmergedCommits), JSON.stringify(ask))
+    record('worktrees: deleting unmerged work asks first (folder gone too)', !ask.ok && ask.confirm?.unmergedCommits === 1, JSON.stringify(ask))
     const removed = await removeWorktree(rival.id, true)
     const branches = git('branch', '--list', 'hera/*')
     record('worktrees: delete a copy and its branch', removed.ok && !fs.existsSync(rival.path) && !branches.includes('rival'), removed.message || branches.trim())
@@ -97,6 +104,14 @@ export async function smokeWorktrees(record: Step) {
     execFileSync('git', ['commit', '-m', 'later work'], { cwd: copy.path, windowsHide: true })
     const later = await removeWorktree(copy.id)
     record('worktrees: work after a merge is not taken for merged', !later.ok && later.confirm?.unmergedCommits === 1, JSON.stringify(later))
+
+    // The project changed a.txt after the first squash: squashing the later work must not replay the first.
+    const again = await mergeWorktree(copy.id, 'squash')
+    record(
+      'worktrees: a second squash merge takes only the later work',
+      again.ok && fs.existsSync(path.join(repo, 'c.txt')) && fs.readFileSync(path.join(repo, 'a.txt'), 'utf8').includes('MAIN') && fs.existsSync(path.join(repo, 'g.txt')),
+      `${JSON.stringify(again)} | ${git('status', '--porcelain').trim()}`
+    )
 
     const done = await removeWorktree(copy.id, true)
     record('worktrees: delete after confirming (its tab closes)', done.ok && !fs.existsSync(copy.path) && !pty.getSession(session.id), done.message)

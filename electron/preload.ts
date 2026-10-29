@@ -32,6 +32,7 @@ const INVOKE = new Set([
   'worktrees:diff',
   'worktrees:commit',
   'worktrees:merge',
+  'worktrees:loss',
   'worktrees:remove',
   'worktrees:openFolder',
   'sessions:write',

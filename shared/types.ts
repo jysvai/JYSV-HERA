@@ -155,6 +155,17 @@ export interface WorktreeInfo {
   mergedAt?: number | null
   /** The copy's tip at that merge: changes and commits are counted from here on, so work done after a merge is never taken for merged. */
   mergedSha?: string | null
+  /** The repository's top folder, to clean up after the project is gone. */
+  repoRoot?: string
+}
+
+/** What deleting a copy would lose. */
+export interface WorktreeLoss {
+  uncommitted: number
+  /** Commits on its branch the project never got (counted in the repository, so also when the folder is gone). */
+  unmergedCommits: number
+  /** git could not tell (an error, or the repository is gone): treat it as "something may be lost". */
+  unknown: boolean
 }
 
 export interface WorktreeStatus {
@@ -207,7 +218,7 @@ export interface WorktreeActionResult {
   /** Files that conflicted (the merge was undone). */
   conflicts?: string[]
   /** Removing needs the user's confirmation: this much would be lost. */
-  confirm?: { uncommitted: number; unmergedCommits: number }
+  confirm?: WorktreeLoss
 }
 
 export interface StartWorkResult {

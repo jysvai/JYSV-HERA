@@ -35,7 +35,8 @@ function useCopySessions(worktreeId: string): SessionInfo[] {
     .sort((a, b) => Number(Boolean(b.activeAgentId)) - Number(Boolean(a.activeAgentId)) || a.createdAt - b.createdAt)
 }
 
-export function useWorktreeSupport(projectId: string | null): WorktreeSupport | null {
+/** Whether the project can have worktrees; asked again when `tick` changes (the panel's poll). */
+export function useWorktreeSupport(projectId: string | null, tick = 0): WorktreeSupport | null {
   const [support, setSupport] = useState<WorktreeSupport | null>(null)
   const worktrees = useStore($worktrees)
 
@@ -50,8 +51,8 @@ export function useWorktreeSupport(projectId: string | null): WorktreeSupport | 
     return () => {
       alive = false
     }
-    // A merge or a new copy changes the project folder's state too.
-  }, [projectId, worktrees])
+    // A merge or a new copy changes the project folder's state too, and so does the user in a terminal.
+  }, [projectId, worktrees, tick])
 
   return support
 }
@@ -80,6 +81,8 @@ function conflictTask(branch: string, files: string[]): string {
 
 /** Merge a copy into the project folder; on a conflict, offer to hand it to the copy's agent. */
 async function mergeCopy(worktree: WorktreeInfo, mode: 'merge' | 'squash', projectBranch: string | null, agent: SessionInfo | undefined): Promise<boolean> {
+  if (agent?.status === 'busy' && !window.confirm(t('{name} 이(가) 아직 일하는 중입니다. 지금 합치면 쓰다 만 파일이 함께 들어갈 수 있습니다. 그래도 합칠까요?', { name: agent.name }))) return false
+
   const result = await api.mergeWorktree(worktree.id, mode)
 
   if (result.ok) {
@@ -107,28 +110,40 @@ async function mergeCopy(worktree: WorktreeInfo, mode: 'merge' | 'squash', proje
   return false
 }
 
-/** Delete a copy (and its tabs), after the user saw what would be lost. */
-async function removeCopy(worktree: WorktreeInfo, status: WorktreeStatus | undefined, openTabs: number, ask = true): Promise<boolean> {
-  if (ask) {
-    const uncommitted = status?.uncommitted || 0
-    const unmerged = status?.commits || 0
-    const lost = [
-      uncommitted ? t('커밋하지 않은 파일 {count}개', { count: uncommitted }) : '',
-      unmerged ? t('합치지 않은 커밋 {count}개', { count: unmerged }) : ''
-    ]
-      .filter(Boolean)
-      .join(', ')
-    const lines = [
-      lost ? t("작업 공간 '{label}' 을(를) 버릴까요? {lost} 이(가) 사라집니다.", { label: worktree.label, lost }) : t("작업 공간 '{label}' 을(를) 지울까요?", { label: worktree.label }),
-      openTabs ? t('이 작업 공간에서 열린 탭 {count}개도 닫힙니다.', { count: openTabs }) : ''
-    ]
-    if (!window.confirm(lines.filter(Boolean).join(' '))) return false
-  }
+/** What deleting would lose, in words ('' for nothing), counted now rather than from the last poll. */
+async function lossText(worktree: WorktreeInfo): Promise<{ lost: string; unknown: boolean }> {
+  const loss = await api.worktreeLoss(worktree.id).catch(() => ({ uncommitted: 0, unmergedCommits: 0, unknown: true }))
+  const lost = [
+    loss.uncommitted ? t('커밋하지 않은 파일 {count}개', { count: loss.uncommitted }) : '',
+    loss.unmergedCommits ? t('합치지 않은 커밋 {count}개', { count: loss.unmergedCommits }) : ''
+  ]
+    .filter(Boolean)
+    .join(', ')
 
+  return { lost, unknown: loss.unknown }
+}
+
+const unknownLoss = () => t('git 이 이 작업 공간의 상태를 알려 주지 못했습니다. 지우면 그 안의 작업이 사라질 수 있습니다.')
+
+async function forceRemove(worktree: WorktreeInfo): Promise<boolean> {
   const result = await api.removeWorktree(worktree.id, true)
   if (!result.ok) toast(result.message || t('지우지 못했습니다.'), 'error')
 
   return result.ok
+}
+
+/** Delete a copy (and its tabs) after the user saw what would be lost; `intro` replaces the usual question. */
+async function removeCopy(worktree: WorktreeInfo, openTabs: number, intro?: string): Promise<boolean> {
+  const { lost, unknown } = await lossText(worktree)
+  const lines = [
+    intro || (lost ? t("작업 공간 '{label}' 을(를) 버릴까요? {lost} 이(가) 사라집니다.", { label: worktree.label, lost }) : t("작업 공간 '{label}' 을(를) 지울까요?", { label: worktree.label })),
+    intro && lost ? t('{lost} 이(가) 사라집니다.', { lost }) : '',
+    unknown ? unknownLoss() : '',
+    openTabs ? t('이 작업 공간에서 열린 탭 {count}개도 닫힙니다.', { count: openTabs }) : ''
+  ]
+  if (!window.confirm(lines.filter(Boolean).join(' '))) return false
+
+  return forceRemove(worktree)
 }
 
 function OpenMenu({ project, worktree, sessions }: { project: Project; worktree: WorktreeInfo; sessions: SessionInfo[] }) {
@@ -217,7 +232,8 @@ function CopyCard({
   const mergeThenTidy = async (mode: 'merge' | 'squash') => {
     if (!(await mergeCopy(worktree, mode, support?.branch || null, agent))) return
     const question = t("합쳤습니다. 작업 공간 '{label}' 을(를) 지울까요? 계속 쓰려면 취소를 누르세요. 이어서 한 일도 나중에 다시 합칠 수 있습니다.", { label: worktree.label })
-    if (window.confirm(question)) await removeCopy(worktree, undefined, 0, false)
+    // Counted again: the agent may have written more while the merge ran.
+    await removeCopy(worktree, sessions.length, question)
   }
 
   return (
@@ -318,7 +334,7 @@ function CopyCard({
                 onSelect={() => {
                   close()
                   void run(async () => {
-                    const ok = await removeCopy(worktree, status, sessions.length)
+                    const ok = await removeCopy(worktree, sessions.length)
                     if (ok) toast(t("작업 공간 '{label}' 을(를) 지웠습니다.", { label: worktree.label }))
                   })
                 }}
@@ -342,7 +358,7 @@ function NewCopy({ project }: { project: Project }) {
     setBusy(true)
     try {
       const agent = agents.find(entry => entry.id === agentId)
-      const result = await api.createWorktree(project.id, label.trim() || agent?.name || t('작업 공간'), agentId)
+      const result = await api.createWorktree(project.id, label.trim() || agent?.name || t('새 작업 공간'), agentId)
       $sessions.setKey(result.session.id, result.session)
       focusSession(result.session)
       setLabel('')
@@ -424,13 +440,16 @@ export function WorktreesPanel() {
   const project = useStore($project)
   const worktrees = useStore($worktrees)
   const visible = useStore($windowVisible)
-  const support = useWorktreeSupport(project?.id || null)
+  const [tick, setTick] = useState(0)
+  const support = useWorktreeSupport(project?.id || null, tick)
   const [statuses, setStatuses] = useState<Record<string, WorktreeStatus>>({})
   const [diffFor, setDiffFor] = useState<WorktreeInfo | null>(null)
   const mine = useMemo(() => worktrees.filter(entry => entry.projectId === project?.id).sort((a, b) => b.createdAt - a.createdAt), [worktrees, project?.id])
   const ids = mine.map(entry => entry.id).join(',')
 
   const refresh = useCallback(() => {
+    // The project folder's branch and changes too: the merge menu names the branch.
+    setTick(value => value + 1)
     if (!ids) return
     void api
       .worktreeStatus(ids.split(','))
@@ -456,8 +475,15 @@ export function WorktreesPanel() {
     const agent = Object.values($sessions.get()).find(session => session.worktreeId === winner.id && live(session) && session.activeAgentId)
     if (!(await mergeCopy(winner, 'squash', support?.branch || null, agent))) return
     const others = group.filter(entry => entry.id !== winner.id)
-    if (!window.confirm(t('{label} 의 결과를 합쳤습니다. 이 비교의 작업 공간 {count}개(나머지 결과 포함)를 모두 지울까요?', { label: winner.label, count: group.length }))) return
-    for (const entry of [...others, winner]) await removeCopy(entry, undefined, 0, false)
+    // The other results are thrown away on purpose; the winner may have more since the merge.
+    const { lost, unknown } = await lossText(winner)
+    const lines = [
+      t('{label} 의 결과를 합쳤습니다. 이 비교의 작업 공간 {count}개(나머지 결과 포함)를 모두 지울까요?', { label: winner.label, count: group.length }),
+      lost ? t('{label} 에서 합친 뒤에 생긴 {lost} 도 사라집니다.', { label: winner.label, lost }) : '',
+      unknown ? unknownLoss() : ''
+    ]
+    if (!window.confirm(lines.filter(Boolean).join(' '))) return
+    for (const entry of [...others, winner]) await forceRemove(entry)
     toast(t('비교를 정리했습니다.'))
   }
 
@@ -474,6 +500,11 @@ export function WorktreesPanel() {
           <Button size="sm" variant="outline" onClick={() => $raceDraft.set({ projectId: project.id, task: '' })}>
             <IconTrophy /> {t('여러 AI 에게 같은 일 시키고 고르기…')}
           </Button>
+          {!support.branch && (
+            <div className="text-[11px] leading-relaxed text-(--ui-text-tertiary)">
+              {t('프로젝트 폴더가 브랜치에 있지 않습니다 (detached HEAD). 작업 공간은 만들 수 있지만, 합치려면 먼저 브랜치로 돌아가야 합니다.')}
+            </div>
+          )}
           {support.dirty > 0 && (
             <div className="text-[11px] leading-relaxed text-(--ui-text-tertiary)">
               {t('프로젝트 폴더의 커밋하지 않은 변경 {count}개는 새 작업 공간에 들어가지 않습니다. 작업 공간은 마지막 커밋에서 시작합니다.', { count: support.dirty })}

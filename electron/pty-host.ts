@@ -299,11 +299,12 @@ function buildAgentCommand(req: CreateSessionRequest, agent: AgentDef | null, id
 
 export function createSession(req: CreateSessionRequest): SessionInfo {
   const config = getConfig()
+  // A worktree that was deleted in the meantime (a restored tab): a plain terminal in the
+  // project folder instead, never the agent, which would edit the real project unasked.
+  const lostCopy = Boolean(req.worktreeId && req.cwd && !isDir(req.cwd))
+  if (lostCopy) req = { ...req, cwd: undefined, worktreeId: null, agentId: null, command: undefined, resume: undefined }
   const project = projectById(req.projectId || null)
   const agent = agentById(req.agentId || null)
-  // A worktree that was deleted in the meantime (a restored tab): open the project folder instead.
-  const lostCopy = Boolean(req.worktreeId && req.cwd && !isDir(req.cwd))
-  if (lostCopy) req = { ...req, cwd: undefined, worktreeId: null }
   const cwd = safeCwd(req.cwd || project?.path)
   const spec = buildShellSpec(project?.shell || config.settings.defaultShell, config.settings.loadShellProfile)
   const [cols, rows] = clampSize(req.cols || 120, req.rows || 32)
@@ -356,6 +357,7 @@ export function createSession(req: CreateSessionRequest): SessionInfo {
   trackCwd(session)
   answerQueries(session)
   sessions.set(id, session)
+  if (lostCopy) session.term.write(`\x1b[33m[HERA] ${t('이 탭의 작업 공간 폴더가 없어서, AI 없이 프로젝트 폴더에서 열었습니다.')}\x1b[0m\r\n`)
   spawn(session, spec)
   ptyEvents.emit('changed', info(session))
 
@@ -964,7 +966,10 @@ export function revive(id: string, resume = true, auto = false): SessionInfo | n
   const spec = buildShellSpec(project?.shell || config.settings.defaultShell, config.settings.loadShellProfile)
   // A hand-typed agent (shell tab) comes back through its recorded conversation.
   const agent = agentById(session.agentId) || (resume ? agentById(session.conversation?.agentId) : null)
-  const runAgent = Boolean(agent) && (!auto || session.agentWasActive) && !(auto && session.launchReq.command?.trim())
+  // Its worktree is gone: a plain terminal in the project folder, never the agent (it would edit the real project).
+  const lostCopy = Boolean(session.launchReq.worktreeId) && !isDir(session.cwd)
+  if (lostCopy) session.launchReq = { ...session.launchReq, worktreeId: null, cwd: undefined }
+  const runAgent = !lostCopy && Boolean(agent) && (!auto || session.agentWasActive) && !(auto && session.launchReq.command?.trim())
   const resumeId = resume && session.conversation?.agentId === agent?.id ? session.conversation?.id || null : null
   // Without a recorded conversation, an agent that supports exact ids starts fresh on
   // auto-restore rather than grabbing whatever conversation in that folder is newest.
@@ -982,6 +987,7 @@ export function revive(id: string, resume = true, auto = false): SessionInfo | n
   if (!isDir(session.cwd)) session.cwd = safeCwd(projectById(session.projectId)?.path)
   // Keep the previous screen above; the restarted shell continues below it.
   session.term.write(`\r\n\x1b[2m── ${auto ? t('재부팅/재시작 후 이어서 실행') : t('다시 시작함')} · ${new Date().toLocaleString(locale())} ──\x1b[0m\r\n`)
+  if (lostCopy) session.term.write(`\x1b[33m[HERA] ${t('이 탭의 작업 공간 폴더가 없어서, AI 없이 프로젝트 폴더에서 열었습니다.')}\x1b[0m\r\n`)
   spawn(session, spec)
 
   if (session.attached) {

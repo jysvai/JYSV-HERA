@@ -7,7 +7,8 @@ export const EN_WORKTREES: Record<string, string> = {
   "아직 커밋이 없습니다. 작업 공간은 마지막 커밋에서 시작합니다.": "There are no commits yet. A worktree starts from the last commit.",
   "git 저장소를 만들지 못했습니다.": "Could not make a git repository.",
   "git 에 이름과 이메일이 설정되어 있지 않습니다. 터미널에서 git config --global user.name \"이름\" 과 git config --global user.email \"메일\" 을 실행한 뒤 다시 하세요.": "git has no name and email set. In a terminal, run git config --global user.name \"Your Name\" and git config --global user.email \"you@example.com\", then try again.",
-  "작업 공간": "Worktree",
+  "작업 공간": "Worktrees",
+  "새 작업 공간": "New worktree",
   "'{name}' 이름의 작업 공간이 이미 많습니다. 다른 이름을 쓰세요.": "There are already many worktrees named '{name}'. Use another name.",
   "작업 공간을 찾지 못했습니다.": "Worktree not found.",
   "커밋할 변경이 없습니다.": "Nothing to commit.",
@@ -97,5 +98,14 @@ export const EN_WORKTREES: Record<string, string> = {
   "준비: {command}": "Setup: {command}",
   "새 작업 공간 준비 명령 (선택)": "Setup command for new worktrees (optional)",
   "작업 공간을 만들 때마다 그 폴더의 터미널 탭에서 실행합니다. node_modules 같은 의존성은 복사되지 않기 때문입니다.": "Runs in a terminal tab in every new worktree, since dependencies such as node_modules are not copied.",
-  "합쳤습니다. 작업 공간 '{label}' 을(를) 지울까요? 계속 쓰려면 취소를 누르세요. 이어서 한 일도 나중에 다시 합칠 수 있습니다.": "Merged. Delete the worktree '{label}'? Press Cancel to keep using it; later work can be merged again."
+  "합쳤습니다. 작업 공간 '{label}' 을(를) 지울까요? 계속 쓰려면 취소를 누르세요. 이어서 한 일도 나중에 다시 합칠 수 있습니다.": "Merged. Delete the worktree '{label}'? Press Cancel to keep using it; later work can be merged again.",
+  "{name} 이(가) 아직 일하는 중입니다. 지금 합치면 쓰다 만 파일이 함께 들어갈 수 있습니다. 그래도 합칠까요?": "{name} is still working. Merging now can take in files it is halfway through writing. Merge anyway?",
+  "git 이 이 작업 공간의 상태를 알려 주지 못했습니다. 지우면 그 안의 작업이 사라질 수 있습니다.": "git could not report this worktree's state. Deleting it may lose work in it.",
+  "{lost} 이(가) 사라집니다.": "This loses {lost}.",
+  "{label} 에서 합친 뒤에 생긴 {lost} 도 사라집니다.": "This also loses what {label} did after the merge: {lost}.",
+  "프로젝트 폴더가 브랜치에 있지 않습니다 (detached HEAD). 작업 공간은 만들 수 있지만, 합치려면 먼저 브랜치로 돌아가야 합니다.": "The project folder is not on a branch (detached HEAD). You can make worktrees, but to merge one, switch the project folder back to a branch first.",
+  "이 탭의 작업 공간 폴더가 없어서, AI 없이 프로젝트 폴더에서 열었습니다.": "This tab's worktree folder is gone, so it opened in the project folder, without the AI.",
+  "git 이 제시간에 끝나지 않았습니다.": "git did not finish in time.",
+  "git 이 실패했습니다 (code {code}).": "git failed (code {code}).",
+  "작업 공간이 {branch} 가 아닌 {current} 에 있습니다. 작업 공간에서 git checkout {branch} 로 돌아간 뒤 합치세요.": "The worktree is on {current}, not {branch}. Run git checkout {branch} in the worktree, then merge."
 }

@@ -424,7 +424,11 @@ export async function bootStore() {
     }
   })
   on('bus:message', (message: BusMessage) => $bus.set([...$bus.get().slice(-299), message]))
-  on('worktrees:changed', (list: WorktreeInfo[]) => $worktrees.set(list))
+  on('worktrees:changed', (list: WorktreeInfo[]) => {
+    $worktrees.set(list)
+    // A merge adds a commit to the project: its "last change" is new.
+    $insightTick.set($insightTick.get() + 1)
+  })
   on('app:visibility', (visible: boolean) => $windowVisible.set(visible))
   on('app:reveal', (payload: { sessionId: string | null; split?: boolean }) => {
     const session = payload.sessionId ? $sessions.get()[payload.sessionId] : null

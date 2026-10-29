@@ -10,7 +10,7 @@ import { sendFromUser } from './bus'
 import { getSession, isReady, listSessions, setRole } from './pty-host'
 import { quoteArg, resolveShell } from './shell'
 import { getConfig, projectById } from './store'
-import { createWorktree, newRaceId, worktreeById, worktreeSupport } from './worktrees'
+import { createWorktree, newRaceId, removeWorktree, worktreeById, worktreeSupport } from './worktrees'
 
 /** A lead that is busy or answering a prompt gets the task when it is free, for this long. */
 const LEAD_WAIT_MS = 10 * 60_000
@@ -169,10 +169,19 @@ export async function startRace(req: StartRaceRequest, launch: (req: CreateSessi
   const raceId = newRaceId()
   const sessions: SessionInfo[] = []
 
-  for (const want of agents) {
-    const agent = config.agents.find(entry => entry.id === want.agentId)!
-    const worktree = await createWorktree(project.id, { label: agent.name, name: `race-${raceId}-${agent.id}`, raceId, task, agentId: agent.id })
-    sessions.push(launch({ projectId: project.id, agentId: agent.id, profileId: want.profileId || null, cwd: worktree.cwd, worktreeId: worktree.id }))
+  const made: string[] = []
+
+  try {
+    for (const want of agents) {
+      const agent = config.agents.find(entry => entry.id === want.agentId)!
+      const worktree = await createWorktree(project.id, { label: agent.name, name: `race-${raceId}-${agent.id}`, raceId, task, agentId: agent.id })
+      made.push(worktree.id)
+      sessions.push(launch({ projectId: project.id, agentId: agent.id, profileId: want.profileId || null, cwd: worktree.cwd, worktreeId: worktree.id }))
+    }
+  } catch (error) {
+    // All or nothing: half a comparison would only leave copies and tabs to clean up.
+    for (const id of made) await removeWorktree(id, true)
+    throw error
   }
 
   for (const session of sessions) void handOver(session.id, [], task)
