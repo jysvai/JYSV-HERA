@@ -2,6 +2,21 @@
 
 Full patch notes, one file per release in English and Korean: [docs/patch-notes](docs/patch-notes/README.md).
 
+## 0.3.0 — 2026-10-29
+
+### Added
+
+- Worktrees (`electron/worktrees.ts`, right panel tab): git worktrees under `~/hera-worktrees/<project>/<name>` on `hera/<name>` branches; status, diff, commit, merge or squash (conflicts undone with `merge --abort` / `reset --merge`), discard with a confirm for uncommitted files and unmerged commits. Changes count from the start or the last merge (`mergedSha`).
+- Compare AIs (`work:race`): 2–4 agents, one worktree each; "Keep this one" squash-merges the winner.
+- Multi-agent `isolate` (setting `isolateHelpers`): new helpers open in worktrees, the lead's brief names their folders and branches.
+- `hera spawn --worktree[=name]`, `hera worktrees`.
+- Make a folder a git repository (starter `.gitignore`, first commit); `.env*` and `.worktreeinclude` copied when git-ignored; per-project `worktreeSetup` command.
+
+### Changed
+
+- Worktree folders map to their project (`setPathAliases`: usage, `hera host`, lanes).
+- The self-test (`electron/smoke-worktrees.ts`) runs the worktree flow against a throwaway repository.
+
 ## 0.2.6 — 2026-10-28
 
 ### Fixed
