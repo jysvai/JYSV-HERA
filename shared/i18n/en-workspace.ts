@@ -286,4 +286,12 @@ export const EN_WORKSPACE: Record<string, string> = {
   '이끌 에이전트를 고르세요.': 'Pick the agent that leads.',
   '작업: {task}': 'Task: {task}',
   '지금 하던 작업에서 따로 떼어 맡길 수 있는 부분이 있으면 보조에게 맡기고, 없으면 다음 요청부터 그렇게 진행해라.': 'If part of what you are doing now can be handed off, give it to a helper; otherwise work this way from the next request on.',
+  '{host} 에 올리지 못했습니다: {reason}': 'Could not copy it to {host}: {reason}',
+  '{host} 에 이미지를 올리고 그 경로를 붙여넣었습니다 · {size}': 'Image copied to {host} and its path pasted · {size}',
+  '{host} 에 파일 {count}개를 올리고 그 경로를 넣었습니다': 'Copied {count} file(s) to {host} and typed their paths',
+  '이미지를 WSL 경로로 붙여넣었습니다 · {size}': 'Image pasted as a WSL path · {size}',
+  '이미지를 붙여넣었습니다 · {size}': 'Image pasted · {size}',
+  '붙여넣는 중…': 'Pasting…',
+  '올리는 동안 터미널에 입력이 있어서, 경로는 넣지 않고 클립보드에 복사했습니다': 'You typed in the terminal while the file was being copied, so the path went to the clipboard instead',
+  '웹 이미지는 복사({shortcut}) 한 뒤 터미널에 붙여넣으세요': 'For an image on a web page, copy it ({shortcut}) and paste it into the terminal',
 }

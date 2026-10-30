@@ -4,22 +4,17 @@ import { useCallback, useEffect, useRef, useState, type ReactElement } from 'rea
 
 import { t } from '../../../shared/i18n'
 import type { DirEntry } from '../../../shared/types'
+import { formatBytes } from '../../../shared/util'
 import { Button, Tip } from '../../components/ui/primitives'
 import { cn } from '../../lib/cn'
-import { api, writePty } from '../../lib/hera'
+import { api } from '../../lib/hera'
 import { $project, $sessions, $windowVisible, layoutFor, toast } from '../../store/app'
-import { quoteForAgent, quotePath } from '../terminal/TerminalView'
+import { insertFiles } from '../terminal/TerminalView'
 
 /** Folders that are big and rarely browsed: listed, but never opened by a refresh on their own. */
 const HEAVY = new Set(['node_modules', '.git', 'dist', 'build', 'out', 'target', '.venv', 'venv', '__pycache__', '.next', '.turbo', '.cache', 'release'])
 
 const join = (dir: string, name: string) => (dir ? `${dir}/${name}` : name)
-
-function formatSize(bytes: number): string {
-  if (bytes < 1024) return `${bytes} B`
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(bytes < 10 * 1024 ? 1 : 0)} KB`
-  return `${(bytes / 1024 / 1024).toFixed(1)} MB`
-}
 
 /** git status code → dot color; folders take the strongest state below them. */
 function gitTone(code: string | undefined): string | null {
@@ -119,7 +114,7 @@ export function FilesPanel() {
       toast(t('경로를 넣을 터미널이 없습니다. 터미널을 먼저 여세요.'), 'error')
       return
     }
-    writePty(sessionId, `${session.activeAgentId ? quoteForAgent(abs) : quotePath(abs, session.shell)} `)
+    await insertFiles(sessionId, [abs], ' ')
   }
 
   const copy = async (rel: string) => {
@@ -175,7 +170,7 @@ export function FilesPanel() {
             if (entry.dir) toggle(rel)
           }}
           onDoubleClick={() => !entry.dir && void api.openPath(project.id, rel, 'open')}
-          title={`${rel}${entry.dir ? '' : ` · ${formatSize(entry.size)}`}${code ? ` · ${GIT_LABEL[code.trim()[0]] || code}` : ''}`}
+          title={`${rel}${entry.dir ? '' : ` · ${formatBytes(entry.size)}`}${code ? ` · ${GIT_LABEL[code.trim()[0]] || code}` : ''}`}
           className={cn(
             'group flex h-[24px] cursor-default items-center gap-1 rounded-md pr-1 text-[12.5px] select-none hover:bg-(--chrome-action-hover)',
             selected === rel && 'bg-(--ui-bg-elevated) shadow-sm',

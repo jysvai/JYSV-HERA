@@ -13,6 +13,7 @@ The installed version is shown at the bottom of the sidebar and at the top of Se
 - **Check now** (지금 확인) forces a check. A failed check keeps the last good answer and shows the error.
 - Switch **Check for new versions** off in Settings to stop it. It is the only network request HERA makes on its own. With it off, HERA contacts nothing until you press an update button.
 - Opening *Agents → Extensions & updates* runs `npm outdated -g` (and `brew outdated` for the formulas your AI CLIs come from), which ask the npm registry and Homebrew for the latest versions. Nothing else from that page goes online until you press an update button.
+- Pasting an image or dropping a file into a tab that is logged in somewhere with `ssh` copies it to that server, through your own `ssh` with the tab's login options, so the program there can open it ([WSL and SSH tabs](terminal.md#wsl-and-ssh-tabs)). It happens only when you paste or drop, only to the server that tab is already connected to, and never with a password. Switch off *Settings → Terminal → Copy images and files into SSH tabs* to stop it.
 
 ## Updating from inside the app
 

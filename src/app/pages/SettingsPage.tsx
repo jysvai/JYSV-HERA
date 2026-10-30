@@ -89,6 +89,8 @@ export function SettingsPage() {
   const [gpu, setGpu] = useSetting('gpu')
   const [conptyDll, setConptyDll] = useSetting('conptyDll')
   const [codexOwnServer, setCodexOwnServer] = useSetting('codexOwnServer')
+  const [codexInline, setCodexInline] = useSetting('codexInline')
+  const [sshPaste, setSshPaste] = useSetting('sshPaste')
   const [cursorStyle, setCursorStyle] = useSetting('cursorStyle')
   const [cursorBlink, setCursorBlink] = useSetting('cursorBlink')
   const [lowMemory, setLowMemory] = useSetting('lowMemory')
@@ -235,6 +237,18 @@ export function SettingsPage() {
             description={t('HERA 가 여는 Codex 탭마다 자기 서버를 씁니다(--no-daemon). Codex 공유 데몬이 예전 로그인을 들고 있어도, HERA 를 재시작 · 업데이트한 뒤 Codex 가 다시 로그인을 요구하지 않습니다.')}
           >
             <Switch checked={codexOwnServer !== false} onChange={setCodexOwnServer} label={t('Codex 로그인 유지')} />
+          </Row>
+          <Row
+            label={t('Codex 부드러운 스크롤 (권장)')}
+            description={t('Codex 를 전체 화면 없이 엽니다(--no-alt-screen). 대화가 터미널 스크롤백에 남아 다른 탭처럼 휠과 트랙패드로 바로 스크롤되고, 드래그로 바로 복사됩니다. 끄면 Codex 가 스크롤을 직접 처리해 느릴 수 있습니다. 새로 여는 Codex 탭부터 적용.')}
+          >
+            <Switch checked={codexInline !== false} onChange={setCodexInline} label={t('Codex 부드러운 스크롤')} />
+          </Row>
+          <Row
+            label={t('SSH 탭에 이미지 · 파일 올리기')}
+            description={t('ssh 로 접속한 탭에 이미지를 붙여넣거나 파일을 끌어다 놓으면, 같은 ssh 설정으로 그 서버의 ~/.cache/hera-paste 에 먼저 올리고 서버 쪽 경로를 넣습니다. 비밀번호는 묻지 않으므로 ssh 키(ssh-agent)가 있어야 합니다. 끄면 이 컴퓨터의 경로를 그대로 넣습니다.')}
+          >
+            <Switch checked={sshPaste !== false} onChange={setSshPaste} label={t('SSH 탭에 이미지 · 파일 올리기')} />
           </Row>
           <Row label={t('글꼴')}>
             <Input value={fontFamily} onChange={event => setFontFamily(event.target.value)} className="w-72 font-mono text-[12px]" />

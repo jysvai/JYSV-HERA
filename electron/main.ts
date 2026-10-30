@@ -37,7 +37,7 @@ import { listProjectDir, openProjectPath, projectAbsPath, projectGitStatus } fro
 import { searchHistory } from './history'
 import { invalidateInsight, projectActivityTimes, projectInsight } from './insight'
 import { applyLaneAllowlist, laneMainArgs, laneProject, lanesInfo, saveLaneRole, setLaneOptions, setLaneTabs, startLanes, stopLanes } from './lanes'
-import { saveClipboardImage } from './paste-image'
+import { pasteClipboardImage, pasteFiles, pasteImageBytes } from './paste-target'
 import { dataPath, findOnPath, hydrateLoginPath, isMac, isWin, readJson, writeJsonAtomic } from './paths'
 import * as pty from './pty-host'
 import { quoteArg, resolveShell, writeShortcutFiles } from './shell'
@@ -621,7 +621,9 @@ function registerIpc() {
   })
   handle('clipboard:write', (text: string) => clipboard.writeText(String(text)))
   handle('clipboard:read', () => clipboard.readText())
-  handle('clipboard:image', () => saveClipboardImage())
+  handle('paste:image', (sessionId: string) => pasteClipboardImage(String(sessionId)))
+  handle('paste:files', (sessionId: string, files: string[]) => pasteFiles(String(sessionId), Array.isArray(files) ? files : []))
+  handle('paste:bytes', (sessionId: string, data: Uint8Array) => (data instanceof Uint8Array ? pasteImageBytes(String(sessionId), data) : null))
 
   handle('config:get', () => getConfig())
   handle('config:set', (next: HeraConfig) => {

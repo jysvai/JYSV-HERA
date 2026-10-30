@@ -42,7 +42,7 @@ HERA keeps the shell you already use (PowerShell, cmd, Git Bash, bash, zsh, fish
 | | |
 |---|---|
 | **Project launcher** | Sidebar of registered projects: drag folders onto it, pick them, or scan a parent folder to add them all. Start screen per project with a terminal, every installed AI and team presets. Double-click = terminal. |
-| **Tabs and split view** | Tabs, up to 4 terminals side by side, broadcast one prompt to several agents at once. Drag a file onto a terminal to paste its quoted path. `Ctrl` `+` / `-` / `0` or `Ctrl` + wheel zooms the terminals (`⌘` on macOS). |
+| **Tabs and split view** | Tabs, up to 4 terminals side by side, broadcast one prompt to several agents at once. Drag a file onto a terminal, or paste a screenshot, to type its quoted path; a WSL tab gets the WSL path, and in a tab logged in with `ssh` the file is copied to that server first. `Ctrl` `+` / `-` / `0` or `Ctrl` + wheel zooms the terminals (`⌘` on macOS). |
 | **Live status** | Working / idle / waiting-for-approval detected per session; desktop notifications when an agent finishes or needs you. |
 | **Folder tree** | A *Folders* tab beside the terminals shows the project's files with git changes; open a file, show it in Explorer / Finder, copy its path or drag it into a terminal. |
 | **Backlog panel** | Last run (when and with what), git branch, last commit and changed files, each AI's last prompt, todos and notes per project. ▶ on a to-do hands it to an agent or a multi-agent team. |

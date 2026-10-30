@@ -62,6 +62,14 @@ Run the same command line by hand in a HERA terminal. A command line is split on
 
 Check that *Settings → Terminal → Keep Codex signed in* is on (it is by default): HERA then starts Codex tabs with `--no-daemon`. If the login screen still appears, `auth.json` itself is signed out; sign in once and it stays across restarts. See [Agents → Keeping the Codex login](agents.md#keeping-the-codex-login).
 
+## A pasted image in an SSH tab says "Could not copy it to …"
+
+HERA copies the file with the same `ssh` the tab is logged in with, in batch mode, so it cannot type a password for you. Load your key into ssh-agent (`ssh-add`) or use a key without a passphrase for that server, then log in again in that tab: after a failed login HERA does not retry the same `ssh` login. The server needs a POSIX `sh` (Linux, macOS, BSD); Windows servers are not supported. To type local paths instead, switch off *Settings → Terminal → Copy images and files into SSH tabs*. See [Terminal → WSL and SSH tabs](terminal.md#wsl-and-ssh-tabs).
+
+## Scrolling in a Codex tab is slow or moves only a little
+
+Check that *Settings → Terminal → Smooth Codex scrolling* is on (it is by default): HERA then starts Codex tabs with `--no-alt-screen`, and the terminal scrolls them itself. It applies to Codex tabs opened after you turn it on. An old Codex without that option opens as before; update Codex. See [Agents → Codex scrolling](agents.md#codex-scrolling).
+
 ## The in-app update fails
 
 Settings, Version · Update shows the reason. A checksum mismatch or a broken download installs nothing; press the button again or download from the **Release page**. An all-users Windows install needs you to allow the admin prompt, and on macOS the folder holding the app must be writable.

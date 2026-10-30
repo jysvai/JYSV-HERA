@@ -59,6 +59,10 @@ Profiles can be chosen in a team's pane settings ("default account" means no pro
 
 Recent Codex builds attach their windows to one shared background server (a daemon). The daemon keeps its own copy of the login and does not reload `auth.json` when the account in it changed, so a daemon holding an old login can make a Codex tab opened after a HERA restart ask you to sign in again. HERA starts Codex tabs with `--no-daemon` (when the installed Codex has that option), so each tab reads the current login. Turn it off in *Settings → Terminal → Keep Codex signed in*. If the Codex desktop app lost its login, restart it or run `codex app-server daemon restart`.
 
+### Codex scrolling
+
+By default Codex opens in a full-screen mode (the alternate screen) and takes the mouse itself. The wheel then scrolls inside Codex, which redraws its screen for every step: slow on Windows, and a macOS trackpad barely moves it. HERA starts Codex tabs with `--no-alt-screen` (when the installed Codex has that option), so the conversation stays in the terminal's scrollback: it scrolls right away like any other tab, and a drag selects it for copying. Turn it off in *Settings → Terminal → Smooth Codex scrolling*; it applies to Codex tabs opened from then on.
+
 ## Extensions & updates
 
 **Extensions & updates** (the button at the top of the Agents page, *Settings → Version & updates*, or `Ctrl+K`) keeps your AI CLIs current without visiting each one's site.

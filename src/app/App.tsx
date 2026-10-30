@@ -138,11 +138,12 @@ function Toast() {
   return (
     <div
       className={cn(
-        'fixed bottom-9 left-1/2 z-(--z-over-modal) -translate-x-1/2 rounded-lg border border-(--stroke-nous) px-4 py-2 text-[12.5px] shadow-nous',
+        'fixed bottom-9 left-1/2 z-(--z-over-modal) flex max-w-[min(640px,90vw)] -translate-x-1/2 items-center gap-3 rounded-lg border border-(--stroke-nous) px-4 py-2 text-[12.5px] shadow-nous',
         toast.tone === 'error' ? 'bg-(--ui-bg-elevated) text-(--status-waiting) ring-1 ring-(--status-waiting)/50' : 'bg-(--ui-bg-elevated)'
       )}
     >
-      {toast.text}
+      {toast.image && <img src={toast.image} alt="" className="h-12 max-w-24 shrink-0 rounded border border-(--ui-stroke-tertiary) object-contain" />}
+      <span>{toast.text}</span>
     </div>
   )
 }

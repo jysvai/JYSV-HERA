@@ -47,7 +47,7 @@ export const $raceDraft = atom<{ projectId: string; task: string } | null>(null)
 export const $windowVisible = atom<boolean>(true)
 /** Terminal zoom: points added to the font size setting (Ctrl/⌘ +, -, 0 and Ctrl/⌘ + wheel). */
 export const $termZoom = atom<number>(readLocal('hera.termZoom', 0))
-export const $toast = atom<{ id: string; text: string; tone: 'info' | 'error' } | null>(null)
+export const $toast = atom<{ id: string; text: string; tone: 'info' | 'error'; image?: string } | null>(null)
 export const $insightTick = atom(0)
 /** Last usage summary; shared by the status bar, the usage panel and the usage page. */
 export const $usage = atom<AgentUsage[] | null>(null)
@@ -195,12 +195,13 @@ export async function runUpdate() {
   }
 }
 
-export function toast(text: string, tone: 'info' | 'error' = 'info') {
+/** A short notice at the bottom; `image` (a data: URL) shows a small preview beside the text. */
+export function toast(text: string, tone: 'info' | 'error' = 'info', image?: string) {
   const id = newId()
-  $toast.set({ id, text, tone })
+  $toast.set({ id, text, tone, image })
   setTimeout(() => {
     if ($toast.get()?.id === id) $toast.set(null)
-  }, 3200)
+  }, tone === 'error' ? 6000 : 3200)
 }
 
 // ---- config mutations (optimistic, then persisted by main)

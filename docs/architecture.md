@@ -146,7 +146,9 @@
 | `electron/update.ts`, `smoke.ts` | release check, in-app download / install, self-test mode for CI |
 | `electron/extensions.ts` | Extensions & updates page: CLI / global package versions (npm, Homebrew, uv, pipx, self-updaters) and each CLI's plugins, MCP servers and skills; update commands run in a terminal tab, built here from ids |
 | `electron/files.ts` | folder tree of a project (listing, open / reveal, git status) |
-| `electron/codex.ts` | `--no-daemon` for HERA's Codex tabs |
+| `electron/codex.ts` | `--no-daemon` and `--no-alt-screen` for HERA's Codex tabs |
+| `electron/paste-image.ts` | Clipboard and dropped images saved as files in a per-user temp folder; previews |
+| `electron/paste-target.ts` | Where a pasted or dropped file goes: local path, WSL path, or a copy over the tab's own `ssh` |
 | `shared/i18n.ts`, `shared/i18n/` | UI language: Korean source strings as keys, English dictionaries |
 | `electron/bus.ts` | hera pipe server and handlers; answers for a helper that finishes a `hera send` without replying |
 | `electron/teamwork.ts` | multi-agent work from the window: reuse or open helpers, wait until the agents are ready, brief the lead and hand over the task |

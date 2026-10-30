@@ -448,6 +448,8 @@ export function defaultSettings(platform: string): Settings {
     gpu: false,
     conptyDll: true,
     codexOwnServer: true,
+    codexInline: true,
+    sshPaste: true,
     cursorStyle: 'bar',
     cursorBlink: false,
     lowMemory: true,
@@ -559,6 +561,8 @@ function normalizeSettings(base: Settings, raw: Partial<Settings> | undefined): 
   settings.checkUpdates = settings.checkUpdates !== false
   settings.conptyDll = settings.conptyDll !== false
   settings.codexOwnServer = settings.codexOwnServer !== false
+  settings.codexInline = settings.codexInline !== false
+  settings.sshPaste = settings.sshPaste !== false
   settings.isolateHelpers = settings.isolateHelpers === true
   if (!['auto', 'ko', 'en'].includes(settings.uiLanguage)) settings.uiLanguage = 'auto'
   if (!['bar', 'block', 'underline'].includes(settings.cursorStyle)) settings.cursorStyle = 'bar'

@@ -20,6 +20,7 @@ import type {
   LaneProjectState,
   LanesInfo,
   LaneTier,
+  PasteResult,
   Project,
   ProjectInsight,
   SessionInfo,
@@ -56,7 +57,16 @@ export const isMac = platform === 'darwin'
 export const isWin = platform === 'win32'
 export const osBuild = bridge.osBuild || 0
 export const on = bridge.on
-export const writePty = bridge.write
+/** When each session last got keys from the user (not a terminal's own replies, which start with ESC). */
+const typedAt = new Map<string, number>()
+
+export const writePty = (id: string, data: string) => {
+  if (!data.startsWith('\x1b')) typedAt.set(id, Date.now())
+  bridge.write(id, data)
+}
+
+/** Did the user type into the session after `since`? A slow paste must not type over that. */
+export const typedSince = (id: string, since: number) => (typedAt.get(id) || 0) > since
 export const pathForFile = bridge.pathForFile
 
 export const api = {
@@ -77,8 +87,12 @@ export const api = {
   setVisibleSessions: (ids: string[]) => call<void>('app:visibleSessions', ids),
   copy: (text: string) => call<void>('clipboard:write', text),
   paste: () => call<string>('clipboard:read'),
-  /** Saves a clipboard image as a PNG; its path, or null when there is none. */
-  pasteImage: () => call<string | null>('clipboard:image'),
+  /** Saves a clipboard image and delivers it to where the tab's programs run (WSL, ssh); null when there is none. */
+  pasteImage: (sessionId: string) => call<PasteResult | null>('paste:image', sessionId),
+  /** Paths of dropped files, as the tab's programs see them (copied over ssh first when the tab is logged in somewhere). */
+  pasteFiles: (sessionId: string, files: string[]) => call<PasteResult>('paste:files', sessionId, files),
+  /** A dropped image with no file of its own (from a browser); null when the bytes are not an image. */
+  pasteImageBytes: (sessionId: string, data: Uint8Array) => call<PasteResult | null>('paste:bytes', sessionId, data),
 
   getConfig: () => call<HeraConfig>('config:get'),
   setConfig: (config: HeraConfig) => call<HeraConfig>('config:set', config),

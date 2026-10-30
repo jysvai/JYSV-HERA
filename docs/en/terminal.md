@@ -28,11 +28,37 @@ With nothing selected, `Ctrl+C` is sent to the program as usual (interrupt).
 
 ### Paste an image
 
-A terminal can only receive text, so when the clipboard holds an image (a screenshot, say) and no text, `Ctrl+V` (`⌘V` on macOS) saves it as a PNG and pastes the file's path. Claude Code, Codex and other agent CLIs attach an image whose path is pasted into their prompt; in a plain shell you get a path you can pass to any command. The files go to `jysv-hera-paste` in your temp folder and are removed after a week.
+A terminal can only receive text, so when the clipboard holds an image (a screenshot, say) and no text, `Ctrl+V` (`⌘V` on macOS) saves it as a PNG and pastes the file's path. Claude Code, Codex and other agent CLIs attach an image whose path is pasted into their prompt; in a plain shell you get a path you can pass to any command. A notice at the bottom shows a small preview and the size, so you can see what went in. The files go to `jysv-hera-paste` in your temp folder and are removed after a week.
+
+![Paste an image: copy a screenshot, press Ctrl+V, and its path lands in the Claude Code prompt while a notice shows the preview and size](../images/terminal/en-paste-image.gif)
 
 ## Drag and drop
 
-Drop files or folders on a terminal to type their paths. Paths with spaces or special characters are quoted for the tab's shell: single quotes for PowerShell and pwsh, double quotes for cmd, POSIX quoting for the others.
+Drop files or folders on a terminal to type their paths. Paths with spaces or special characters are quoted for the tab's shell: single quotes for PowerShell and pwsh, double quotes for cmd, POSIX quoting for the others. An image dragged out of a browser window is saved like a pasted one; for an image the browser only offers as a web address, copy it and paste instead (HERA downloads nothing).
+
+## WSL and SSH tabs
+
+A path only helps if the program that reads it can open it. When the program runs somewhere else, HERA types a path that works there:
+
+| The tab | What a pasted image or a dropped file becomes |
+|---|---|
+| A local shell | The path on this computer, as above. |
+| WSL (`wsl.exe`, a WSL shell in Settings) | The same file as WSL sees it: `C:\Users\…` is typed as `/mnt/c/Users/…` (found with `wslpath`). |
+| Logged in with `ssh` | The file is first copied to that server, then the server's path is typed: `~/.cache/hera-paste/…` (for example `/home/you/.cache/hera-paste/paste-20261030-101500-1a2b3c4d.png`). |
+
+![In a tab logged in to devbox with ssh, Ctrl+V copies the image to the server and pastes the server's path](../images/terminal/en-paste-ssh.gif)
+
+How the SSH copy works:
+
+- HERA looks for an `ssh` login running in the tab's shell (or in a shell you started inside it): `ssh host`, or a command with a terminal such as `ssh -t host tmux attach`. An `ssh` that only runs a command (`ssh backup rsync …`), or one a script or a program started, does not count. HERA runs the same `ssh` again, in the tab's folder and environment and with the same login options (`-p`, `-i`, `-J`, `-F`, `-l`, `-o` …), to copy the file. Port forwards, `-t` and remote commands are left out.
+- It never asks for or types a password and never stops at a host-key question: ssh runs in batch mode. A login with a key (or ssh-agent, or an existing ControlMaster connection on macOS and Linux) works; when the server wants a password, nothing is copied and the notice says why. After a failed login HERA does not try that ssh login again, so pastes do not pile up failed logins in the server's log; log in again (a new `ssh`) to retry.
+- Nothing runs in the background: HERA looks at the tab only when you paste or drop. On Windows that look takes about 0.3 s, and about 1 s while an `ssh` runs anywhere on the PC; the copy itself takes one ssh login, usually a second or two.
+- The server needs a POSIX `sh` (Linux, macOS, BSD). Files there are readable only by your account and removed after a week. Folders are not copied, nor more than 10 files or 64 MB at once.
+- The notice says which server the file went to. If you type in the tab while the file is being copied, HERA does not type the path into whatever runs there now: it puts the path on the clipboard and says so. If you would rather type your own paths, switch off *Settings → Terminal → Copy images and files into SSH tabs*.
+
+An `ssh` started inside WSL is not seen from Windows, so a WSL tab always gets WSL paths.
+
+![Settings, Terminal: Smooth Codex scrolling and Copy images and files into SSH tabs, both on by default](../images/terminal/en-settings-terminal.png)
 
 ## Scrollback
 

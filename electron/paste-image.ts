@@ -72,12 +72,8 @@ async function clipboardPng(): Promise<Buffer | null> {
   return null
 }
 
-/** Saves the clipboard image as a PNG and returns its path, or null when there is no image. */
-export async function saveClipboardImage(): Promise<string | null> {
-  const png = await clipboardPng()
-
-  if (!png) return null
-
+/** Writes `bytes` to a new paste-<time>-<random>.<ext> in the paste folder and returns its path. */
+function writePaste(bytes: Buffer, ext: string): string {
   const dir = pasteDir()
 
   sweep(dir)
@@ -85,10 +81,46 @@ export async function saveClipboardImage(): Promise<string | null> {
   const now = new Date()
   const two = (n: number) => String(n).padStart(2, '0')
   const stamp = `${now.getFullYear()}${two(now.getMonth() + 1)}${two(now.getDate())}-${two(now.getHours())}${two(now.getMinutes())}${two(now.getSeconds())}`
-  const file = path.join(dir, `paste-${stamp}-${crypto.randomBytes(4).toString('hex')}.png`)
+  const file = path.join(dir, `paste-${stamp}-${crypto.randomBytes(4).toString('hex')}.${ext}`)
 
   // Exclusive create: never write through a file or link that is already there.
-  fs.writeFileSync(file, png, { flag: 'wx', mode: 0o600 })
+  fs.writeFileSync(file, bytes, { flag: 'wx', mode: 0o600 })
 
   return file
+}
+
+/** Saves the clipboard image as a PNG and returns its path, or null when there is no image. */
+export async function saveClipboardImage(): Promise<string | null> {
+  const png = await clipboardPng()
+
+  return png ? writePaste(png, 'png') : null
+}
+
+/** Largest image accepted without a file of its own (one dragged out of a browser). */
+const MAX_DROPPED = 32 << 20
+
+/** The formats agent CLIs attach, told by their first bytes (the declared type can lie). */
+function imageExt(bytes: Buffer): string | null {
+  if (bytes.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]))) return 'png'
+  if (bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff) return 'jpg'
+  if (bytes.subarray(0, 4).toString('latin1') === 'GIF8') return 'gif'
+  if (bytes.subarray(0, 4).toString('latin1') === 'RIFF' && bytes.subarray(8, 12).toString('latin1') === 'WEBP') return 'webp'
+
+  return null
+}
+
+/** Saves a dropped image that has no file of its own and returns its path; null when it is not an image. */
+export function saveDroppedImage(bytes: Buffer): string | null {
+  const ext = bytes.length <= MAX_DROPPED ? imageExt(bytes) : null
+
+  return ext ? writePaste(bytes, ext) : null
+}
+
+/** A small preview of an image file for the paste notice (data: URL), '' when it cannot be read. */
+export function imagePreview(file: string): string {
+  const image = nativeImage.createFromPath(file)
+
+  if (image.isEmpty()) return ''
+
+  return (image.getSize().height > 96 ? image.resize({ height: 96, quality: 'good' }) : image).toDataURL()
 }

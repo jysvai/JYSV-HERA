@@ -75,6 +75,8 @@ interface Session extends SessionInfo {
   agentWasActive: boolean
   /** Folder the shell last reported (OSC 7 / 9;9 or a Windows prompt line). */
   liveCwd: string | null
+  /** The shell's executable, arguments and environment as started (a WSL tab is `wsl.exe -d …`). */
+  shellLine?: { command: string; args: string[]; env: Record<string, string> }
 }
 
 export interface PtyEvents {
@@ -203,6 +205,13 @@ export function getSession(id: string): SessionInfo | null {
   const session = sessions.get(id)
 
   return session ? info(session) : null
+}
+
+/** The running shell of a session (process id, command line, environment, folder), for paste-target.ts. */
+export function sessionShell(id: string): { pid: number; command: string; args: string[]; env: Record<string, string>; cwd: string } | null {
+  const session = sessions.get(id)
+
+  return session?.pty && session.shellLine ? { pid: session.pty.pid, ...session.shellLine, cwd: session.liveCwd || session.cwd } : null
 }
 
 function uniqueName(base: string): string {
@@ -410,6 +419,7 @@ function spawn(session: Session, spec: ShellSpec) {
 
   let pty: nodePty.IPty
   const options = { cols: session.cols, rows: session.rows, cwd: session.cwd, env, name: 'xterm-256color' }
+  session.shellLine = { command: spec.command, args: spec.args, env }
 
   try {
     // The ConPTY HERA ships (Windows Terminal's) passes mouse modes, focus and the
@@ -471,11 +481,15 @@ function runBoot(session: Session) {
   session.bootTimer = null
   if (session.agentId) session.agentStartedAt = Date.now()
 
-  if (session.agentId === 'codex' && getConfig().settings.codexOwnServer) {
-    // See codex.ts: a server of its own keeps the login the tab already had.
+  const { codexOwnServer, codexInline } = getConfig().settings
+  const codexFlags = [codexOwnServer && '--no-daemon', codexInline && '--no-alt-screen'].filter((flag): flag is string => Boolean(flag))
+
+  if (session.agentId === 'codex' && codexFlags.length) {
+    // See codex.ts: a server of its own keeps the login the tab already had, and the inline
+    // screen leaves the wheel to the terminal's scrollback.
     // The probe can take seconds: type only into the same pty, never one a revive started meanwhile.
     const target = session.pty
-    void codexBootCommand(command)
+    void codexBootCommand(command, codexFlags)
       .catch(() => command)
       .then(line => {
         if (session.pty === target && sessions.get(session.id) === session) target.write(`${line}\r`)

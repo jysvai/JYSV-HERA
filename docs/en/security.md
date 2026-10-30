@@ -47,7 +47,7 @@ Until then, the provenance check above is the way to know a file is genuine.
 
 ## Network and data
 
-HERA has no server, no account and no telemetry. Without your action it makes one kind of request: the update check against GitHub's public releases API, which you can switch off. Details: [Updates and privacy](updates-and-privacy.md).
+HERA has no server, no account and no telemetry. Without your action it makes one kind of request: the update check against GitHub's public releases API, which you can switch off. When you paste an image or drop a file into a tab logged in with `ssh`, HERA copies it to that server with your own `ssh` and the tab's login options, in batch mode (no password, no host-key prompt); a setting turns this off. Details: [Updates and privacy](updates-and-privacy.md).
 
 ## Automated checks
 

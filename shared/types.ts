@@ -241,6 +241,10 @@ export interface Settings {
   conptyDll: boolean
   /** Start Codex tabs with `--no-daemon`, so a stale shared Codex daemon cannot sign them out. */
   codexOwnServer: boolean
+  /** Start Codex tabs with `--no-alt-screen`, so the wheel scrolls the terminal's scrollback. */
+  codexInline: boolean
+  /** In a tab logged in somewhere with ssh, copy pasted images and dropped files there first. */
+  sshPaste: boolean
   cursorStyle: 'bar' | 'block' | 'underline'
   cursorBlink: boolean
   /** Fewer Chromium processes + aggressive trimming. Applies on restart. */
@@ -399,6 +403,23 @@ export interface HeraConfig {
 }
 
 export type SessionStatus = 'starting' | 'idle' | 'busy' | 'waiting' | 'exited'
+
+/** What a paste or a drop puts into a terminal: the paths to type, and where they are. */
+export interface PasteResult {
+  /** Paths to type, in order; empty when nothing could be delivered. */
+  paths: string[]
+  /** This computer, the tab's WSL, or the machine the tab's ssh is logged in to. */
+  where: 'local' | 'wsl' | 'ssh'
+  /** `user@host` (or the host as typed) for ssh. */
+  host?: string
+  /** Paths for a Linux program (WSL, ssh): quoted for a POSIX shell, whatever the local shell is. */
+  posix: boolean
+  /** A pasted image: a small preview (data: URL) and its size. */
+  preview?: string
+  bytes?: number
+  /** Why some or all of it was not delivered. */
+  error?: string
+}
 
 export interface SessionInfo {
   id: string
