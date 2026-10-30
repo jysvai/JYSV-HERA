@@ -2,6 +2,15 @@
 
 Full patch notes, one file per release in English and Korean: [docs/patch-notes](docs/patch-notes/README.md).
 
+## 0.3.3 — 2026-10-30
+
+### Fixed
+
+- **Lanes opened in their own window on a fresh install:** HERA set `HERA_LANES_HOST` in its terminals and accepted `hera host --lane` only while "Use lanes in HERA" was on, which is off by default. Both now depend only on "When HERA opens a lane" (**HERA tab** by default), so a lane the main Claude opens becomes a HERA tab as soon as HERA and lanes 0.3.13+ are installed. That row moved to the Integration section, visible with the switch off. Switching to automatic setup sets it to HERA tab instead of freezing *separate window* when the plugin was too old at that moment.
+- **Windows: a lane HERA refused could open nowhere.** `hera.cmd` ended its node branch with a bare `exit /b` inside an `if (...)` block, so it returned 0 whatever `hera` returned; lanes.ps1 took 0 from `hera host --lane` as "the tab is open" and opened no window of its own. The shim now uses labels and `exit /b %ERRORLEVEL%` in every branch. Terminals no longer inherit `HERA_LANES_HOST` from the environment HERA was started in; only the setting adds it.
+- **A refused lane said nothing:** when `hera host --lane` is refused because the folder is not a registered project, the window shows why (once per 30 s) before the plugin opens its own window. Main sends it on a new `app:notice` event.
+- The Lanes status card says to update a lanes plugin without the `hera host` seam (before 0.3.13). A long notice stays up longer (up to 8 s).
+
 ## 0.3.2 — 2026-10-30
 
 ### Fixed

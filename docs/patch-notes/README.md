@@ -6,6 +6,7 @@ One file per release and language. A release on GitHub is written from these fil
 
 | Version | Date | Summary | Notes |
 |---|---|---|---|
+| [v0.3.3](https://github.com/jysvai/JYSV-HERA/releases/tag/v0.3.3) | 2026-10-30 | Lanes open as HERA tabs on a new PC too. | [English](en/v0.3.3.md) · [한국어](ko/v0.3.3.md) |
 | [v0.3.2](https://github.com/jysvai/JYSV-HERA/releases/tag/v0.3.2) | 2026-10-30 | Smooth scrolling in Codex tabs, and pasted screenshots that work in WSL and SSH tabs. | [English](en/v0.3.2.md) · [한국어](ko/v0.3.2.md) |
 | [v0.3.1](https://github.com/jysvai/JYSV-HERA/releases/tag/v0.3.1) | 2026-10-29 | Worktree fixes, above all the cases where work could be lost, and a [Worktrees guide](../../en/worktrees.md) with moving pictures. | [English](en/v0.3.1.md) · [한국어](ko/v0.3.1.md) |
 | [v0.3.0](https://github.com/jysvai/JYSV-HERA/releases/tag/v0.3.0) | 2026-10-29 | **Worktrees** are here. An AI works in an isolated copy of your project on a branch of its own; when it is done, you look at what changed and merge it or throw it away. You can also give several AIs the same task and keep the best result. | [English](en/v0.3.0.md) · [한국어](ko/v0.3.0.md) |
