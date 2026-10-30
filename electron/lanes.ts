@@ -41,12 +41,25 @@ export const CLAUDE_SESSION_MARKERS = [
 type OpenTab = (req: CreateSessionRequest) => SessionInfo
 type ListTabs = () => SessionInfo[]
 type CloseTab = (id: string) => void
+type Notice = (text: string) => void
 
-let tabs: { open: OpenTab; list: ListTabs; close: CloseTab } | null = null
+let tabs: { open: OpenTab; list: ListTabs; close: CloseTab; notice: Notice } | null = null
 
-/** main.ts hands over how to open, list and close HERA tabs. */
-export function setLaneTabs(open: OpenTab, list: ListTabs, close: CloseTab) {
-  tabs = { open, list, close }
+/** main.ts hands over how to open, list and close HERA tabs, and how to show a notice in the window. */
+export function setLaneTabs(open: OpenTab, list: ListTabs, close: CloseTab, notice: Notice) {
+  tabs = { open, list, close, notice }
+}
+
+let lastRefusal = { text: '', at: 0 }
+
+/** The plugin opens its own window when HERA says no, silently: say why in HERA, once for both lanes. */
+function refuse(reason: string, hint: string): never {
+  const text = t('lane 을 HERA 탭 대신 별도 창으로 엽니다: {reason}. {hint}', { reason, hint })
+
+  if (text !== lastRefusal.text || Date.now() - lastRefusal.at > 30_000) tabs?.notice(text)
+  lastRefusal = { text, at: Date.now() }
+
+  throw new Error(reason)
 }
 
 const opening = new Map<string, number>()
@@ -182,6 +195,7 @@ export function lanesInfo(): LanesInfo {
     effective,
     repo: REPO,
     canHost: isWin || Boolean(where && hasHostSeam(where.root)),
+    hostSeam: Boolean(where && hasHostSeam(where.root)),
     recommendedRules: [...LANE_ALLOW_RULES]
   }
 }
@@ -588,12 +602,13 @@ export interface HostRequest {
  */
 export function hostLane(req: HostRequest): { id: string | null; name: string; project: string } {
   const settings = getConfig().settings.lanes
-  if (!settings.enabled || settings.host !== 'hera') throw new Error(t('HERA 가 lanes 를 탭으로 열지 않도록 설정되어 있습니다.'))
+  // Not tied to "Use lanes in HERA" (off on a fresh install): only the launch choice says no.
+  if (settings.host !== 'hera') throw new Error(t('HERA 가 lanes 를 탭으로 열지 않도록 설정되어 있습니다.'))
   if (!tabs) throw new Error(t('HERA 창이 아직 준비되지 않았습니다.'))
 
   const cwd = path.resolve(req.cwd || '')
   const project = req.cwd ? projectForPath(cwd) : null
-  if (!project) throw new Error(t('HERA 에 등록된 프로젝트가 아닙니다: {cwd}', { cwd }))
+  if (!project) refuse(t('HERA 에 등록된 프로젝트가 아닙니다: {cwd}', { cwd }), t('이 폴더를 프로젝트로 추가하면 다음부터 탭으로 열립니다.'))
 
   const run = path.resolve(req.run || '')
   const expected = path.join(cwd, '.claude', 'lanes', 'state', `${req.lane}.run.${isWin ? 'ps1' : 'command'}`)

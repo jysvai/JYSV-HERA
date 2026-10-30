@@ -477,7 +477,8 @@ const laneWhich = (which: unknown): LaneTier | 'all' => (which === 'mid' || whic
 setLaneTabs(
   req => pty.createSession(req),
   () => pty.listSessions(),
-  id => pty.kill(id)
+  id => pty.kill(id),
+  text => send('app:notice', text)
 )
 
 function launchTeam(projectId: string, teamId: string): SessionInfo[] {

@@ -97,6 +97,7 @@ function StatusCard({ info }: { info: LanesInfo }) {
           {info.pluginKey} · {info.rootLabel}
         </div>
         {!info.enabledInClaude && <div className="text-(--ui-text-secondary)">{t('Claude Code 에서 /plugin 으로 lanes 를 켜야 메인 세션이 lane 에 일을 넘깁니다.')}</div>}
+        {!info.hostSeam && <div className="text-(--ui-text-secondary)">{t('이 lanes 버전은 메인 Claude 가 스스로 연 lane 을 HERA 탭으로 열지 못합니다. Claude Code 의 /plugin 에서 lanes 를 0.3.13 이상으로 업데이트하세요.')}</div>}
       </div>
       <Button size="sm" variant="ghost" onClick={() => window.open(info.repo, '_blank')}>
         <IconBrandGithub /> GitHub
@@ -289,7 +290,8 @@ export function LanesPage() {
       // Auto = the plugin's own recommended values plus HERA's choices for launch and permissions.
       const reset = Object.fromEntries(Object.keys(info.stored).map(key => [key, null]))
       if (Object.keys(reset).length) await setLaneOptions(reset)
-      setSettings({ mode, host: info.canHost ? 'hera' : 'window', allowRules: [...info.recommendedRules] })
+      // A tab whenever lanes can be one: a plugin updated later should not stay stuck on windows.
+      setSettings({ mode, host: 'hera', allowRules: [...info.recommendedRules] })
       return
     }
     setSettings({ mode })
@@ -311,6 +313,18 @@ export function LanesPage() {
         <Section title={t('상태')}>{info ? installed ? <StatusCard info={info} /> : <InstallGuide repo={info.repo} /> : <div className="text-[12.5px] text-(--ui-text-tertiary)">{t('찾는 중…')}</div>}</Section>
 
         <Section title={t('연동')}>
+          {installed && info && (
+            <Row label={t('HERA 에서 lane 을 열 때')} description={info.canHost ? t('HERA 탭: lane 이 이 창 안의 탭으로 열려 바로 보고 입력할 수 있습니다. 아래 스위치와 상관없이 적용되고, 새로 여는 터미널부터 바뀝니다.') : t('이 운영체제에서는 lane 이 별도 창으로 열립니다.')}>
+              <SegmentedControl
+                value={info.canHost ? settings.host : 'window'}
+                options={[
+                  ...(info.canHost ? [{ value: 'hera' as const, label: t('HERA 탭') }] : []),
+                  { value: 'window' as const, label: t('별도 창') }
+                ]}
+                onChange={host => setSettings({ host })}
+              />
+            </Row>
+          )}
           <Row label={t('HERA 에서 lanes 사용')} description={t('켜면 오른쪽 패널에 Lanes 탭이 생기고, 아래 설정이 HERA 가 여는 Claude 와 lane 에 적용됩니다.')}>
             <Switch checked={settings.enabled && installed} onChange={enabled => installed && setSettings({ enabled })} label={t('lanes 연동')} />
           </Row>
@@ -350,16 +364,6 @@ export function LanesPage() {
             </Section>
 
             <Section title={t('실행 방식')}>
-              <Row label={t('HERA 에서 lane 을 열 때')} description={info.canHost ? t('HERA 탭: lane 이 이 창 안의 탭으로 열려 바로 보고 입력할 수 있습니다.') : t('이 운영체제에서는 lane 이 별도 창으로 열립니다.')}>
-                <SegmentedControl
-                  value={info.canHost ? settings.host : 'window'}
-                  options={[
-                    ...(info.canHost ? [{ value: 'hera' as const, label: t('HERA 탭') }] : []),
-                    { value: 'window' as const, label: t('별도 창') }
-                  ]}
-                  onChange={host => setSettings({ host })}
-                />
-              </Row>
               <Row label={t('Claude 가 스스로 lane 을 열 때')} description={t('메인 Claude 가 일을 넘기다 lane 이 꺼져 있으면 직접 엽니다. 백그라운드는 claude attach 로 봅니다.')}>
                 <SegmentedControl
                   value={option(info, 'launch') === 'background' ? 'background' : 'window'}

@@ -676,6 +676,8 @@ export interface LanesInfo {
   repo: string
   /** HERA can host lanes in its own tabs on this platform. */
   canHost: boolean
+  /** lanes 0.3.13+: a lane the main Claude opens by itself asks HERA for a tab too. */
+  hostSeam: boolean
   recommendedRules: string[]
 }
 

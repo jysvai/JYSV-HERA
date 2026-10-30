@@ -88,6 +88,7 @@ const EVENTS = new Set([
   'app:visibility',
   'app:reveal',
   'app:update',
+  'app:notice',
   'worktrees:changed'
 ])
 

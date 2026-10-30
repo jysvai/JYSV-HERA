@@ -36,9 +36,9 @@ Windows 에서 [터미널](terminal.md#conpty-hera-에-넣은-것과-windows-기
 
 다음이 모두 맞을 때만 HERA 가 lane 을 탭으로 엽니다.
 
-1. “HERA 에서 lanes 사용” 이 켜져 있고 실행 방식이 **HERA 탭** 입니다 ([Lanes](lanes.md) 참고).
-2. 폴더가 HERA 에 등록된 프로젝트에 속합니다. 등록된 프로젝트에서 Claude 를 열거나 폴더를 등록하세요.
-3. lanes 플러그인이 0.3.13 이상입니다. 이전 버전은 Windows 에서 HERA 로 연 lane 만 탭이 되고, 메인 Claude 가 스스로 연 lane 은 창이 따로 열립니다.
+1. 설정 → Lanes 의 “HERA 에서 lane 을 열 때” 가 **HERA 탭**(기본값)입니다. “HERA 에서 lanes 사용” 스위치는 꺼져 있어도 됩니다. 이 설정을 바꿨다면 Claude 를 새로 연 터미널에서 다시 여세요. 이미 열려 있던 터미널은 예전 설정을 씁니다.
+2. 폴더가 HERA 에 등록된 프로젝트에 속합니다. 아니면 HERA 가 알림으로 알려 줍니다. 등록된 프로젝트에서 Claude 를 열거나 폴더를 등록하세요.
+3. lanes 플러그인이 0.3.13 이상입니다. 이전 버전이면 Lanes 페이지 상태 카드에 업데이트 안내가 나옵니다. 이전 버전은 Windows 에서 HERA 로 연 lane 만 탭이 되고, 메인 Claude 가 스스로 연 lane 은 창이 따로 열립니다.
 
 그렇지 않으면 lanes 가 의도대로 자기 창을 엽니다.
 

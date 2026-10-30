@@ -256,7 +256,8 @@ function shellEnv(extra: Record<string, string>): Record<string, string> {
     if (value === undefined) continue
     if (key.startsWith('npm_config_') || key.startsWith('npm_package_')) continue
     if (key === 'ELECTRON_RUN_AS_NODE' || key === 'ELECTRON_NO_ATTACH_CONSOLE' || key === 'ELECTRON_ENABLE_LOGGING') continue
-    if (key === 'HERA_DEV_SERVER' || key === 'HERA_SESSION_ID' || key === 'HERA_SESSION_NAME') continue
+    // HERA_LANES_HOST is the lanes setting's to give (spawn), not something to inherit.
+    if (key === 'HERA_DEV_SERVER' || key === 'HERA_SESSION_ID' || key === 'HERA_SESSION_NAME' || key === 'HERA_LANES_HOST') continue
     // Session markers of an agent that happened to launch HERA must not leak
     // into fresh agents (Claude Code disables transcripts for child sessions).
     if (INHERITED_AGENT_MARKERS.test(key)) continue
@@ -410,7 +411,8 @@ function spawn(session: Session, spec: ShellSpec) {
     ...profileEnv(agent, session.profileId),
     ...(session.launchReq.env || {}),
     // Tells the lanes plugin to open its lanes as HERA tabs (`hera host`) instead of new windows.
-    ...(lanes.enabled && lanes.host === 'hera' ? { HERA_LANES_HOST: '1' } : {}),
+    // Not tied to "Use lanes in HERA": a fresh install has that off, and a lane still belongs in a tab.
+    ...(lanes.host === 'hera' ? { HERA_LANES_HOST: '1' } : {}),
     HERA_SESSION_ID: session.id,
     HERA_SESSION_NAME: session.name,
     HERA_PROJECT: projectById(session.projectId)?.name || '',

@@ -102,4 +102,6 @@ export const EN_MAIN: Record<string, string> = {
   '한 번에 파일 {count}개까지만 서버로 올립니다': 'At most {count} files are copied to a server at once',
   '파일을 읽지 못했습니다: {reason}': 'Could not read the file: {reason}',
   '서버가 알려 준 폴더를 쓸 수 없습니다': 'The folder the server reported cannot be used',
+  'lane 을 HERA 탭 대신 별도 창으로 엽니다: {reason}. {hint}': 'The lane opens in its own window instead of a HERA tab: {reason}. {hint}',
+  '이 폴더를 프로젝트로 추가하면 다음부터 탭으로 열립니다.': 'Add this folder as a project and lanes open as tabs from then on.',
 }

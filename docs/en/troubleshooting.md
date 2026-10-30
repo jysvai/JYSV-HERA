@@ -36,9 +36,9 @@ This was a bug before 0.2.1: `Ctrl+V` pasted once through HERA and once through 
 
 HERA only takes the lane when all of these hold:
 
-1. "Use lanes in HERA" is on and the launch mode is **HERA tab** (see [Lanes](lanes.md)).
-2. The folder belongs to a project registered in HERA. Start Claude from a registered project, or add the folder.
-3. The lanes plugin is version 0.3.13 or newer. Older versions open a lane in a HERA tab only when you start it from HERA on Windows; a lane the main Claude opens by itself gets its own window.
+1. "When HERA opens a lane" in Settings → Lanes is **HERA tab** (the default; see [Lanes](lanes.md)). "Use lanes in HERA" may be off. If you changed this setting, start Claude again in a newly opened terminal: terminals that were already open keep the old setting.
+2. The folder belongs to a project registered in HERA. If it does not, HERA says so in a notice. Start Claude from a registered project, or add the folder.
+3. The lanes plugin is version 0.3.13 or newer. With an older one, the status card on the Lanes page says to update it. Older versions open a lane in a HERA tab only when you start it from HERA on Windows; a lane the main Claude opens by itself gets its own window.
 
 Otherwise lanes opens its own window by design.
 

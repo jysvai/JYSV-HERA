@@ -21,7 +21,9 @@ claude plugin install lanes@claude-mod --scope user
 
 설치한 뒤 “다시 찾기” 를 누르세요. 상태 카드에 “설치됨” 과 Claude Code 에서 lanes 가 켜져 있는지 꺼져 있는지가 표시됩니다.
 
-HERA 에서 연 lane 은 Windows 에서 lanes 버전과 상관없이 HERA 탭으로 열립니다. 메인 Claude 가 스스로 연 lane(닫힌 lane 에 일을 넘길 때, `/lane start`, 죽은 lane 을 다시 열 때)은 lanes 0.3.13 이상이면 모든 OS 에서 HERA 탭이 됩니다. lanes 가 `hera host --lane` 으로 HERA 에 탭을 요청합니다.
+HERA 에서 연 lane 은 Windows 에서 lanes 버전과 상관없이 HERA 탭으로 열립니다. 메인 Claude 가 스스로 연 lane(닫힌 lane 에 일을 넘길 때, `/lane start`, 죽은 lane 을 다시 열 때)은 lanes 0.3.13 이상이면 모든 OS 에서 HERA 탭이 됩니다. lanes 가 `hera host --lane` 으로 HERA 에 탭을 요청합니다. 플러그인이 그보다 오래됐으면 상태 카드에 업데이트 안내가 나옵니다.
+
+탭으로 열지는 **연동** 섹션의 “HERA 에서 lane 을 열 때” 가 정합니다(기본값 **HERA 탭**). 아래 “HERA 에서 lanes 사용” 스위치가 꺼져 있어도 적용되므로, 새 PC 에 HERA 와 lanes 를 설치하면 바로 탭으로 열립니다. 바꾼 설정은 새로 여는 터미널부터 적용됩니다.
 
 ## 켜기
 
@@ -42,8 +44,7 @@ HERA 에서 연 lane 은 Windows 에서 lanes 버전과 상관없이 HERA 탭으
 
 ## 실행 방식
 
-- “HERA 에서 lane 을 열 때”: **HERA 탭** 또는 **별도 창**.
-- “Claude 가 스스로 lane 을 열 때”: 별도 창(기본값) 또는 백그라운드. 백그라운드 lane 은 `claude attach` 로 볼 수 있습니다. 그 Claude 가 등록된 프로젝트의 HERA 탭에서 돌고 “HERA 에서 lane 을 열 때” 가 **HERA 탭** 이면, 별도 창 대신 HERA 탭으로 열립니다 (lanes 0.3.13 이상).
+- “Claude 가 스스로 lane 을 열 때”: 별도 창(기본값) 또는 백그라운드. 백그라운드 lane 은 `claude attach` 로 볼 수 있습니다. 그 Claude 가 등록된 프로젝트의 HERA 탭에서 돌고 **연동** 섹션의 “HERA 에서 lane 을 열 때” 가 **HERA 탭** 이면, 별도 창 대신 HERA 탭으로 열립니다 (lanes 0.3.13 이상).
 - “Claude 를 열면 lanes 도 같이 열기”: Claude 를 열 때 보조 세션 둘을 함께 엽니다.
 - “쉬는 lane 자동 종료 (분)”: `0` 은 종료 안 함, 최대 1,440.
 

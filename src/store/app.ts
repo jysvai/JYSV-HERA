@@ -199,9 +199,10 @@ export async function runUpdate() {
 export function toast(text: string, tone: 'info' | 'error' = 'info', image?: string) {
   const id = newId()
   $toast.set({ id, text, tone, image })
+  // A longer notice stays up long enough to be read.
   setTimeout(() => {
     if ($toast.get()?.id === id) $toast.set(null)
-  }, tone === 'error' ? 6000 : 3200)
+  }, tone === 'error' ? 6000 : Math.min(8000, Math.max(3200, text.length * 50)))
 }
 
 // ---- config mutations (optimistic, then persisted by main)
@@ -431,6 +432,8 @@ export async function bootStore() {
     $insightTick.set($insightTick.get() + 1)
   })
   on('app:visibility', (visible: boolean) => $windowVisible.set(visible))
+  // Something main did on its own and the user should know (a lane HERA could not take as a tab).
+  on('app:notice', (text: string) => toast(text))
   on('app:reveal', (payload: { sessionId: string | null; split?: boolean }) => {
     const session = payload.sessionId ? $sessions.get()[payload.sessionId] : null
 

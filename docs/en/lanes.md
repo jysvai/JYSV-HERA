@@ -21,7 +21,9 @@ claude plugin install lanes@claude-mod --scope user
 
 Press "Find again" (다시 찾기) after installing. The status card shows "Installed" (설치됨) and whether lanes is on or off in Claude Code.
 
-A lane you start from HERA opens as a HERA tab with any lanes version on Windows. A lane the main Claude opens by itself (a task sent to a closed lane, `/lane start`, a lane restarted after it died) becomes a HERA tab with lanes 0.3.13 or newer, on every OS: lanes asks HERA for the tab with `hera host --lane`.
+A lane you start from HERA opens as a HERA tab with any lanes version on Windows. A lane the main Claude opens by itself (a task sent to a closed lane, `/lane start`, a lane restarted after it died) becomes a HERA tab with lanes 0.3.13 or newer, on every OS: lanes asks HERA for the tab with `hera host --lane`. With an older plugin the status card says to update it.
+
+Whether lanes open as tabs is set by "When HERA opens a lane" in the **Integration** section (**HERA tab** by default). It applies even while "Use lanes in HERA" below is off, so on a new PC lanes open as tabs as soon as HERA and lanes are installed. A change applies from the next terminal you open.
 
 ## Turn it on
 
@@ -42,8 +44,7 @@ A table with one row each for **Main**, **mid lane** and **low lane**: model, fa
 
 ## How lanes run
 
-- "When HERA opens a lane": in a **HERA tab** or a **separate window**.
-- "When Claude opens a lane itself": a separate window (the default) or in the background. A background lane can be viewed with `claude attach`. When that Claude runs in a HERA tab of a registered project and "When HERA opens a lane" is **HERA tab**, the window choice becomes a HERA tab instead (lanes 0.3.13+).
+- "When Claude opens a lane itself": a separate window (the default) or in the background. A background lane can be viewed with `claude attach`. When that Claude runs in a HERA tab of a registered project and "When HERA opens a lane" in the **Integration** section is **HERA tab**, the window choice becomes a HERA tab instead (lanes 0.3.13+).
 - "Open lanes together with Claude" starts both helpers whenever you open Claude.
 - "Close idle lanes automatically (minutes)": `0` means never; the maximum is 1,440.
 

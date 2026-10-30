@@ -90,6 +90,8 @@ export const EN_AGENTS: Record<string, string> = {
   '실행 방식': 'Launch mode',
   'HERA 에서 lane 을 열 때': 'When HERA opens a lane',
   'HERA 탭: lane 이 이 창 안의 탭으로 열려 바로 보고 입력할 수 있습니다.': 'HERA tab: the lane opens as a tab in this window so you can watch and type right away.',
+  'HERA 탭: lane 이 이 창 안의 탭으로 열려 바로 보고 입력할 수 있습니다. 아래 스위치와 상관없이 적용되고, 새로 여는 터미널부터 바뀝니다.': 'HERA tab: the lane opens as a tab in this window so you can watch and type right away. Applies whether or not the switch below is on, from the next terminal you open.',
+  '이 lanes 버전은 메인 Claude 가 스스로 연 lane 을 HERA 탭으로 열지 못합니다. Claude Code 의 /plugin 에서 lanes 를 0.3.13 이상으로 업데이트하세요.': 'This lanes version cannot open a lane the main Claude starts by itself as a HERA tab. Update lanes to 0.3.13 or newer from /plugin in Claude Code.',
   '이 운영체제에서는 lane 이 별도 창으로 열립니다.': 'On this operating system, lanes open in a separate window.',
   'HERA 탭': 'HERA tab',
   '별도 창': 'Separate window',

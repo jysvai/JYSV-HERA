@@ -43,19 +43,22 @@ function writeShims() {
   // Dev layout:      app/dist/bin/hera.cmd       -> node_modules/electron/dist/electron.exe
   fs.writeFileSync(
     path.join(bin, 'hera.cmd'),
+    // The exit code has to come through: lanes takes 0 from `hera host` as "the tab is open".
+    // %ERRORLEVEL% inside an `if (...)` block is read before the block runs, hence the labels.
     [
       '@echo off',
       'where node >nul 2>nul',
-      'if %ERRORLEVEL%==0 (',
-      '  node "%~dp0hera.js" %*',
-      '  exit /b',
-      ')',
+      'if errorlevel 1 goto electron',
+      'node "%~dp0hera.js" %*',
+      'exit /b %ERRORLEVEL%',
+      ':electron',
       'set "ELECTRON_RUN_AS_NODE=1"',
-      'if exist "%~dp0..\\..\\jysvhera.exe" (',
-      '  "%~dp0..\\..\\jysvhera.exe" "%~dp0hera.js" %*',
-      ') else (',
-      '  "%~dp0..\\..\\node_modules\\electron\\dist\\electron.exe" "%~dp0hera.js" %*',
-      ')',
+      'if not exist "%~dp0..\\..\\jysvhera.exe" goto dev',
+      '"%~dp0..\\..\\jysvhera.exe" "%~dp0hera.js" %*',
+      'exit /b %ERRORLEVEL%',
+      ':dev',
+      '"%~dp0..\\..\\node_modules\\electron\\dist\\electron.exe" "%~dp0hera.js" %*',
+      'exit /b %ERRORLEVEL%',
       ''
     ].join('\r\n')
   )
