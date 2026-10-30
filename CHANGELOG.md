@@ -2,6 +2,20 @@
 
 Full patch notes, one file per release in English and Korean: [docs/patch-notes](docs/patch-notes/README.md).
 
+## 0.3.2 — 2026-10-30
+
+### Fixed
+
+- **Codex scrolling slow (Windows) or barely moving (macOS trackpad):** Codex tabs start with `--no-alt-screen` (when the installed Codex supports it). Codex otherwise draws in the alternate screen with any-event mouse tracking (`?1049h`, `?1003h`), so every wheel event was a round trip to Codex and a redraw, and xterm sends one wheel report per event. Inline, the conversation is in xterm's scrollback. Setting: *Smooth Codex scrolling*. `codexBootCommand()` now takes the flag list and probes `codex --help` once per executable.
+- **WSL tabs got Windows paths** for pasted images, dropped files and folder-tree inserts (`C:\…`, which a Linux program cannot open). They now get `/mnt/<drive>/…` paths, with the distro's automount root read once by `wslpath -u` (default `/mnt/`); `\\wsl$\…` paths map to the distro's own.
+
+### Added
+
+- **Paste and drop into SSH tabs** (`electron/paste-target.ts`): when the tab's shell (or a shell inside it) runs `ssh`, the file is piped to `sh -c 'umask 077 && mkdir -p ~/.cache/hera-paste && … cat > NAME && pwd'` through a second `ssh` with the login's options (`-p -i -J -F -l -o -S -b -B -c -m -I -4 -6 -C -K -k`; forwards, `-t`, remote commands dropped) and `-T -o BatchMode=yes -o RemoteCommand=none -o ClearAllForwardings=yes -o ControlMaster=no …` first; the remote path is typed. Windows reads the process tree with CIM (only when `tasklist` shows an `ssh.exe`) and fixes MSYS/Cygwin parents with their own `ps.exe`; macOS/Linux use `ps` and `/proc`. Only an interactive login counts: no `-T -n -s -N -f -W …`, a remote command only with `-t`, a foreground ssh on macOS/Linux, reached through shells the user typed into (not `sh -c`, scripts, git or agents). The copy runs in the tab's folder and environment (`SSH_AUTH_SOCK` from `/proc` on Linux), with `--` before the destination; Windows command lines are split by CommandLineToArgvW rules and read as UTF-8. The remote `pwd` must be a plain absolute path before anything is typed; a read error kills the copy instead of leaving a short file. A failed login (`Permission denied (`, host key) is not retried for that ssh process (30 min), so pastes do not add failed logins to the server's log. Folders, more than 10 files and more than 64 MB are refused. If the user typed during the copy, the paths go to the clipboard instead of the terminal. Setting: *Copy images and files into SSH tabs* (`sshPaste`).
+- **Paste notice:** a toast with a preview and the size of a pasted image, where it went (WSL, the ssh host), or why it was not delivered. "Pasting…" appears when it takes longer than 0.7 s.
+- **Images dragged out of a browser** (a `File` with no path, or a `data:image` address) are saved like a pasted image; HERA fetches no `http(s)` image (a notice says to copy and paste it).
+- IPC `paste:image` / `paste:files` / `paste:bytes` replace `clipboard:image`; the renderer's drop handler and the folder tree's insert share `insertFiles()`.
+
 ## 0.3.1 — 2026-10-29
 
 ### Fixed
