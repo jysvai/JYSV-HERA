@@ -2,6 +2,22 @@
 
 Full patch notes, one file per release in English and Korean: [docs/patch-notes](docs/patch-notes/README.md).
 
+## 0.3.4 — 2026-11-01
+
+### Added
+
+- **Live activity** (`electron/activity-core.ts`, `electron/activity.ts`, `src/app/projects/LiveWork.tsx`): an *In progress* section above the Folders tree. Main follows the transcripts of the open agent tabs every 1.5 s (6 s hidden), reading only appended bytes (a new conversation from its last 2 MB, at most 4 MB per tick, lines over 200 KB of tool output skipped), and pushes one `ProjectActivity` per project on `activity:changed` when it changes (`activity:list` for the first load).
+  - Claude Code: `tool_use` Read / Edit / Write / NotebookEdit / Grep(file) / Bash / PowerShell, TodoWrite and TaskCreate / TaskUpdate as the plan, `message.usage` per model (deduped by message id + request id, priced with the usage table, now in `electron/prices.ts`). Subagents from `<conversation>/subagents/agent-<id>.jsonl` + `.meta.json` (`agentType`, `description`, `toolUseId`, `finished`), matched to the Agent / Task call; a background launch (`async_launched`) is not "done". A work starts at the last real user prompt (system reminders, local command output and bare slash commands do not count; a joined conversation finds it by reading backwards up to 24 MB).
+  - Codex: `update_plan`, `apply_patch` (function, custom tool or in a shell script), shell / `local_shell_call`, and code mode (`custom_tool_call` `exec` whose JS calls `tools.exec_command({cmd, workdir})`, `tools.apply_patch("…")`, `tools.view_image({path})`); `UserMessage` / `user_message` start a work; tokens from `total_token_usage` deltas, model from `thread_settings_applied` / `turn_context`. No cost (plan).
+  - Shell commands: readers (`cat`, `head`, `tail`, `sed`, `nl`, `rg`, `grep`, `Get-Content`…) mark existing file arguments read; `>` / `>>`, `sed -i`, `perl -i`, `tee`, `Set-Content`… mark them changed; `cd` / `Set-Location` move the base folder.
+  - Files: read live 90 s, changed while the run works and 5 min after; a file changed by two runs in their current work is a conflict. Paths are matched to the project or the session's worktree.
+  - Tabs ↔ transcripts: `pty-host.agentSources()` (conversation detection every 4 s while unknown, else 20 s), `resume.transcriptFile()`, lanes by `laneTranscriptFile()` (agentName in the head).
+- UI: share bar by model (output tokens; an agent's other models in lighter steps of its color), a row per run with plan progress or an indeterminate sweep, request and current step, subagents nested; file list with read / edit / conflict marks, click reveals the file in the tree (folders opened and loaded). Tree rows get the activity color and closed folders a dot. A dot on the Folders tab while a run in the project works. Colors `--activity-read` / `--activity-edit`.
+
+### Fixed
+
+- **Codex conversation detection lagged up to 30 s:** `resume.ts` also reads today's and yesterday's rollout folders directly (heads cached per file), so a new Codex tab is matched within one detection pass.
+
 ## 0.3.3 — 2026-10-30
 
 ### Fixed
