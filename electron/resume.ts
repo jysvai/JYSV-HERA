@@ -8,7 +8,7 @@ import path from 'node:path'
 import type { AgentDef } from '../shared/types'
 
 import { codexHomes, codexSessionIndex } from './agent-data'
-import { expandHome, home, isWin } from './paths'
+import { expandHome, home, isWin, readHead } from './paths'
 
 export interface ConversationRef {
   agentId: string
@@ -127,10 +127,15 @@ function samePath(a: string | null | undefined, b: string | null | undefined) {
   return isWin ? norm(a).toLowerCase() === norm(b).toLowerCase() : norm(a) === norm(b)
 }
 
-function claudeTranscripts(cwd: string, configDir: string | null): Transcript[] {
+function claudeProjectDir(cwd: string, configDir: string | null): string {
   const root = configDir ? expandHome(configDir) : process.env.CLAUDE_CONFIG_DIR || path.join(home, '.claude')
+
   // Claude Code keys project folders by the cwd with every non-alphanumeric replaced by '-'.
-  const dir = path.join(root, 'projects', cwd.replace(/[^A-Za-z0-9]/g, '-'))
+  return path.join(root, 'projects', cwd.replace(/[^A-Za-z0-9]/g, '-'))
+}
+
+function claudeTranscripts(cwd: string, configDir: string | null): Transcript[] {
+  const dir = claudeProjectDir(cwd, configDir)
   const out: Transcript[] = []
 
   let names: string[] = []
@@ -158,23 +163,122 @@ function claudeTranscripts(cwd: string, configDir: string | null): Transcript[] 
 
 const ROLLOUT_TIME = /rollout-(\d{4})-(\d{2})-(\d{2})T(\d{2})-(\d{2})-(\d{2})/
 
-function codexTranscripts(cwd: string): Transcript[] {
-  const out: Transcript[] = []
+function rolloutBorn(file: string, fallback: number): number {
+  const time = ROLLOUT_TIME.exec(path.basename(file))
 
-  for (const entry of codexSessionIndex(codexHomes())) {
-    if (!entry.sessionId || !samePath(entry.cwd, cwd)) continue
-    const time = ROLLOUT_TIME.exec(path.basename(entry.file || ''))
-    const born = time ? new Date(+time[1], +time[2] - 1, +time[3], +time[4], +time[5], +time[6]).getTime() : entry.mtime
-    out.push({ id: entry.sessionId, born, touched: entry.mtime })
+  return time ? new Date(+time[1], +time[2] - 1, +time[3], +time[4], +time[5], +time[6]).getTime() : fallback
+}
+
+const rolloutHeads = new Map<string, { id: string | null; cwd: string | null }>()
+
+/**
+ * Rollouts of today and yesterday, read straight from their folders: the session
+ * index is cached for half a minute, too long to notice a Codex tab that just started.
+ */
+function recentRollouts(): (Transcript & { cwd: string | null; file: string })[] {
+  const out: (Transcript & { cwd: string | null; file: string })[] = []
+  const pad = (n: number) => String(n).padStart(2, '0')
+
+  for (const codexHome of codexHomes()) {
+    for (const daysAgo of [0, 1]) {
+      const day = new Date(Date.now() - daysAgo * 86_400_000)
+      const dir = path.join(codexHome, 'sessions', String(day.getFullYear()), pad(day.getMonth() + 1), pad(day.getDate()))
+      let names: string[] = []
+
+      try {
+        names = fs.readdirSync(dir).filter(name => name.startsWith('rollout-') && name.endsWith('.jsonl'))
+      } catch {
+        continue
+      }
+
+      for (const name of names) {
+        const file = path.join(dir, name)
+
+        try {
+          const stat = fs.statSync(file)
+          let head = rolloutHeads.get(file)
+
+          // A head without an id is read again only while the file is still being started (a few KB).
+          if (!head || (!head.id && stat.size < 16 * 1024)) {
+            const text = readHead(file, 12 * 1024)
+            const cwd = /"cwd":"((?:[^"\\]|\\.)*)"/.exec(text)?.[1]
+            head = { id: /"(?:session_id|id)":"([0-9a-f-]{20,})"/.exec(text)?.[1] || null, cwd: cwd ? (JSON.parse(`"${cwd}"`) as string).replace(/^\\\\\?\\/, '') : null }
+            if (rolloutHeads.size > 4000) rolloutHeads.clear()
+            rolloutHeads.set(file, head)
+          }
+
+          if (head.id) out.push({ id: head.id, born: rolloutBorn(file, stat.mtimeMs), touched: stat.mtimeMs, cwd: head.cwd, file })
+        } catch {
+          // vanished
+        }
+      }
+    }
   }
 
   return out
+}
+
+function codexTranscripts(cwd: string): Transcript[] {
+  const out = new Map<string, Transcript>()
+
+  for (const entry of codexSessionIndex(codexHomes())) {
+    if (!entry.sessionId || !samePath(entry.cwd, cwd)) continue
+    out.set(entry.sessionId, { id: entry.sessionId, born: rolloutBorn(entry.file || '', entry.mtime), touched: entry.mtime })
+  }
+
+  for (const entry of recentRollouts()) {
+    if (samePath(entry.cwd, cwd)) out.set(entry.id, { id: entry.id, born: entry.born, touched: entry.touched })
+  }
+
+  return [...out.values()]
 }
 
 /** Agents whose transcripts HERA can find, keyed by their usage provider. */
 function transcriptsFor(claim: ConversationClaim): Transcript[] | null {
   if (claim.agent.usageProvider === 'claude') return claudeTranscripts(claim.cwd, claim.configDir)
   if (claim.agent.usageProvider === 'codex') return codexTranscripts(claim.cwd)
+
+  return null
+}
+
+// ---- transcript files (live activity)
+
+/** The file of a conversation a terminal holds, if it is on disk. */
+export function transcriptFile(provider: AgentDef['usageProvider'], cwd: string, configDir: string | null, id: string): string | null {
+  if (provider === 'claude') {
+    const file = path.join(claudeProjectDir(cwd, configDir), `${id}.jsonl`)
+
+    return fs.existsSync(file) ? file : null
+  }
+
+  if (provider === 'codex') return recentRollouts().find(entry => entry.id === id)?.file || codexSessionIndex(codexHomes()).find(entry => entry.sessionId === id)?.file || null
+
+  return null
+}
+
+/** A lanes lane's conversation: the newest transcript here, begun after the tab started, that carries the lane's name. */
+export function laneTranscriptFile(cwd: string, configDir: string | null, tier: 'mid' | 'low', startedAt: number, taken: Set<string> = new Set()): string | null {
+  const name = new RegExp(`"agentName":"[^"]*-[0-9a-f]{4}-${tier}"`)
+  const candidates = claudeTranscripts(cwd, configDir)
+    .filter(entry => entry.touched >= startedAt - 10_000 && !(entry.file && taken.has(entry.file)))
+    .sort((a, b) => b.touched - a.touched)
+
+  for (const entry of candidates.slice(0, 12)) {
+    if (!entry.file || !isLaneTranscript(entry)) continue
+
+    try {
+      const fd = fs.openSync(entry.file, 'r')
+
+      try {
+        const head = Buffer.alloc(16_384)
+        if (name.test(head.subarray(0, fs.readSync(fd, head, 0, head.length, 0)).toString('utf8'))) return entry.file
+      } finally {
+        fs.closeSync(fd)
+      }
+    } catch {
+      // vanished
+    }
+  }
 
   return null
 }

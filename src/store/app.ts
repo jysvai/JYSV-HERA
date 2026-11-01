@@ -8,6 +8,7 @@ import type {
   CreateSessionRequest,
   HeraConfig,
   Project,
+  ProjectActivity,
   SessionInfo,
   StartRaceRequest,
   StartWorkRequest,
@@ -49,6 +50,8 @@ export const $windowVisible = atom<boolean>(true)
 export const $termZoom = atom<number>(readLocal('hera.termZoom', 0))
 export const $toast = atom<{ id: string; text: string; tone: 'info' | 'error'; image?: string } | null>(null)
 export const $insightTick = atom(0)
+/** What running agents are reading and changing, and how far their work is, per project. */
+export const $liveActivity = map<Record<string, ProjectActivity>>({})
 /** Last usage summary; shared by the status bar, the usage panel and the usage page. */
 export const $usage = atom<AgentUsage[] | null>(null)
 
@@ -426,6 +429,13 @@ export async function bootStore() {
     }
   })
   on('bus:message', (message: BusMessage) => $bus.set([...$bus.get().slice(-299), message]))
+  on('activity:changed', (activity: ProjectActivity) => $liveActivity.setKey(activity.projectId, activity))
+  void api
+    .liveActivity()
+    .then(list => {
+      for (const activity of list) $liveActivity.setKey(activity.projectId, activity)
+    })
+    .catch(() => undefined)
   on('worktrees:changed', (list: WorktreeInfo[]) => {
     $worktrees.set(list)
     // A merge adds a commit to the project: its "last change" is new.

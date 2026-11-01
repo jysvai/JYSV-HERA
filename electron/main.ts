@@ -28,6 +28,7 @@ import { resolveLanguage, setLanguage, t } from '../shared/i18n'
 import { resolveTheme } from '../shared/themes'
 import type { BusMessage, CreateSessionRequest, HeraConfig, LaneTier, SessionInfo, StartRaceRequest, StartWorkRequest, UpdateInfo } from '../shared/types'
 
+import { currentActivity, setActivityVisible, startActivity, stopActivity } from './activity'
 import { accountStatuses, createProfile, installStatuslineTap, removeProfile, statuslineTapState, uninstallStatuslineTap } from './accounts'
 import { claudeLiveSessions } from './agent-data'
 import { resolveTarget, sendFromUser, startBus, stopBus } from './bus'
@@ -297,6 +298,7 @@ function onHidden() {
   // Hidden window = zero terminal streaming. Screens stay current in the
   // headless terminals and are re-sent as snapshots on show.
   pty.detachAll()
+  setActivityVisible(false)
   win?.webContents.send('app:visibility', false)
   scheduleDeepSleep()
 }
@@ -307,6 +309,7 @@ function onShown() {
     deepSleepTimer = null
   }
 
+  setActivityVisible(true)
   win?.webContents.send('app:visibility', true)
 }
 
@@ -654,6 +657,7 @@ function registerIpc() {
   handle('files:open', (projectId: string, rel: string, mode: 'open' | 'reveal') => openProjectPath(String(projectId), String(rel || ''), mode === 'open' ? 'open' : 'reveal'))
   handle('files:path', (projectId: string, rel: string) => projectAbsPath(String(projectId), String(rel || '')))
   handle('files:git', (projectId: string) => projectGitStatus(String(projectId)))
+  handle('activity:list', () => currentActivity())
   handle('tools:packages', (force?: boolean) => toolPackages(Boolean(force)))
   handle('tools:extensions', (projectId?: string | null) => scanExtensions(projectById(typeof projectId === 'string' ? projectId : null)?.path || null))
   handle('tools:update', (ids: unknown, projectId?: string | null) => {
@@ -840,6 +844,8 @@ app.whenReady().then(() => {
   // Session memory: keep sessions.json current so a crash or forced reboot loses
   // at most a few seconds, and bring the saved terminals back running.
   pty.startAutosave()
+  // What the agents are reading and changing, from their transcripts (Folder panel).
+  startActivity(activity => send('activity:changed', activity))
   if (config.settings.restoreMode === 'resume') setTimeout(() => pty.resumeRestored(), 600)
   if (!process.env.HERA_SMOKE) scheduleUpdateCheck()
   powerMonitor.on('suspend', () => pty.saveSessions())
@@ -862,6 +868,7 @@ app.on('before-quit', () => {
   quitting = true
   saveWindowState()
   pty.stopAutosave()
+  stopActivity()
 
   try {
     pty.saveSessions()

@@ -1072,6 +1072,56 @@ function refreshConversations() {
   }
 }
 
+/** A running agent tab, as activity.ts follows it. */
+export interface AgentSource {
+  sessionId: string
+  name: string
+  projectId: string | null
+  cwd: string
+  agent: AgentDef
+  conversationId: string | null
+  configDir: string | null
+  startedAt: number
+  status: SessionStatus
+  lane: SessionInfo['lane']
+  worktreeId: string | null
+}
+
+let conversationsAt = 0
+
+/** Running agent tabs and the conversation each one holds. */
+export function agentSources(): AgentSource[] {
+  const live = [...sessions.values()].filter(session => session.pty && session.activeAgentId)
+  const since = Date.now() - conversationsAt
+  // Detection lists a folder: soon after a tab's conversation is still unknown, otherwise now and then (`/clear`).
+  if ((since > 4000 && live.some(session => !session.lane && !session.conversation)) || since > 20_000) {
+    conversationsAt = Date.now()
+    refreshConversations()
+  }
+
+  const out: AgentSource[] = []
+
+  for (const session of live) {
+    const agent = agentById(session.activeAgentId)
+    if (!agent) continue
+    out.push({
+      sessionId: session.id,
+      name: session.name,
+      projectId: session.projectId,
+      cwd: session.liveCwd && isDir(session.liveCwd) ? session.liveCwd : session.cwd,
+      agent,
+      conversationId: session.conversation?.agentId === agent.id ? session.conversation.id : null,
+      configDir: profileDir(session),
+      startedAt: session.agentStartedAt,
+      status: session.status,
+      lane: session.lane || null,
+      worktreeId: session.launchReq.worktreeId || null
+    })
+  }
+
+  return out
+}
+
 export function saveSessions() {
   const saved: SavedSession[] = []
   refreshConversations()

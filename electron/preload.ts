@@ -71,6 +71,7 @@ const INVOKE = new Set([
   'files:open',
   'files:path',
   'files:git',
+  'activity:list',
   'tools:packages',
   'tools:extensions',
   'tools:update',
@@ -89,7 +90,8 @@ const EVENTS = new Set([
   'app:reveal',
   'app:update',
   'app:notice',
-  'worktrees:changed'
+  'worktrees:changed',
+  'activity:changed'
 ])
 
 contextBridge.exposeInMainWorld('hera', {

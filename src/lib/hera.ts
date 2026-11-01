@@ -22,6 +22,7 @@ import type {
   LaneTier,
   PasteResult,
   Project,
+  ProjectActivity,
   ProjectInsight,
   SessionInfo,
   StartWorkRequest,
@@ -76,6 +77,8 @@ export const api = {
   openPath: (projectId: string, rel: string, mode: 'open' | 'reveal') => call<boolean>('files:open', projectId, rel, mode),
   absPath: (projectId: string, rel: string) => call<string | null>('files:path', projectId, rel),
   gitStatus: (projectId: string) => call<Record<string, string>>('files:git', projectId),
+  /** What running agents are reading and changing, per project (pushed as 'activity:changed'). */
+  liveActivity: () => call<ProjectActivity[]>('activity:list'),
   toolPackages: (force?: boolean) => call<ToolPackages>('tools:packages', Boolean(force)),
   toolExtensions: (projectId: string | null) => call<CliExtensions[]>('tools:extensions', projectId),
   updateTools: (ids: string[], projectId: string | null) => call<SessionInfo | null>('tools:update', ids, projectId),

@@ -66,6 +66,7 @@ The **Folders** tab of the right panel (`Ctrl+Shift+E`, `⌘E` on macOS) shows t
 - Hover an entry for its buttons: **Insert path into the terminal** (types the quoted path into the active terminal), **Copy path**, and **Open / Show in folder**.
 - Drag an entry onto a terminal to type its path.
 - The eye button hides dotfiles, the refresh button reads again now. A folder with more than 2,000 entries is shown in part.
+- Above the tree, **In progress** shows what the agents are doing in the project: their progress and the files they are reading (blue) or changing (orange), also marked in the tree. See [Live activity](live-activity.md).
 
 ## The backlog panel
 

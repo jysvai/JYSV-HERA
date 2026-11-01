@@ -451,6 +451,70 @@ export interface SessionInfo {
   worktreeId?: string | null
 }
 
+// ---------------------------------------------------------------- live activity
+
+/** What an agent did to a file: looked at it, or changed it. */
+export type FileTouchKind = 'read' | 'edit'
+
+export interface ActivityFile {
+  /** Absolute path. */
+  path: string
+  /** Path inside the project with '/' separators; null when the file is outside it (or in a worktree copy). */
+  rel: string | null
+  /** Worktree label when the file is in a worktree copy of the project. */
+  worktree: string | null
+  /** The strongest recent touch: a change outranks a read. */
+  kind: FileTouchKind
+  at: number
+  /** Runs (ActivityRun.id) that touched it lately, newest first. */
+  by: string[]
+  /** Two different agents changed it during their current work. */
+  conflict: boolean
+}
+
+export interface ActivityPlan {
+  done: number
+  total: number
+  /** The step in progress, if the agent marked one. */
+  current: string | null
+}
+
+/** One agent's current piece of work: a tab's agent, or a subagent it started. */
+export interface ActivityRun {
+  /** Session id, or `<session id>/<subagent id>`. */
+  id: string
+  sessionId: string
+  /** The run that started this one (a subagent's tab). */
+  parentId: string | null
+  /** Tab name ("claude-1") or the subagent's type. */
+  label: string
+  agentId: string | null
+  model: string | null
+  /** What it was asked to do (clipped). */
+  task: string
+  startedAt: number
+  updatedAt: number
+  state: 'working' | 'waiting' | 'done'
+  /** From the agent's own todo list / plan; null when it made none. */
+  plan: ActivityPlan | null
+  /** All tokens of this work, cache reads included. */
+  tokens: number
+  /** Generated tokens (the share bar's measure). */
+  output: number
+  /** API list-price estimate; null when HERA has no price for the model. */
+  costUsd: number | null
+  tools: number
+  /** Distinct files changed. */
+  edits: number
+}
+
+export interface ProjectActivity {
+  projectId: string
+  runs: ActivityRun[]
+  files: ActivityFile[]
+  updatedAt: number
+}
+
 export interface CreateSessionRequest {
   projectId?: string | null
   cwd?: string

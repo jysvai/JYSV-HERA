@@ -46,6 +46,9 @@
   --status-idle: #2f9e6e;
   --status-waiting: #d4453a;
   --status-exited: color-mix(in srgb, var(--ui-base) 35%, transparent);
+  /* Live activity: a file an agent is looking at, and one it is changing. */
+  --activity-read: #2f7fc1;
+  --activity-edit: #c8641a;
   --term-bg: #fbfaf7;
 }
 
@@ -70,6 +73,8 @@
   --status-busy: #e0a526;
   --status-idle: #3fbf86;
   --status-waiting: #f0625a;
+  --activity-read: #62a8ea;
+  --activity-edit: #f0913f;
   --term-bg: #0b0c0e;
 }
 
@@ -189,8 +194,30 @@ button:disabled {
   }
 }
 
+/* Work with no plan of its own: moving, but no fraction to show. */
+.activity-indeterminate {
+  background: linear-gradient(90deg, transparent 0%, var(--bar-color, var(--status-busy)) 50%, transparent 100%);
+  background-size: 50% 100%;
+  background-repeat: no-repeat;
+  animation: hera-sweep 1.6s ease-in-out infinite;
+}
+
+@keyframes hera-sweep {
+  from {
+    background-position: -100% 0;
+  }
+  to {
+    background-position: 200% 0;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .status-busy {
     animation: none;
+  }
+
+  .activity-indeterminate {
+    animation: none;
+    background: color-mix(in srgb, var(--bar-color, var(--status-busy)) 45%, transparent);
   }
 }

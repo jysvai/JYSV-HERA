@@ -6,7 +6,7 @@ import { t } from '../../../shared/i18n'
 import { Button } from '../../components/ui/primitives'
 import { cn } from '../../lib/cn'
 import { isMac } from '../../lib/hera'
-import { $config, $project, $rightPanel, $rightTab } from '../../store/app'
+import { $config, $liveActivity, $project, $rightPanel, $rightTab } from '../../store/app'
 import { UsagePanel } from '../pages/UsagePage'
 import { BacklogPanel } from '../projects/BacklogPanel'
 import { FilesPanel } from '../projects/FilesPanel'
@@ -37,6 +37,11 @@ export function RightPanel() {
   const tab = useStore($rightTab)
   const project = useStore($project)
   const lanesOn = Boolean(useStore($config)?.settings.lanes.enabled)
+  // An agent at work in this project: the Folder tab says so even while another tab is open.
+  const live = useStore($liveActivity)
+  const runs = (project && live[project.id]?.runs) || []
+  const working = runs.some(run => run.state === 'working')
+  const waiting = runs.some(run => run.state === 'waiting')
   const shown = !project ? 'usage' : tab === 'lanes' && !lanesOn ? 'backlog' : tab
   const chord = (key: string) => (isMac ? `⌘${key}` : `Ctrl+Shift+${key}`)
 
@@ -50,6 +55,7 @@ export function RightPanel() {
           </Tab>
           <Tab active={shown === 'files'} disabled={!project} onClick={() => $rightTab.set('files')} icon={<IconFolders />} hint={t('폴더 구조 ({shortcut})', { shortcut: chord('E') })}>
             {t('폴더')}
+            {(working || waiting) && <span className={cn('status-dot size-1.5!', waiting ? 'status-waiting' : 'status-busy')} aria-label={waiting ? t('응답 기다림') : t('에이전트 작업 중')} />}
           </Tab>
           <Tab active={shown === 'worktrees'} disabled={!project} onClick={() => $rightTab.set('worktrees')} icon={<IconGitBranch />} hint={t('작업 공간 (프로젝트의 격리된 복사본, git worktree)')}>
             {t('작업 공간')}

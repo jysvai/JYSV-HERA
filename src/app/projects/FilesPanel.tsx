@@ -3,13 +3,14 @@ import { IconChevronRight, IconCopy, IconExternalLink, IconEye, IconEyeOff, Icon
 import { useCallback, useEffect, useRef, useState, type ReactElement } from 'react'
 
 import { t } from '../../../shared/i18n'
-import type { DirEntry } from '../../../shared/types'
+import type { ActivityFile, DirEntry } from '../../../shared/types'
 import { formatBytes } from '../../../shared/util'
 import { Button, Tip } from '../../components/ui/primitives'
 import { cn } from '../../lib/cn'
-import { api } from '../../lib/hera'
+import { api, isWin } from '../../lib/hera'
 import { $project, $sessions, $windowVisible, layoutFor, toast } from '../../store/app'
 import { insertFiles } from '../terminal/TerminalView'
+import { fileColor, LiveWork, useLiveActivity } from './LiveWork'
 
 /** Folders that are big and rarely browsed: listed, but never opened by a refresh on their own. */
 const HEAVY = new Set(['node_modules', '.git', 'dist', 'build', 'out', 'target', '.venv', 'venv', '__pycache__', '.next', '.turbo', '.cache', 'release'])
@@ -37,6 +38,7 @@ export function FilesPanel() {
   const [showHidden, setShowHidden] = useState(true)
   const [git, setGit] = useState<Record<string, string>>({})
   const projectId = project?.id || null
+  const live = useLiveActivity(projectId)
   const openRef = useRef(open)
   openRef.current = open
   // Answers for a project the user already left are dropped.
@@ -80,6 +82,33 @@ export function FilesPanel() {
   }, [refresh, visible])
 
   if (!project) return null
+
+  // Files the agents are on right now (the project's own copy only; a worktree copy is listed above the tree).
+  const touched = new Map<string, ActivityFile>()
+  for (const file of live?.files || []) {
+    // Windows paths ignore case, and an agent may write a name in another case than the folder has it.
+    if (file.rel && !file.worktree) touched.set(isWin ? file.rel.toLowerCase() : file.rel, file)
+  }
+  const dirTouch = (dir: string) => {
+    let found: ActivityFile | null = null
+    const prefix = `${isWin ? dir.toLowerCase() : dir}/`
+    for (const [rel, file] of touched) {
+      if (!rel.startsWith(prefix)) continue
+      if (!found || file.conflict || (file.kind === 'edit' && found.kind === 'read' && !found.conflict)) found = file
+    }
+    return found
+  }
+
+  /** Show a file of the list above in the tree: open its folders, select it, scroll to it. */
+  const reveal = (rel: string) => {
+    const parts = rel.split('/')
+    const dirs = parts.slice(0, -1).map((_, index) => parts.slice(0, index + 1).join('/'))
+    setOpen(previous => new Set([...previous, ...dirs]))
+    setSelected(rel)
+    void load(dirs.filter(dir => !listings[dir])).then(() => {
+      requestAnimationFrame(() => document.querySelector(`[data-rel="${CSS.escape(rel)}"]`)?.scrollIntoView({ block: 'nearest' }))
+    })
+  }
 
   const toggle = (dir: string) => {
     setOpen(previous => {
@@ -150,6 +179,8 @@ export function FilesPanel() {
       const expanded = entry.dir && open.has(rel)
       const code = entry.dir ? undefined : git[rel]
       const tone = entry.dir ? dirTone(rel) : gitTone(code)
+      const activity = entry.dir ? (expanded ? null : dirTouch(rel)) : touched.get(isWin ? rel.toLowerCase() : rel) || null
+      const activityColor = activity ? fileColor(activity) : null
 
       rows.push(
         <div
@@ -157,6 +188,7 @@ export function FilesPanel() {
           role="treeitem"
           aria-expanded={entry.dir ? expanded : undefined}
           aria-selected={selected === rel}
+          data-rel={rel}
           draggable
           onDragStart={event => {
             // Dropped on a terminal, it is typed as an absolute path in the project's own separators.
@@ -170,13 +202,13 @@ export function FilesPanel() {
             if (entry.dir) toggle(rel)
           }}
           onDoubleClick={() => !entry.dir && void api.openPath(project.id, rel, 'open')}
-          title={`${rel}${entry.dir ? '' : ` · ${formatBytes(entry.size)}`}${code ? ` · ${GIT_LABEL[code.trim()[0]] || code}` : ''}`}
+          title={`${rel}${entry.dir ? '' : ` · ${formatBytes(entry.size)}`}${code ? ` · ${GIT_LABEL[code.trim()[0]] || code}` : ''}${activity && !entry.dir ? ` · ${activity.conflict ? t('여러 에이전트가 함께 수정 중') : activity.kind === 'edit' ? t('수정 중') : t('보는 중')}` : ''}`}
           className={cn(
             'group flex h-[24px] cursor-default items-center gap-1 rounded-md pr-1 text-[12.5px] select-none hover:bg-(--chrome-action-hover)',
             selected === rel && 'bg-(--ui-bg-elevated) shadow-sm',
             entry.hidden && 'opacity-60'
           )}
-          style={{ paddingLeft: 4 + depth * 14 }}
+          style={{ paddingLeft: 4 + depth * 14, background: activityColor && !entry.dir && selected !== rel ? `color-mix(in srgb, ${activityColor} 12%, transparent)` : undefined }}
         >
           <span className={cn('flex w-3.5 shrink-0 justify-center text-(--ui-text-tertiary) transition-transform duration-100', expanded && 'rotate-90', !entry.dir && 'invisible')}>
             <IconChevronRight size={12} />
@@ -188,9 +220,12 @@ export function FilesPanel() {
               <IconFolder size={15} className={cn('shrink-0', HEAVY.has(entry.name) ? 'text-(--ui-text-tertiary)' : 'text-(--ui-accent-text)')} />
             )
           ) : (
-            <IconFile size={15} className="shrink-0 text-(--ui-text-tertiary)" />
+            <IconFile size={15} className="shrink-0 text-(--ui-text-tertiary)" style={activityColor ? { color: activityColor } : undefined} />
           )}
-          <span className={cn('min-w-0 flex-1 truncate', entry.link && 'italic')}>{entry.name}</span>
+          <span className={cn('min-w-0 flex-1 truncate', entry.link && 'italic')} style={activityColor && !entry.dir ? { color: activityColor } : undefined}>
+            {entry.name}
+          </span>
+          {activityColor && <span className={cn('size-1.5 shrink-0 rounded-full', activity?.kind === 'edit' && 'animate-pulse')} style={{ background: activityColor }} />}
           {tone && <span className="size-1.5 shrink-0 rounded-full" style={{ background: tone }} />}
           <span className="hidden shrink-0 items-center gap-0.5 group-hover:flex">
             <Tip label={t('터미널에 경로 넣기')}>
@@ -234,6 +269,7 @@ export function FilesPanel() {
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
+      <LiveWork projectId={project.id} onReveal={reveal} />
       <div className="flex shrink-0 items-center gap-1 border-b border-(--ui-stroke-tertiary) px-3 py-1.5">
         <div className="min-w-0 flex-1">
           <div className="truncate text-[12.5px] font-medium">{project.name}</div>
