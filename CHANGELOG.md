@@ -2,6 +2,14 @@
 
 Full patch notes, one file per release in English and Korean: [docs/patch-notes](docs/patch-notes/README.md).
 
+## 0.3.5 — 2026-11-02
+
+### Fixed
+
+- **A tab opened with Continue never showed under *In progress*:** `claude --continue` / `codex resume --last` go on writing the previous transcript, while `resume.detectConversations()` only took a transcript born after the tab started (or the id HERA launched it with). A second pass now gives each still-unmatched tab the most recently written transcript touched since it started that no other tab took (lane transcripts excluded), after every tab has picked by the old rules. New self-test check *activity: continued conversation*.
+- **The same tabs came back as a new conversation after a restart:** with the conversation unknown, the saved session had none and the boot-time restore started fresh; it now resumes it with `--resume <id>`.
+- `modelName()` shows only the last part of an ARN model id (Bedrock inference profiles).
+
 ## 0.3.4 — 2026-11-01
 
 ### Added

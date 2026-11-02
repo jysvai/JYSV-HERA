@@ -6,7 +6,10 @@ import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 
+import type { AgentDef } from '../shared/types'
+
 import { newRun, openConversation, pollConversation, subState, summarize, type Run } from './activity-core'
+import { detectConversations } from './resume'
 
 type Step = (step: string, ok: boolean, detail?: string) => void
 
@@ -86,6 +89,29 @@ export function smokeActivity(record: Step) {
     const codexSummary = summarize(codexRun, 'working')
     const codexOk = codexSummary.task === 'tidy up' && codexSummary.plan?.done === 1 && codexSummary.plan.total === 2 && touched(codexRun) === 'edit:a.ts read:c.ts' && codexSummary.model === 'gpt-test' && codexSummary.output === 50
     record('activity: Codex transcript', codexOk, `${codexSummary.task} · ${codexSummary.plan?.done}/${codexSummary.plan?.total} · ${touched(codexRun)} · ${codexSummary.model} · ${codexSummary.output}`)
+
+    // `claude --continue` goes on writing an older transcript: the tab finds it, but never
+    // the one another tab holds nor a lane's. (Born dates cannot be set: "later" is the future.)
+    const config = path.join(root, 'claude-config')
+    const folder = path.join(config, 'projects', project.replace(/[^A-Za-z0-9]/g, '-'))
+    fs.mkdirSync(folder, { recursive: true })
+    const now = Date.now()
+    const transcript = (id: string, at: number, head = '{}') => {
+      const file = path.join(folder, `${id}.jsonl`)
+      fs.writeFileSync(file, `${head}\n`)
+      fs.utimesSync(file, new Date(at), new Date(at))
+    }
+    transcript('held', now + 22_000)
+    transcript('continued', now + 25_000)
+    transcript('lane', now + 40_000, '{"agentName":"proj-ab12-mid"}')
+    transcript('stale', now - 3_600_000)
+    const agent = { id: 'claude', usageProvider: 'claude', resumeIdArgs: '--resume {id}' } as AgentDef
+    const found = detectConversations([
+      { key: 'other', agent, cwd: project, startedAt: now + 15_000, configDir: config, known: 'held' },
+      { key: 'resumed', agent, cwd: project, startedAt: now + 20_000, configDir: config, known: null }
+    ])
+    const resumedOk = found.get('other') === 'held' && found.get('resumed') === 'continued'
+    record('activity: continued conversation', resumedOk, JSON.stringify([...found]))
   } catch (error) {
     record('activity: exception', false, (error as Error).stack || String(error))
   } finally {

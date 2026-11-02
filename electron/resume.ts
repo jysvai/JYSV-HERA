@@ -288,18 +288,26 @@ export function laneTranscriptFile(cwd: string, configDir: string | null, tier: 
  * pick first. A terminal keeps the conversation HERA started it with unless a
  * newer one began after that one went quiet (`/clear`); otherwise it takes the
  * most recently written transcript created after it started that no other
- * terminal took (several agents of the same kind in one folder). A lanes lane's
- * conversation is never a candidate: resumed in a main tab it would replace main.
+ * terminal took (several agents of the same kind in one folder). A terminal that
+ * continued an older conversation (`claude --continue`, `codex resume --last`)
+ * goes on writing its old file: once every other terminal has picked, it takes
+ * the transcript written since it started. A lanes lane's conversation is never
+ * a candidate: resumed in a main tab it would replace main.
  */
 export function detectConversations(claims: ConversationClaim[]): Map<string, string | null> {
   const result = new Map<string, string | null>()
   const taken = new Set<string>()
   const cache = new Map<string, Transcript[] | null>()
-
-  for (const claim of [...claims].sort((a, b) => b.startedAt - a.startedAt)) {
+  const ordered = [...claims].sort((a, b) => b.startedAt - a.startedAt)
+  const transcriptsOf = (claim: ConversationClaim) => {
     const cacheKey = `${claim.agent.usageProvider}|${claim.configDir || ''}|${claim.cwd}`
     if (!cache.has(cacheKey)) cache.set(cacheKey, transcriptsFor(claim))
-    const transcripts = cache.get(cacheKey)
+
+    return cache.get(cacheKey)
+  }
+
+  for (const claim of ordered) {
+    const transcripts = transcriptsOf(claim)
 
     if (!transcripts) {
       result.set(claim.key, null)
@@ -316,6 +324,17 @@ export function detectConversations(claims: ConversationClaim[]): Map<string, st
 
     if (id) taken.add(id)
     result.set(claim.key, id)
+  }
+
+  for (const claim of ordered) {
+    if (result.get(claim.key)) continue
+    const continued = transcriptsOf(claim)
+      ?.filter(entry => entry.touched >= claim.startedAt && !taken.has(entry.id) && !isLaneTranscript(entry))
+      .sort((a, b) => b.touched - a.touched)[0]
+    if (!continued) continue
+
+    taken.add(continued.id)
+    result.set(claim.key, continued.id)
   }
 
   return result

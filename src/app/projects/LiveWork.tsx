@@ -23,7 +23,8 @@ export function modelName(model: string | null): string {
   const claude = /claude-(opus|sonnet|haiku|fable)-(\d+)(?:-(\d{1,2}))?(?!\d)/.exec(model)
   if (claude) return `${claude[1][0].toUpperCase()}${claude[1].slice(1)} ${claude[2]}${claude[3] ? `.${claude[3]}` : ''}`
 
-  return model.replace(/^claude-/, '')
+  // A Bedrock inference-profile ARN would fill the row: its last part names it.
+  return model.replace(/^arn:.*\//, '').replace(/^claude-/, '')
 }
 
 /** A subagent on a cheap model can cost a fraction of a cent: say so instead of "$0.00". */
