@@ -46,15 +46,17 @@ jobs:
 
       - run: npm ci
 
-      # node-pty ships no Linux binary. Build it on Debian 11 (glibc 2.31) so it loads on
-      # every distro Electron itself supports: Ubuntu 20.04+, Debian 11+, Fedora, Rocky / Alma / RHEL 9+.
+      # Build node-pty's Linux binary on Debian 11 (glibc 2.31) so it loads on every distro
+      # Electron itself supports: Ubuntu 20.04+, Debian 11+, Fedora, Rocky / Alma / RHEL 9+
+      # (its own prebuild may need a newer glibc). node-gyp runs from outside the package:
+      # npm there would refuse node-pty's devEngines (Node 24+ for its own development).
       - name: Build node-pty for Linux
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends rpm xvfb
-          docker run --rm -u "$(id -u):$(id -g)" -e HOME=/tmp -v "$PWD:/w" -w /w/node_modules/node-pty node:22-bullseye \
-            bash -c "npx --yes node-gyp@11.2.0 rebuild && mkdir -p prebuilds/linux-x64 && cp build/Release/pty.node prebuilds/linux-x64/"
+          docker run --rm -u "$(id -u):$(id -g)" -e HOME=/tmp -v "$PWD:/w" -w /tmp node:22-bullseye \
+            bash -c "npx --yes node-gyp@11.2.0 rebuild --directory=/w/node_modules/node-pty && cd /w/node_modules/node-pty && mkdir -p prebuilds/linux-x64 && cp build/Release/pty.node prebuilds/linux-x64/"
           echo "newest glibc symbol needed:"
           objdump -T node_modules/node-pty/prebuilds/linux-x64/pty.node | grep -o 'GLIBC_[0-9.]*' | sort -uV | tail -1
 
