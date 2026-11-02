@@ -2,6 +2,13 @@
 
 Full patch notes, one file per release in English and Korean: [docs/patch-notes](docs/patch-notes/README.md).
 
+## 0.3.6 — 2026-11-02
+
+### Fixed
+
+- **Windows: main could crash when two terminals closed within milliseconds** (access violation, sometimes exit 3 from an `assert`): node-pty 1.1.0's exit-watcher threads edit the global `ptyHandles` vector without a lock (`remove_pty_baton`, `src/win/conpty.cc`; microsoft/node-pty#921). Seen in 2 of 40 back-to-back closes of agent tabs with the bundled ConPTY. Moved to node-pty `1.2.0-beta.18` (fix shipped in beta.13, PR #922): 0 of 120 against 10 of 120. As a guard, `pty-host.kill()` removes the tab at once but queues the `pty.kill()` calls 200 ms apart (`CLOSE_GAP_MS`); `killAll()` at quit flushes the queue immediately, and worktree removal waits for the queue before deleting the folder.
+- Release workflow: the Linux node-pty build runs `node-gyp rebuild --directory=…` from outside the package, because npm inside node-pty 1.2.0-beta refuses Node 22 (`devEngines` asks Node 24+ for its own development). Still built on Debian 11; the binary needs GLIBC_2.28.
+
 ## 0.3.5 — 2026-11-02
 
 ### Fixed
