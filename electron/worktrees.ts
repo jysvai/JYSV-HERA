@@ -12,7 +12,7 @@ import { t } from '../shared/i18n'
 import type { WorktreeActionResult, WorktreeDiff, WorktreeFileDiff, WorktreeInfo, WorktreeLoss, WorktreeStatus, WorktreeSupport } from '../shared/types'
 import { newId } from '../shared/util'
 import { dataPath, findOnPath, readJson, writeJsonAtomic } from './paths'
-import { createSession, kill, listSessions } from './pty-host'
+import { CLOSE_GAP_MS, createSession, kill, listSessions } from './pty-host'
 import { getConfig, projectById, setPathAliases } from './store'
 
 export const worktreeEvents = new EventEmitter()
@@ -687,7 +687,8 @@ export async function removeWorktree(id: string, force = false): Promise<Worktre
   // A shell or agent keeps its folder open, and Windows will not delete an open folder.
   const inCopy = listSessions().filter(session => session.worktreeId === id || inside(entry.path, session.cwd))
   for (const session of inCopy) kill(session.id)
-  if (inCopy.length) await sleep(700)
+  // The terminals close one after another (pty-host), then need a moment to let go.
+  if (inCopy.length) await sleep(700 + CLOSE_GAP_MS * (inCopy.length - 1))
 
   if (repoDir) await git(repoDir, ['worktree', 'remove', '--force', entry.path], 120_000)
 

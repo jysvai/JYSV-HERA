@@ -911,19 +911,52 @@ export function kill(id: string) {
   clearTimeout(session.statusTimer ?? undefined)
   clearTimeout(session.bootTimer ?? undefined)
 
+  if (session.pty) closePty(session.pty)
+  session.term.dispose()
+  ptyEvents.emit('removed', id)
+}
+
+// Two pseudoconsoles closed within milliseconds of each other could crash main
+// (node-pty data race, microsoft/node-pty#921; fixed upstream, kept as a guard):
+// closes go out one at a time, a little apart. The tab itself is gone at once.
+export const CLOSE_GAP_MS = 200
+const closing: nodePty.IPty[] = []
+let closeTimer: NodeJS.Timeout | null = null
+
+function closePty(pty: nodePty.IPty) {
+  closing.push(pty)
+  if (!closeTimer) closeNext()
+}
+
+function closeNext() {
+  closeTimer = null
+  const pty = closing.shift()
+  if (!pty) return
+
   try {
-    session.pty?.kill()
+    pty.kill()
   } catch {
     // already gone
   }
 
-  session.term.dispose()
-  ptyEvents.emit('removed', id)
+  closeTimer = setTimeout(closeNext, CLOSE_GAP_MS)
 }
 
 export function killAll() {
   for (const id of [...sessions.keys()]) {
     kill(id)
+  }
+
+  // Quitting: nothing may outlive HERA, so what is still waiting closes now.
+  if (closeTimer) clearTimeout(closeTimer)
+  closeTimer = null
+
+  for (const pty of closing.splice(0)) {
+    try {
+      pty.kill()
+    } catch {
+      // already gone
+    }
   }
 }
 
