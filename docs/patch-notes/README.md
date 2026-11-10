@@ -6,6 +6,7 @@ One file per release and language. A release on GitHub is written from these fil
 
 | Version | Date | Summary | Notes |
 |---|---|---|---|
+| [v0.3.7](https://github.com/jysvai/JYSV-HERA/releases/tag/v0.3.7) | 2026-11-10 | Usage numbers now keep up, count each response once, and include Antigravity. | [English](en/v0.3.7.md) · [한국어](ko/v0.3.7.md) |
 | [v0.3.6](https://github.com/jysvai/JYSV-HERA/releases/tag/v0.3.6) | 2026-11-02 | Closing several tabs at once no longer brings HERA down. | [English](en/v0.3.6.md) · [한국어](ko/v0.3.6.md) |
 | [v0.3.5](https://github.com/jysvai/JYSV-HERA/releases/tag/v0.3.5) | 2026-11-02 | Claude and Codex tabs opened with Continue show up under *In progress* too. | [English](en/v0.3.5.md) · [한국어](ko/v0.3.5.md) |
 | [v0.3.4](https://github.com/jysvai/JYSV-HERA/releases/tag/v0.3.4) | 2026-11-01 | See what your AIs are doing right now, without reading every terminal. | [English](en/v0.3.4.md) · [한국어](ko/v0.3.4.md) |

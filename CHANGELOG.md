@@ -2,6 +2,20 @@
 
 Full patch notes, one file per release in English and Korean: [docs/patch-notes](docs/patch-notes/README.md).
 
+## 0.3.7 — 2026-11-10
+
+### Added
+
+- **Antigravity token usage** (`parseAgyLine`, `processAgyFile` in `electron/usage-core.ts`): `PLANNER_RESPONSE` records of `~/.gemini/antigravity-cli/brain/<id>/.system_generated/logs/transcript.jsonl`, deduped by `step_index`, folder from `workspace_uris` in `conversation_summaries.db`. One `Antigravity` model row (no model name in the records), no limit or cost (not stored locally). Cache entries of a vanished file stay until all their days leave the 31-day window, because Antigravity keeps only its newest 500 conversations. New self-test group `electron/smoke-usage.ts`.
+
+### Fixed
+
+- **Parsing large logs** could run out the 180 s worker limit (162 s and 13.7 GB RSS on 42 GB of logs). `readLines` scans with one 8 MB buffer and matches wanted lines as bytes, skipping longer lines: about 43 s and 200 MB. Limit raised to 5 min, cache checkpointed every 15 s so a killed run resumes (`CACHE_VERSION` 3, so the first run after updating is a full parse).
+- **Worker failures**: `getUsage` keeps the last result and tries again at the next poll instead of throwing; the Usage page shows a banner when numbers are over 10 min old. The worker no longer exits 20 ms after posting its answer; main kills it once the message arrives.
+- **Limits**: status bar poll 5 min → 60 s. Windows past `resetsAt` are dropped. `hera statusline-tap` writes `claude-caps.json` through a temp file and rename.
+- **Claude Code**: a forked subagent file starts with a copy of the parent's history, so a response now counts once across all files (`msg_` id). Subagent files of CLI 2.1.289 / 2.1.296 put a placeholder `output_tokens` on the first streamed line, so the highest value counts. The record's own `cwd` is the last match on the line (a tool input can hold another), retried until found.
+- **Codex**: sessions with only `token_usage_record` lines are counted; the running total moves forward only, from `total_token_usage` or `thread_token_usage`. Compaction calls appear in neither running total and stay uncounted (0.6% on the test machine).
+
 ## 0.3.6 — 2026-11-02
 
 ### Fixed
