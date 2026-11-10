@@ -1,7 +1,7 @@
 // Self-test for release builds: `HERA_SMOKE=<result.json> <app>` opens a real
 // terminal with the default shell, checks that it runs a command and that the
-// bundled `hera` CLI is on its PATH, runs the live activity and worktree checks
-// (smoke-activity.ts, smoke-worktrees.ts),
+// bundled `hera` CLI is on its PATH, runs the live activity, token usage and
+// worktree checks (smoke-activity.ts, smoke-usage.ts, smoke-worktrees.ts),
 // writes the result and exits (0 = pass).
 // CI runs it on every OS before publishing installers.
 
@@ -12,6 +12,7 @@ import { app, BrowserWindow } from 'electron'
 
 import * as pty from './pty-host'
 import { smokeActivity } from './smoke-activity'
+import { smokeUsage } from './smoke-usage'
 import { smokeWorktrees } from './smoke-worktrees'
 
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
@@ -51,6 +52,7 @@ export async function runSmoke(resultFile: string) {
     record('window rendered', Number(rendered) > 0)
 
     smokeActivity(record)
+    smokeUsage(record)
     await smokeWorktrees(record)
   } catch (error) {
     record('exception', false, (error as Error).stack || String(error))

@@ -1,5 +1,5 @@
 // Entry point of the short-lived usage utility process. It receives one
-// request, computes, replies and exits so its memory goes back to the OS.
+// request, computes and replies, then ends so its memory goes back to the OS.
 import { runUsage, type WorkerRequest } from './usage-core'
 
 type ParentPort = {
@@ -17,6 +17,7 @@ if (parentPort) {
       parentPort.postMessage({ ok: false, error: error instanceof Error ? error.message : String(error) })
     }
 
-    setTimeout(() => process.exit(0), 20)
+    // Main ends this process once the answer arrives; exiting early could lose it.
+    setTimeout(() => process.exit(0), 30_000)
   })
 }

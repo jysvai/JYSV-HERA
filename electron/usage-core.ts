@@ -1,8 +1,8 @@
 // Token usage aggregation from the agent CLIs' own logs. Runs inside a
-// short-lived Electron utility process (usage-worker.ts) so parsing hundreds of
-// MB of transcripts never blocks the UI and all of its memory is returned to
-// the OS when it exits. Parsing is incremental: a per-file byte offset is kept
-// in a cache so only appended lines are read on the next run.
+// short-lived Electron utility process (usage-worker.ts) so parsing tens of GB
+// of transcripts never blocks the UI and all of its memory is returned to the
+// OS when it exits. Parsing is incremental: a per-file byte offset is kept in a
+// cache so only appended lines are read on the next run.
 import fs from 'node:fs'
 import path from 'node:path'
 
@@ -15,24 +15,30 @@ export interface TokenTally {
   messages: number
 }
 
+export type UsageKind = 'claude' | 'codex' | 'agy'
+
 interface FileState {
+  kind: UsageKind
   size: number
   offset: number
   /** day -> model -> tally */
   days: Record<string, Record<string, TokenTally>>
   /** hour start (ms) -> tokens, last 48h only */
   hours: Record<string, number>
-  recentIds: string[]
+  /** Claude: each API response this file counted -> the highest output_tokens seen for it. */
+  ids: Record<string, number>
   group: string
   /** Codex: running cumulative totals for delta computation. */
   cumulative?: { input: number; cached: number; output: number; reasoning: number }
   model?: string
-  /** Working folder the session ran in ('' = not found). */
-  cwd?: string
+  /** Working folder the session ran in ('' = not found yet). */
+  cwd: string
 }
 
+const CACHE_VERSION = 3
+
 export interface UsageCache {
-  version: 2
+  version: typeof CACHE_VERSION
   files: Record<string, FileState>
 }
 
@@ -40,6 +46,9 @@ export interface WorkerRequest {
   cacheFile: string
   claudeDirs: string[]
   codexHomes: string[]
+  agyDir: string
+  /** Antigravity conversation id -> working folder (its transcripts do not carry one). */
+  agyWorkspaces: Record<string, string>
   maxAgeDays: number
 }
 
@@ -55,6 +64,7 @@ export interface ProviderUsageRaw {
 export interface WorkerResult {
   claude: ProviderUsageRaw
   codex: ProviderUsageRaw
+  agy: ProviderUsageRaw
   elapsedMs: number
 }
 
@@ -129,23 +139,31 @@ function lastMatch(re: RegExp, text: string): string | null {
 }
 
 const TS_RE = /"timestamp":"([^"]+)"/g
+const CWD_RE = /"cwd":"((?:[^"\\]|\\.)*)"/g
 
-function parseClaudeLine(state: FileState, line: string, seen: Set<string>) {
+/** The session's working folder. The last match is the record's own: tool inputs come earlier in a line. */
+function noteCwd(state: FileState, line: string) {
+  if (state.cwd) return
+
+  const raw = lastMatch(CWD_RE, line)
+
+  if (!raw) return
+
+  try {
+    state.cwd = (JSON.parse(`"${raw}"`) as string).replace(/^\\\\\?\\/, '')
+  } catch {
+    // the next record has it too
+  }
+}
+
+function parseClaudeLine(state: FileState, line: string, counted: Map<string, FileState>) {
   if (!line.includes('"type":"assistant"')) return
+
+  noteCwd(state, line)
 
   const usageAt = line.indexOf('"usage":{')
 
   if (usageAt < 0) return
-
-  const id = /"id":"(msg_[^"]+)"/.exec(line)?.[1] || null
-  const requestId = /"requestId":"([^"]+)"/.exec(line)?.[1] || ''
-  const key = id ? `${id}:${requestId}` : null
-
-  if (key) {
-    if (seen.has(key)) return
-    seen.add(key)
-    state.recentIds.push(key)
-  }
 
   const raw = objectAt(line, usageAt + 8)
 
@@ -167,12 +185,34 @@ function parseClaudeLine(state: FileState, line: string, seen: Set<string>) {
 
   if (model === '<synthetic>') return
 
+  const id = /"id":"(msg_[^"]+)"/.exec(line)?.[1] || null
+  const output = Number(usage.output_tokens) || 0
+  const owner = id ? counted.get(id) : undefined
+
+  if (id && owner) {
+    // The same response again: a later streamed line, or a copy in a forked
+    // transcript. Only more output counts (older CLIs start with a placeholder).
+    const extra = output - owner.ids[id]
+
+    if (extra > 0) {
+      owner.ids[id] = output
+      bucket(owner, t, model).output += extra
+      addHour(owner, t, extra)
+    }
+
+    return
+  }
+
+  if (id) {
+    state.ids[id] = output
+    counted.set(id, state)
+  }
+
   const creation = (usage.cache_creation || {}) as Record<string, number>
   const write1h = Number(creation.ephemeral_1h_input_tokens) || 0
   const writeTotal = Number(usage.cache_creation_input_tokens) || 0
   const tally = bucket(state, t, model)
   const input = Number(usage.input_tokens) || 0
-  const output = Number(usage.output_tokens) || 0
   const read = Number(usage.cache_read_input_tokens) || 0
   tally.input += input
   tally.output += output
@@ -188,14 +228,17 @@ function parseCodexLine(state: FileState, line: string) {
     const model = /"model":"([^"]+)"/.exec(line)?.[1]
 
     if (model) state.model = model
+    noteCwd(state, line)
 
     return
   }
 
-  if (!line.includes('"token_count"') || !line.includes('"total_token_usage"')) return
-
-  const at = line.indexOf('"total_token_usage":{')
-  const raw = at >= 0 ? objectAt(line, at + 20) : null
+  // Both kinds of record carry the session's running total, and a response can be
+  // in only one of them (a compaction call, an interrupted last turn). The total
+  // only moves forward, so each response counts once, whichever record comes first.
+  const field = line.includes('"token_usage_record"') ? '"thread_token_usage":{' : line.includes('"token_count"') ? '"total_token_usage":{' : ''
+  const at = field ? line.indexOf(field) : -1
+  const raw = at >= 0 ? objectAt(line, at + field.length - 1) : null
 
   if (!raw) return
 
@@ -211,19 +254,15 @@ function parseCodexLine(state: FileState, line: string) {
 
   if (!t) return
 
-  const now = {
-    input: Number(total.input_tokens) || 0,
-    cached: Number(total.cached_input_tokens) || 0,
-    output: Number(total.output_tokens) || 0,
-    reasoning: Number(total.reasoning_output_tokens) || 0
-  }
   const prev = state.cumulative || { input: 0, cached: 0, output: 0, reasoning: 0 }
-  // Cumulative per session: count only the growth since the previous event.
-  const delta = {
-    input: Math.max(0, now.input - prev.input),
-    cached: Math.max(0, now.cached - prev.cached),
-    output: Math.max(0, now.output - prev.output)
+  const now = {
+    input: Math.max(prev.input, Number(total.input_tokens) || 0),
+    cached: Math.max(prev.cached, Number(total.cached_input_tokens) || 0),
+    output: Math.max(prev.output, Number(total.output_tokens) || 0),
+    reasoning: Math.max(prev.reasoning, Number(total.reasoning_output_tokens) || 0)
   }
+  // Cumulative per session: count only the growth since the previous event.
+  const delta = { input: now.input - prev.input, cached: now.cached - prev.cached, output: now.output - prev.output }
   state.cumulative = now
 
   if (!delta.input && !delta.output) return
@@ -237,6 +276,42 @@ function parseCodexLine(state: FileState, line: string) {
   addHour(state, t, delta.input + delta.output)
 }
 
+const AGY_MODEL = 'Antigravity'
+
+/** One model turn of an Antigravity transcript. Its cached tokens are not part of input_tokens. */
+function parseAgyLine(state: FileState, line: string, seen: Set<number>) {
+  if (!line.includes('"PLANNER_RESPONSE"')) return
+
+  let record: { type?: string; step_index?: number; created_at?: string; input_tokens?: number; cache_read_tokens?: number; output_tokens?: number }
+
+  try {
+    record = JSON.parse(line)
+  } catch {
+    return // still being written
+  }
+
+  if (record.type !== 'PLANNER_RESPONSE') return
+
+  if (typeof record.step_index === 'number') {
+    if (seen.has(record.step_index)) return
+    seen.add(record.step_index)
+  }
+
+  const t = Date.parse(record.created_at || '') || 0
+  const input = Number(record.input_tokens) || 0
+  const read = Number(record.cache_read_tokens) || 0
+  const output = Number(record.output_tokens) || 0
+
+  if (!t || (!input && !read && !output)) return
+
+  const tally = bucket(state, t, AGY_MODEL)
+  tally.input += input
+  tally.cacheRead += read
+  tally.output += output
+  tally.messages += 1
+  addHour(state, t, input + read + output)
+}
+
 function readRange(file: string, start: number, end: number): string {
   const length = end - start
 
@@ -246,80 +321,116 @@ function readRange(file: string, start: number, end: number): string {
 
   try {
     const buffer = Buffer.alloc(length)
-    fs.readSync(fd, buffer, 0, length, start)
+    const got = fs.readSync(fd, buffer, 0, length, start)
 
-    return buffer.toString('utf8')
+    return buffer.toString('utf8', 0, got)
   } finally {
     fs.closeSync(fd)
   }
 }
 
-const CWD_RE = /"cwd":"((?:[^"\\]|\\.)*)"/
+const CHUNK = 8 * 1024 * 1024
+const CLAUDE_LINES = [Buffer.from('"type":"assistant"')]
+const CODEX_LINES = [Buffer.from('"token_count"'), Buffer.from('"token_usage_record"'), Buffer.from('"turn_context"'), Buffer.from('"session_meta"')]
+// One buffer for every read: a first run goes through tens of GB.
+let readBuffer: Buffer | null = null
 
-/** The session's working folder, from the first record that carries one. */
-function readCwd(file: string, size: number): string {
+/**
+ * Hands over the complete lines in [start, size) that contain one of `wanted`
+ * and returns the offset just after the last complete line. Lines are matched
+ * as bytes because most of a transcript (tool output, file contents) never has
+ * to become a string. A line longer than the buffer is skipped: the records
+ * that carry usage are small.
+ */
+function readLines(file: string, start: number, size: number, wanted: Buffer[], visit: (line: string) => void): number {
+  const buffer = (readBuffer ||= Buffer.allocUnsafe(CHUNK))
+  const fd = fs.openSync(file, 'r')
+  let position = start
+  let filled = 0
+  let skipping = false
+  let done = start
+
   try {
-    const raw = CWD_RE.exec(readRange(file, 0, Math.min(size, 64 * 1024)))?.[1]
+    while (position + filled < size) {
+      const got = fs.readSync(fd, buffer, filled, Math.min(CHUNK - filled, size - position - filled), position + filled)
 
-    return raw ? (JSON.parse(`"${raw}"`) as string).replace(/^\\\\\?\\/, '') : ''
-  } catch {
-    return ''
+      if (got <= 0) break
+      filled += got
+
+      const view = buffer.subarray(0, filled)
+      let at = 0
+
+      for (let newline = view.indexOf(10, at); newline >= 0; newline = view.indexOf(10, at)) {
+        if (skipping) {
+          skipping = false
+        } else {
+          const line = view.subarray(at, newline)
+
+          if (wanted.some(needle => line.includes(needle))) visit(line.toString('utf8'))
+        }
+
+        at = newline + 1
+        done = position + at
+      }
+
+      if (at === 0 && filled === CHUNK) {
+        skipping = true
+        position += filled
+        filled = 0
+        continue
+      }
+
+      // The unfinished line moves to the front and the next read continues it.
+      if (at > 0) view.copy(buffer, 0, at, filled)
+      position += at
+      filled -= at
+    }
+  } finally {
+    fs.closeSync(fd)
   }
+
+  return done
 }
 
-function processFile(cache: UsageCache, file: string, size: number, group: string, kind: 'claude' | 'codex') {
+function processFile(cache: UsageCache, counted: Map<string, FileState>, file: string, size: number, group: string, kind: 'claude' | 'codex') {
   let state = cache.files[file]
 
   if (!state || size < state.offset) {
-    state = { size: 0, offset: 0, days: {}, hours: {}, recentIds: [], group }
+    // A file that shrank is read again from the start, so what it counted is open again.
+    if (state) for (const id of Object.keys(state.ids)) counted.delete(id)
+    state = { kind, size: 0, offset: 0, days: {}, hours: {}, ids: {}, group, cwd: '' }
     cache.files[file] = state
   }
-
-  // Older caches lack the folder; look it up once.
-  if (state.cwd === undefined) state.cwd = kind === 'codex' && group !== 'codex' ? group : readCwd(file, size)
 
   if (size === state.offset) {
     return
   }
 
-  // Read appended bytes in chunks; carry the trailing partial line over.
-  const CHUNK = 8 * 1024 * 1024
-  const seen = new Set(state.recentIds)
-  let position = state.offset
+  const current = state
 
-  while (position < size) {
-    const end = Math.min(size, position + CHUNK)
-    const text = readRange(file, position, end)
-    const lastNewline = text.lastIndexOf('\n')
+  state.offset = readLines(file, state.offset, size, kind === 'claude' ? CLAUDE_LINES : CODEX_LINES, line => {
+    if (kind === 'claude') parseClaudeLine(current, line, counted)
+    else parseCodexLine(current, line)
+  })
+  state.size = size
+}
 
-    if (lastNewline < 0) {
-      if (end === size) break // incomplete last line; wait for more
-      // A single line longer than CHUNK: extend the window.
-      const extended = readRange(file, position, size)
-      const extNewline = extended.lastIndexOf('\n')
+/** Antigravity transcripts are small and a running step can be rewritten, so a changed file is read whole. */
+function processAgyFile(cache: UsageCache, file: string, size: number, cwd: string) {
+  const known = cache.files[file]
 
-      if (extNewline < 0) break
+  if (known?.size === size) {
+    if (cwd && !known.cwd) known.cwd = cwd
 
-      for (const line of extended.slice(0, extNewline).split('\n')) {
-        kind === 'claude' ? parseClaudeLine(state, line, seen) : parseCodexLine(state, line)
-      }
-
-      position += Buffer.byteLength(extended.slice(0, extNewline + 1), 'utf8')
-      continue
-    }
-
-    const complete = text.slice(0, lastNewline)
-
-    for (const line of complete.split('\n')) {
-      kind === 'claude' ? parseClaudeLine(state, line, seen) : parseCodexLine(state, line)
-    }
-
-    position += Buffer.byteLength(text.slice(0, lastNewline + 1), 'utf8')
+    return
   }
 
-  state.offset = position
-  state.size = size
-  state.recentIds = state.recentIds.slice(-400)
+  const state: FileState = { kind: 'agy', size, offset: size, days: {}, hours: {}, ids: {}, group: 'agy', cwd: cwd || known?.cwd || '' }
+  const seen = new Set<number>()
+
+  for (const line of readRange(file, 0, size).split('\n')) parseAgyLine(state, line, seen)
+
+  cache.files[file] = state
 }
 
 function walkJsonl(dir: string, cutoff: number, out: { file: string; size: number; group: string }[], group: string, depth = 0) {
@@ -348,14 +459,37 @@ function walkJsonl(dir: string, cutoff: number, out: { file: string; size: numbe
   }
 }
 
-function aggregate(cache: UsageCache, files: string[], cutoffDay: string): ProviderUsageRaw {
-  const raw: ProviderUsageRaw = { days: {}, hours: {}, groups: {}, cwdDays: {}, files: files.length }
+function agyTranscripts(agyDir: string, cutoff: number): { id: string; file: string; size: number }[] {
+  const brain = path.join(agyDir, 'brain')
+  const out: { id: string; file: string; size: number }[] = []
+  let ids: string[] = []
 
-  for (const file of files) {
-    const state = cache.files[file]
+  try {
+    ids = fs.readdirSync(brain)
+  } catch {
+    return out
+  }
 
-    if (!state) continue
+  for (const id of ids) {
+    const file = path.join(brain, id, '.system_generated', 'logs', 'transcript.jsonl')
 
+    try {
+      const stat = fs.statSync(file)
+
+      if (stat.mtimeMs >= cutoff) out.push({ id, file, size: stat.size })
+    } catch {
+      // no transcript for this conversation
+    }
+  }
+
+  return out
+}
+
+function aggregate(cache: UsageCache, kind: UsageKind, cutoffDay: string): ProviderUsageRaw {
+  const states = Object.values(cache.files).filter(state => state.kind === kind)
+  const raw: ProviderUsageRaw = { days: {}, hours: {}, groups: {}, cwdDays: {}, files: states.length }
+
+  for (const state of states) {
     for (const [day, models] of Object.entries(state.days)) {
       if (day < cutoffDay) continue
 
@@ -376,14 +510,24 @@ function aggregate(cache: UsageCache, files: string[], cutoffDay: string): Provi
   return raw
 }
 
+function saveCache(cacheFile: string, cache: UsageCache) {
+  try {
+    const tmp = `${cacheFile}.tmp`
+    fs.writeFileSync(tmp, JSON.stringify(cache))
+    fs.renameSync(tmp, cacheFile)
+  } catch {
+    // cache is an optimisation only
+  }
+}
+
 export function runUsage(request: WorkerRequest): WorkerResult {
   const started = Date.now()
-  let cache: UsageCache = { version: 2, files: {} }
+  let cache: UsageCache = { version: CACHE_VERSION, files: {} }
 
   try {
     const loaded = JSON.parse(fs.readFileSync(request.cacheFile, 'utf8')) as UsageCache
 
-    if (loaded?.version === 2 && loaded.files) cache = loaded
+    if (loaded?.version === CACHE_VERSION && loaded.files) cache = loaded
   } catch {
     // fresh cache
   }
@@ -414,7 +558,26 @@ export function runUsage(request: WorkerRequest): WorkerResult {
     walkJsonl(path.join(codexHome, 'sessions'), cutoff, codexFiles, 'codex')
   }
 
-  for (const entry of claudeFiles) processFile(cache, entry.file, entry.size, entry.group, 'claude')
+  // A response counts once over all files: a forked subagent's transcript starts
+  // with a copy of its parent's.
+  const counted = new Map<string, FileState>()
+
+  for (const state of Object.values(cache.files)) {
+    for (const id of Object.keys(state.ids)) counted.set(id, state)
+  }
+
+  // A first run can take minutes. If it is cut off, the next one continues from here.
+  let savedAt = Date.now()
+  const checkpoint = () => {
+    if (Date.now() - savedAt < 15_000) return
+    saveCache(request.cacheFile, cache)
+    savedAt = Date.now()
+  }
+
+  for (const entry of claudeFiles) {
+    processFile(cache, counted, entry.file, entry.size, entry.group, 'claude')
+    checkpoint()
+  }
 
   for (const entry of codexFiles) {
     // Group codex sessions by cwd (read once, from the head of the rollout).
@@ -434,14 +597,20 @@ export function runUsage(request: WorkerRequest): WorkerResult {
       entry.group = cache.files[entry.file].group
     }
 
-    processFile(cache, entry.file, entry.size, entry.group, 'codex')
+    processFile(cache, counted, entry.file, entry.size, entry.group, 'codex')
+    checkpoint()
   }
 
-  // Drop cache entries for files that aged out or disappeared.
-  const live = new Set([...claudeFiles, ...codexFiles].map(entry => entry.file))
+  const agyFiles = agyTranscripts(request.agyDir, cutoff)
 
-  for (const file of Object.keys(cache.files)) {
-    if (!live.has(file)) delete cache.files[file]
+  for (const entry of agyFiles) processAgyFile(cache, entry.file, entry.size, request.agyWorkspaces[entry.id] || '')
+
+  // What was counted stays counted when its file goes away (Antigravity keeps
+  // only its newest 500 conversations): an entry leaves once all its days aged out.
+  const live = new Set([...claudeFiles, ...codexFiles, ...agyFiles].map(entry => entry.file))
+
+  for (const [file, state] of Object.entries(cache.files)) {
+    if (!live.has(file) && !Object.keys(state.days).some(day => day >= cutoffDay)) delete cache.files[file]
   }
 
   // Trim hourly buckets older than 48h.
@@ -453,25 +622,12 @@ export function runUsage(request: WorkerRequest): WorkerResult {
     }
   }
 
-  try {
-    const tmp = `${request.cacheFile}.tmp`
-    fs.writeFileSync(tmp, JSON.stringify(cache))
-    fs.renameSync(tmp, request.cacheFile)
-  } catch {
-    // cache is an optimisation only
-  }
+  saveCache(request.cacheFile, cache)
 
   return {
-    claude: aggregate(
-      cache,
-      claudeFiles.map(entry => entry.file),
-      cutoffDay
-    ),
-    codex: aggregate(
-      cache,
-      codexFiles.map(entry => entry.file),
-      cutoffDay
-    ),
+    claude: aggregate(cache, 'claude', cutoffDay),
+    codex: aggregate(cache, 'codex', cutoffDay),
+    agy: aggregate(cache, 'agy', cutoffDay),
     elapsedMs: Date.now() - started
   }
 }

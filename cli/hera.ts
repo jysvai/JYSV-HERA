@@ -274,10 +274,17 @@ async function statuslineTap(parsed: Parsed) {
 
     if (payload?.rate_limits && typeof payload.rate_limits === 'object') {
       fs.mkdirSync(dataDir(), { recursive: true })
-      fs.writeFileSync(
-        path.join(dataDir(), 'claude-caps.json'),
-        JSON.stringify({ capturedAt: Date.now(), rate_limits: payload.rate_limits, model: payload?.model?.id || null })
-      )
+      // Written aside and renamed, so HERA never reads a half-written file.
+      const file = path.join(dataDir(), 'claude-caps.json')
+      const tmp = `${file}.${process.pid}.tmp`
+      fs.writeFileSync(tmp, JSON.stringify({ capturedAt: Date.now(), rate_limits: payload.rate_limits, model: payload?.model?.id || null }))
+
+      try {
+        fs.renameSync(tmp, file)
+      } catch {
+        // Another session is writing the same file; its numbers are as new as these.
+        fs.rmSync(tmp, { force: true })
+      }
     }
   } catch {
     // not JSON; still forward

@@ -102,7 +102,7 @@ function AgentCard({ usage }: { usage: AgentUsage }) {
         </div>
       )}
 
-      {usage.available && usage.provider !== 'agy' && (
+      {usage.available && (
         <>
           <div className="mb-4 grid grid-cols-3 gap-3">
             <Stat label={t('오늘')} bucket={usage.today} showCost={showCost} />
@@ -175,6 +175,8 @@ const FIRST_RUN = t('기록을 집계하는 중… 처음 한 번은 기록 양�
 
 export function UsagePage() {
   const { usages, loading, error, load } = useUsage(90_000)
+  // Tokens are re-parsed every 4 minutes, so older numbers mean the parse is failing.
+  const staleAt = usages?.length && Date.now() - usages[0].updatedAt > 10 * 60_000 ? usages[0].updatedAt : null
 
   return (
     <div className="h-full overflow-x-hidden overflow-y-auto px-8 py-6">
@@ -188,6 +190,7 @@ export function UsagePage() {
         }
       />
       {error && <div className="mb-4 rounded-md bg-(--status-waiting)/12 px-3 py-2 text-[12px] text-(--status-waiting)">{error}</div>}
+      {staleAt && <div className="mb-4 rounded-md bg-(--status-waiting)/12 px-3 py-2 text-[12px] text-(--status-waiting)">{t('집계가 늦어지고 있어 {time} 기준 숫자를 보여 줍니다.', { time: new Date(staleAt).toLocaleTimeString(locale()) })}</div>}
       {!usages ? (
         <div className="py-16 text-center text-[12.5px] text-(--ui-text-tertiary)">{FIRST_RUN}</div>
       ) : (
@@ -211,7 +214,7 @@ export function UsagePage() {
 function UsageMini({ usage }: { usage: AgentUsage }) {
   const config = useStore($config)
   const agent = config?.agents.find(entry => entry.id === usage.agentId) || null
-  const tokens = usage.provider !== 'agy' && usage.available
+  const tokens = usage.available
   const showCost = usage.provider === 'claude'
 
   return (

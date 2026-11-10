@@ -24,7 +24,7 @@ Totals for today, the last 7 days and the last 30 days with tokens and cost, the
 - A chart of tokens per day over the last 30 days, and the tokens of the last 5 hours.
 - Top 6 **models** and top 6 **folders** over 30 days.
 - "No local records" (로컬 기록 없음) when the tool has left no logs.
-- Antigravity shows only a short note, no token statistics.
+- Antigravity has token statistics only. Its records name no model, so the model list shows a single `Antigravity` row, and its remaining limit (%) and cost are not shown because its local records do not have them.
 
 Costs are estimates at the public API list price. They are not your bill: a subscription plan costs what it costs. They are useful to compare projects and models.
 

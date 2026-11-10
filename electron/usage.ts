@@ -3,10 +3,10 @@ import path from 'node:path'
 import { utilityProcess } from 'electron'
 
 import { locale, t } from '../shared/i18n'
-import type { AgentUsage, Project, ProjectUsageEntry, UsageBucket } from '../shared/types'
+import type { AgentUsage, Project, ProjectUsageEntry, RateWindow, UsageBucket } from '../shared/types'
 import { localDay } from '../shared/util'
 
-import { agyConversations, agyLoggedIn, claudeConfigDirs, claudeRateLimits, codexHomes, codexRateLimits } from './agent-data'
+import { agyConversations, agyDir, agyLoggedIn, claudeConfigDirs, claudeRateLimits, codexHomes, codexRateLimits } from './agent-data'
 import { dataDir, dataPath } from './paths'
 import { claudeCost } from './prices'
 import { getConfig, pathAliases } from './store'
@@ -189,11 +189,14 @@ function runWorker(): Promise<WorkerResult> {
     const timer = setTimeout(() => {
       child.kill()
       reject(new Error('usage worker timeout'))
-    }, 180_000)
+      // What it had parsed is checkpointed, so the next poll continues from there.
+    }, 300_000)
 
     child.on('message', (message: { ok: boolean; result?: WorkerResult; error?: string }) => {
       clearTimeout(timer)
       message.ok && message.result ? resolve(message.result) : reject(new Error(message.error || 'usage worker failed'))
+      // The worker stays alive until its answer has arrived here.
+      child.kill()
     })
     child.on('exit', () => {
       clearTimeout(timer)
@@ -203,6 +206,9 @@ function runWorker(): Promise<WorkerResult> {
       cacheFile: dataPath('usage-cache.json'),
       claudeDirs: claudeConfigDirs(),
       codexHomes: codexHomes(),
+      agyDir: agyDir(),
+      // Antigravity's transcripts do not say which folder they ran in; its index does.
+      agyWorkspaces: Object.fromEntries(agyConversations().flatMap(row => (row.workspace ? [[row.id, row.workspace]] : []))),
       maxAgeDays: 31
     })
   }).finally(() => {
@@ -215,8 +221,8 @@ function runWorker(): Promise<WorkerResult> {
 export async function getUsage(force = false): Promise<AgentUsage[]> {
   const key = projectsKey()
   // Each parse is a short-lived ~100 MB worker, so tokens are re-parsed at most every
-  // 4 minutes: the status bar asks every 5, and each of its asks gets a fresh parse
-  // (the refresh button forces one). Limits are read fresh on every call.
+  // 4 minutes (the refresh button forces one). The status bar asks every minute, and
+  // limits are read fresh on every call.
   const fresh = (at: number) => Date.now() - at < 4 * 60_000
 
   if (!force && lastResult && fresh(lastResult.at) && lastResult.key === key) {
@@ -226,7 +232,18 @@ export async function getUsage(force = false): Promise<AgentUsage[]> {
   const projectOf = projectMatcher(getConfig().projects, pathAliases())
   // A project added/removed only needs a re-split of the parsed logs, not a re-parse.
   const started = Date.now()
-  const result = !force && lastRaw && fresh(lastRaw.at) ? lastRaw.result : await runWorker()
+  let result: WorkerResult
+
+  try {
+    result = !force && lastRaw && fresh(lastRaw.at) ? lastRaw.result : await runWorker()
+  } catch (error) {
+    // A failed parse keeps the last numbers on screen, and the next poll tries again.
+    // Only the refresh button, where someone is waiting for the answer, reports it.
+    if (force || !lastResult) throw error
+
+    return withLimits(lastResult.usages)
+  }
+
   // Stamped with the start of the parse: what it read is that old, not the moment it finished.
   if (result !== lastRaw?.result) lastRaw = { at: started, result }
   const usages: AgentUsage[] = []
@@ -237,20 +254,28 @@ export async function getUsage(force = false): Promise<AgentUsage[]> {
   codex.note = t('비용은 플랜 요금제라 표시하지 않습니다 (토큰만 집계).')
   usages.push(codex)
 
-  const agy = summarize('agy', 'agy', { days: {}, hours: {}, groups: {}, cwdDays: {}, files: 0 }, () => 0, () => null)
-  const conversations = agyConversations()
-  agy.available = conversations.length > 0
-  const loggedIn = agyLoggedIn()
-  const recentConversations = conversations.filter(row => row.lastAt > Date.now() - 30 * 86_400_000).length
+  const agy = summarize('agy', 'agy', result.agy, () => 0, projectOf)
+  agy.available = result.agy.files > 0 || agyConversations().length > 0
   agy.note =
-    loggedIn === false
-      ? t('로컬 기록에 토큰 정보가 없어 대화 수만 집계합니다 (최근 30일 {count}개) · 현재 로그인되어 있지 않음.', { count: recentConversations })
-      : t('로컬 기록에 토큰 정보가 없어 대화 수만 집계합니다 (최근 30일 {count}개).', { count: recentConversations })
+    agyLoggedIn() === false
+      ? t('토큰은 로컬 기록에서 집계합니다. 남은 한도(%)와 비용은 로컬 기록에 없습니다 · 현재 로그인되어 있지 않음.')
+      : t('토큰은 로컬 기록에서 집계합니다. 남은 한도(%)와 비용은 로컬 기록에 없습니다.')
   usages.push(agy)
 
   lastResult = { at: lastRaw?.at ?? Date.now(), key, usages }
 
   return withLimits(usages)
+}
+
+// A snapshot can be unreadable for a moment while a CLI rewrites it, which must not blank the bars.
+let lastClaudeLimits: ReturnType<typeof claudeRateLimits> = null
+let lastCodexLimits: ReturnType<typeof codexRateLimits> = null
+
+/** A window past its reset says nothing about what is used now. */
+function unexpired(limits: RateWindow[] | undefined): RateWindow[] {
+  const now = Date.now()
+
+  return (limits || []).filter(limit => !limit.resetsAt || limit.resetsAt > now)
 }
 
 /** Limits are small files the CLIs keep current, so they are read on every request, not cached with the tokens. */
@@ -259,17 +284,17 @@ function withLimits(usages: AgentUsage[]): AgentUsage[] {
   const codex = usages.find(entry => entry.agentId === 'codex')
 
   if (claude) {
-    const limits = claudeRateLimits(dataDir())
+    const limits = (lastClaudeLimits = claudeRateLimits(dataDir()) || lastClaudeLimits)
 
-    claude.limits = limits?.limits || []
+    claude.limits = unexpired(limits?.limits)
     claude.limitsSource = limits ? `${limits.source} · ${new Date(limits.at).toLocaleTimeString(locale())}` : undefined
     claude.note = limits ? undefined : t('한도 %는 Claude Code 상태줄 연동(설정 → Claude 한도 연동)을 켜면 표시됩니다.')
   }
 
   if (codex) {
-    const limits = codexRateLimits(codexHomes())
+    const limits = (lastCodexLimits = codexRateLimits(codexHomes()) || lastCodexLimits)
 
-    codex.limits = limits?.limits || []
+    codex.limits = unexpired(limits?.limits)
     codex.limitsSource = limits ? `${t('Codex 세션 로그')} · ${new Date(limits.at).toLocaleTimeString(locale())}${limits.plan ? ` · ${limits.plan}` : ''}` : undefined
   }
 

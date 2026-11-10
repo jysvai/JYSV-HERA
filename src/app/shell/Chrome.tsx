@@ -63,12 +63,12 @@ export function Statusbar() {
   useEffect(() => {
     if (!visible) return
     const loadMetrics = () => void api.metrics().then(setMetrics)
-    // Main re-parses tokens at most every 4 minutes, so each poll here gets fresh numbers.
+    // Every poll re-reads the limits; main re-parses tokens at most every 4 minutes.
     const refreshUsage = () => void loadUsage(false).catch(() => undefined)
     loadMetrics()
     const usageDelay = setTimeout(refreshUsage, 4000)
     const metricsTimer = setInterval(loadMetrics, 15_000)
-    const usageTimer = setInterval(refreshUsage, 5 * 60_000)
+    const usageTimer = setInterval(refreshUsage, 60_000)
 
     return () => {
       clearTimeout(usageDelay)

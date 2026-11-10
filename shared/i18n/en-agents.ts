@@ -184,6 +184,7 @@ export const EN_AGENTS: Record<string, string> = {
   '최근 5시간 {tokens}': 'Last 5 hours {tokens}',
   '모델별 (30일)': 'By model (30 days)',
   '폴더별 (30일)': 'By folder (30 days)',
+  '집계가 늦어지고 있어 {time} 기준 숫자를 보여 줍니다.': 'Tallying is running late, so these numbers are from {time}.',
   '기록을 집계하는 중… 처음 한 번은 기록 양에 따라 수십 초~수 분 걸립니다 (별도 프로세스라 터미널 작업에는 영향 없음). 이후에는 새로 추가된 부분만 읽어 바로 열립니다.': 'Tallying history… The first run takes anywhere from tens of seconds to a few minutes depending on how much there is (it runs in a separate process, so terminals aren\'t affected). After that only new entries are read and this opens instantly.',
   '사용량': 'Usage',
   '각 AI CLI 가 로컬에 남긴 기록을 별도 프로세스에서 증분 집계합니다 (네트워크 호출 없음). 비용은 API 정가 환산 추정치입니다.': 'Each AI CLI\'s local history is tallied incrementally in a separate process (no network calls). Costs are estimates at API list prices.',
