@@ -6,6 +6,7 @@ One file per release and language. A release on GitHub is written from these fil
 
 | Version | Date | Summary | Notes |
 |---|---|---|---|
+| [v0.3.9](https://github.com/jysvai/JYSV-HERA/releases/tag/v0.3.9) | 2026-11-11 | Go on with your Claude on your phone and back, and see what the AIs changed and what it affects. | [English](en/v0.3.9.md) · [한국어](ko/v0.3.9.md) |
 | [v0.3.8](https://github.com/jysvai/JYSV-HERA/releases/tag/v0.3.8) | 2026-11-11 | Lanes now open only from the main Claude, and HERA knows about inline lanes. | [English](en/v0.3.8.md) · [한국어](ko/v0.3.8.md) |
 | [v0.3.7](https://github.com/jysvai/JYSV-HERA/releases/tag/v0.3.7) | 2026-11-10 | Usage numbers now keep up, count each response once, and include Antigravity. | [English](en/v0.3.7.md) · [한국어](ko/v0.3.7.md) |
 | [v0.3.6](https://github.com/jysvai/JYSV-HERA/releases/tag/v0.3.6) | 2026-11-02 | Closing several tabs at once no longer brings HERA down. | [English](en/v0.3.6.md) · [한국어](ko/v0.3.6.md) |
