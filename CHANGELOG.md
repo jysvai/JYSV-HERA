@@ -2,6 +2,22 @@
 
 Full patch notes, one file per release in English and Korean: [docs/patch-notes](docs/patch-notes/README.md).
 
+## 0.3.8 — 2026-11-11
+
+### Changed
+
+- **HERA never starts a lane.** Removed `startLanes`, `hostInTab` / `hostScript` / `hostEnv` (`electron/lanes.ts`), the `lanes:start` IPC, the panel's ▶ and "모두 열기", and `settings.lanes.autoStart` (an old config's value is dropped on load). The main Claude opens lanes on hand-off; with `launch: inline` a lane HERA started was a session main never sent work to. `hostLane` (`hera host --lane`) is unchanged.
+
+### Added
+
+- **Inline lanes (lanes 0.4.0).** `LanesInfo.agentTeams` (`CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS` in Claude Code `settings.json` `env` or HERA's env) and `LanesInfo.inline`. The launch control offers `inline` when the plugin schema has it and warns when agent teams are off. Auto-mode reset keeps `launch: inline`.
+
+### Fixed
+
+- **Inline lanes showed "off".** `laneProject` only matched lane sessions by name. A lane whose `state/<tier>.json` is not `off` and whose `lead` is the `sessionId` of a live `~/.claude/sessions/<pid>.json` now counts as running (`LaneLive.teammate`), as lanes' `leadElsewhere` does. `stopLanes` skips teammate tiers and returns a `/lane stop` note.
+- **Auto-mode allow list** for `dontAsk` lanes was added only when HERA started a lane. `autoLaneAllowlist` now adds it before HERA starts a main Claude in the project. `applyAllowFor` no longer replaces a `settings.local.json` that does not parse.
+- `LanesInfo.canHost` is `hostSeam` alone: with HERA starting no lanes, a lane becomes a tab only through lanes 0.3.13+ (`hera host --lane`), Windows included.
+
 ## 0.3.7 — 2026-11-10
 
 ### Added
