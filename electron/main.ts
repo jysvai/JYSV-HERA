@@ -28,7 +28,7 @@ import { resolveLanguage, setLanguage, t } from '../shared/i18n'
 import { resolveTheme } from '../shared/themes'
 import type { BusMessage, CreateSessionRequest, HeraConfig, LaneTier, SessionInfo, StartRaceRequest, StartWorkRequest, UpdateInfo } from '../shared/types'
 
-import { currentActivity, setActivityVisible, startActivity, stopActivity } from './activity'
+import { changedFiles, currentActivity, fileChanges, setActivityVisible, startActivity, stopActivity } from './activity'
 import { accountStatuses, createProfile, installStatuslineTap, removeProfile, statuslineTapState, uninstallStatuslineTap } from './accounts'
 import { claudeLiveSessions } from './agent-data'
 import { resolveTarget, sendFromUser, startBus, stopBus } from './bus'
@@ -37,6 +37,8 @@ import { openExternalTerminal, scanForProjects } from './external'
 import { listProjectDir, openProjectPath, projectAbsPath, projectGitStatus } from './files'
 import { searchHistory } from './history'
 import { invalidateInsight, projectActivityTimes, projectInsight } from './insight'
+import { fileImpact } from './impact'
+import { remoteHostsRunning, remoteHostStatus, retryRemoteHost, stopRemoteHosts, syncRemoteHosts } from './remote-host'
 import { applyLaneAllowlist, autoLaneAllowlist, laneMainArgs, laneProject, lanesInfo, saveLaneRole, setLaneOptions, setLaneTabs, stopLanes } from './lanes'
 import { pasteClipboardImage, pasteFiles, pasteImageBytes } from './paste-target'
 import { dataPath, findOnPath, hydrateLoginPath, isMac, isWin, readJson, writeJsonAtomic } from './paths'
@@ -454,6 +456,11 @@ function launch(request: CreateSessionRequest): SessionInfo {
     if (extra) req = { ...req, extraArgs: [req.extraArgs, extra].filter(Boolean).join(' ') }
   }
 
+  // Remote Control: the tab's Claude also shows in claude.ai/code and the Claude app's Code tab, and
+  // both sides can type. The flag itself is added at every start from the setting as it is then
+  // (buildAgentCommand), so turning it on or off reaches restored tabs too. Helpers stay off the phone.
+  if (claudeMain && req.role !== 'helper' && !/--(?:remote-control|rc)(?![\w-])/.test(`${launched?.command} ${req.extraArgs || ''}`)) req = { ...req, remoteControl: true }
+
   // Auto mode with dontAsk lanes: the allow rules go in before Claude reads its settings.
   if (claudeMain && req.projectId) {
     try {
@@ -663,6 +670,20 @@ function registerIpc() {
   handle('files:path', (projectId: string, rel: string) => projectAbsPath(String(projectId), String(rel || '')))
   handle('files:git', (projectId: string) => projectGitStatus(String(projectId)))
   handle('activity:list', () => currentActivity())
+  handle('activity:changed-files', (projectId: string) => changedFiles(String(projectId)))
+  handle('activity:file-changes', (projectId: string, file: string) => fileChanges(String(projectId), String(file)))
+  handle('activity:impact', (projectId: string, file: string) => {
+    const project = projectById(String(projectId))
+    const target = path.resolve(String(file))
+    // The worktree copy holding the file, else the project folder: its imports are the ones that count.
+    const roots = [...listWorktrees().filter(entry => entry.projectId === project?.id).map(entry => entry.path), project?.path].filter((root): root is string => Boolean(root))
+    const root = roots.find(folder => {
+      const relative = path.relative(folder, target)
+      return Boolean(relative) && !relative.startsWith('..') && !path.isAbsolute(relative)
+    })
+
+    return root ? fileImpact(root, target) : { path: target, dependents: [], indirect: [], tests: [], supported: false, scanned: 0, capped: false }
+  })
   handle('tools:packages', (force?: boolean) => toolPackages(Boolean(force)))
   handle('tools:extensions', (projectId?: string | null) => scanExtensions(projectById(typeof projectId === 'string' ? projectId : null)?.path || null))
   handle('tools:update', (ids: unknown, projectId?: string | null) => {
@@ -747,6 +768,8 @@ function registerIpc() {
   handle('history:search', (query: string) => searchHistory(String(query || '')))
   handle('usage:get', (force: boolean) => getUsage(Boolean(force)))
 
+  handle('remote:status', () => remoteHostStatus())
+  handle('remote:retry', (projectId: string) => retryRemoteHost(String(projectId)))
   handle('lanes:info', () => lanesInfo())
   handle('lanes:setOptions', (patch: Record<string, string | number | boolean | null>) => setLaneOptions(patch || {}))
   handle('lanes:project', (projectId: string) => laneProject(String(projectId)))
@@ -837,7 +860,12 @@ app.whenReady().then(() => {
   pty.restoreSessions()
   void pruneMissingWorktrees()
   registerIpc()
+  // Projects that let the phone start sessions keep a `claude remote-control` server running.
+  // Not in a smoke run: it must not start phone servers from whatever profile it runs with.
+  const phoneServers = !process.env.HERA_SMOKE
+  if (phoneServers) void syncRemoteHosts()
   onConfigChange(next => {
+    if (phoneServers) void syncRemoteHosts()
     applyLanguage()
     send('config:changed', next)
     applyWindowTheme()
@@ -868,7 +896,18 @@ app.whenReady().then(() => {
   if (process.env.HERA_SMOKE) setTimeout(() => void runSmoke(process.env.HERA_SMOKE!), 1500)
 })
 
-app.on('before-quit', () => {
+// Remote Control servers get up to a few seconds to unregister their folders (Ctrl+C); one killed
+// outright keeps its folder held on Anthropic's side, and the next start has to wait for that.
+let remoteStopped = false
+
+app.on('before-quit', event => {
+  if (!remoteStopped && remoteHostsRunning()) {
+    remoteStopped = true
+    event.preventDefault()
+    void stopRemoteHosts().finally(() => app.quit())
+    return
+  }
+
   quitting = true
   saveWindowState()
   pty.stopAutosave()
@@ -882,6 +921,7 @@ app.on('before-quit', () => {
 
   flushConfig()
   stopBus()
+  void stopRemoteHosts()
   pty.killAll()
   globalShortcut.unregisterAll()
 })

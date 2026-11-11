@@ -449,6 +449,7 @@ export function defaultSettings(platform: string): Settings {
     conptyDll: true,
     codexOwnServer: true,
     codexInline: true,
+    claudeRemoteControl: false,
     sshPaste: true,
     cursorStyle: 'bar',
     cursorBlink: false,
@@ -562,6 +563,7 @@ function normalizeSettings(base: Settings, raw: Partial<Settings> | undefined): 
   settings.conptyDll = settings.conptyDll !== false
   settings.codexOwnServer = settings.codexOwnServer !== false
   settings.codexInline = settings.codexInline !== false
+  settings.claudeRemoteControl = settings.claudeRemoteControl === true
   settings.sshPaste = settings.sshPaste !== false
   settings.isolateHelpers = settings.isolateHelpers === true
   if (!['auto', 'ko', 'en'].includes(settings.uiLanguage)) settings.uiLanguage = 'auto'

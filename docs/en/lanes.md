@@ -50,7 +50,7 @@ A table with one row each for **Main**, **mid lane** and **low lane**: model, fa
   - **Inline** (lanes 0.4.0+): each lane is a teammate inside the main Claude's own session, listed in the agent panel under its prompt. No tab, window or extra Claude process opens. It needs agent teams: add `"CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1"` to `env` in Claude Code's `settings.json` and reopen Claude. Until then lanes open in windows, and the settings page says so.
 - "Close idle lanes automatically (minutes)": `0` means never; the maximum is 1,440.
 
-<p align="center"><img src="../images/lanes-tab.gif" alt="lanes starting a mid lane, which opens as a HERA tab" width="760"></p>
+<p align="center"><img src="../images/lanes-tab-en.gif" alt="The main Claude hands work to the mid lane: the lanes plugin opens it as a HERA tab and its card goes from Off to Opening to Idle" width="760"></p>
 
 Lane tabs are titled "lane · mid" and "lane · low". HERA only opens a lane in a project you registered. If you start Claude in a folder that is not a HERA project, the plugin opens its own window instead. Closed or finished lane tabs of the same kind are replaced when a new one opens.
 

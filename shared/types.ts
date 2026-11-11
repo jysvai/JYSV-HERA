@@ -37,6 +37,21 @@ export interface Project {
   pinned: boolean
   createdAt: number
   tags?: string[]
+  /** Keep a `claude remote-control` server running here, so the phone and the web can start sessions in this folder. */
+  phoneServer?: boolean
+}
+
+/** A project's `claude remote-control` server, as HERA last saw it. */
+export interface RemoteHostStatus {
+  projectId: string
+  state: 'starting' | 'connected' | 'error'
+  /** Why it stopped (Claude Code's own line where it gave one). */
+  message: string
+  since: number
+  /** The claude.ai/code link for this folder's environment, once the server printed it. */
+  url: string | null
+  /** What the phone lists this folder as ("REA_P_1", "lanes · main"): the server's "Ready · …" line. */
+  label: string | null
 }
 
 export type UsageProvider = 'claude' | 'codex' | 'agy'
@@ -243,6 +258,8 @@ export interface Settings {
   codexOwnServer: boolean
   /** Start Codex tabs with `--no-alt-screen`, so the wheel scrolls the terminal's scrollback. */
   codexInline: boolean
+  /** Start HERA's Claude tabs with `--remote-control`, so claude.ai/code and the Claude app's Code tab can continue them. */
+  claudeRemoteControl: boolean
   /** In a tab logged in somewhere with ssh, copy pasted images and dropped files there first. */
   sshPaste: boolean
   cursorStyle: 'bar' | 'block' | 'underline'
@@ -470,6 +487,50 @@ export interface ActivityFile {
   by: string[]
   /** Two different agents changed it during their current work. */
   conflict: boolean
+  /** Lines added and removed by the agents' current work, from their own patches; 0 when none were seen. */
+  added: number
+  removed: number
+}
+
+/** One hunk of a change: lines prefixed ' ' (context), '-' (removed) or '+' (added). */
+export interface DiffHunk {
+  /** First line in the old and the new file; 0 when the CLI did not say (Codex patches). */
+  oldStart: number
+  newStart: number
+  lines: string[]
+}
+
+/** What one agent's current work changed in one file. */
+export interface FileChangeDetail {
+  runId: string
+  label: string
+  agentId: string | null
+  path: string
+  added: number
+  removed: number
+  created: boolean
+  deleted: boolean
+  hunks: DiffHunk[]
+  /** More was changed than HERA keeps to show. */
+  truncated: boolean
+  at: number
+}
+
+/** Who depends on a file, from the project's imports (TS/JS and Python). */
+export interface FileImpact {
+  path: string
+  /** Paths are project-relative with '/' separators. */
+  dependents: string[]
+  /** Reached through other files (up to three steps), not counting direct dependents. */
+  indirect: string[]
+  /** Test files among both, plus tests named after the file. */
+  tests: string[]
+  /** HERA reads imports of this kind of file. */
+  supported: boolean
+  /** Files scanned for imports. */
+  scanned: number
+  /** The project has more source files than HERA reads: the rest were left out. */
+  capped: boolean
 }
 
 export interface ActivityPlan {
@@ -506,13 +567,32 @@ export interface ActivityRun {
   tools: number
   /** Distinct files changed. */
   edits: number
+  /** Lines added and removed in this work, from the CLI's own patches. */
+  added: number
+  removed: number
 }
 
 export interface ProjectActivity {
   projectId: string
   runs: ActivityRun[]
   files: ActivityFile[]
+  /** What the shown work changed, from the CLIs' own patches. */
+  changes: { files: number; added: number; removed: number }
   updatedAt: number
+}
+
+/** A file the shown work changed (all agents together). */
+export interface ChangedFile {
+  path: string
+  rel: string | null
+  worktree: string | null
+  added: number
+  removed: number
+  created: boolean
+  deleted: boolean
+  /** Runs (ActivityRun.id) that changed it, newest first. */
+  by: string[]
+  at: number
 }
 
 export interface CreateSessionRequest {
@@ -523,6 +603,10 @@ export interface CreateSessionRequest {
   command?: string
   /** Append the agent's continueArgs. */
   resume?: boolean
+  /** Claude: bring a session from the phone or the web to this computer (`claude --teleport`, which lists them). */
+  teleport?: boolean
+  /** Claude main tab: also on the phone and the web when the Remote Control setting is on at the time it starts. */
+  remoteControl?: boolean
   profileId?: string | null
   role?: 'main' | 'helper' | null
   title?: string

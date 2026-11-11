@@ -90,6 +90,7 @@ export function SettingsPage() {
   const [conptyDll, setConptyDll] = useSetting('conptyDll')
   const [codexOwnServer, setCodexOwnServer] = useSetting('codexOwnServer')
   const [codexInline, setCodexInline] = useSetting('codexInline')
+  const [claudeRemoteControl, setClaudeRemoteControl] = useSetting('claudeRemoteControl')
   const [sshPaste, setSshPaste] = useSetting('sshPaste')
   const [cursorStyle, setCursorStyle] = useSetting('cursorStyle')
   const [cursorBlink, setCursorBlink] = useSetting('cursorBlink')
@@ -243,6 +244,12 @@ export function SettingsPage() {
             description={t('Codex 를 전체 화면 없이 엽니다(--no-alt-screen). 대화가 터미널 스크롤백에 남아 다른 탭처럼 휠과 트랙패드로 바로 스크롤되고, 드래그로 바로 복사됩니다. 끄면 Codex 가 스크롤을 직접 처리해 느릴 수 있습니다. 새로 여는 Codex 탭부터 적용.')}
           >
             <Switch checked={codexInline !== false} onChange={setCodexInline} label={t('Codex 부드러운 스크롤')} />
+          </Row>
+          <Row
+            label={t('Claude 를 폰 · 웹에서도 이어 하기 (Remote Control)')}
+            description={t('HERA 가 여는 Claude 탭을 --remote-control 로 시작합니다. 세션이 Claude 앱의 Code 탭과 claude.ai/code 에 프로젝트 이름으로 뜨고, 터미널과 폰 어느 쪽에서 입력해도 같은 대화가 이어집니다. Claude 구독 계정이 필요하고, 이 컴퓨터가 켜져 있어야 합니다. 보조 에이전트와 lanes 는 제외. Claude 탭이 시작될 때마다 적용(▶ 와 복원 포함).')}
+          >
+            <Switch checked={claudeRemoteControl === true} onChange={setClaudeRemoteControl} label={t('Remote Control')} />
           </Row>
           <Row
             label={t('SSH 탭에 이미지 · 파일 올리기')}

@@ -152,3 +152,8 @@ export function heraPipeName(user: string, dataDir: string, defaultDataDir: stri
  */
 export const HOST_PASSED_ENV =
   /^(CLAUDE_CONFIG_DIR|CLAUDE_CODE_USE_(BEDROCK|MANTLE|VERTEX|FOUNDRY)|AWS_(REGION|DEFAULT_REGION|PROFILE)|ANTHROPIC_(BEDROCK_REGION_PREFIX|VERTEX_PROJECT_ID|FOUNDRY_RESOURCE|BEDROCK_BASE_URL|BEDROCK_MANTLE_BASE_URL|VERTEX_BASE_URL|FOUNDRY_BASE_URL|DEFAULT_(OPUS|SONNET|HAIKU|FABLE)_MODEL)|CLOUD_ML_REGION)$/
+
+/** A project name as a Remote Control session prefix: letters, digits, `.`, `_`, `-` (needs no quoting in any shell). */
+export function remoteName(name: string): string {
+  return name.replace(/[^\p{L}\p{N}._-]+/gu, '-').replace(/^[-.]+|-+$/g, '') || 'hera'
+}

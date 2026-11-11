@@ -18,11 +18,15 @@ import type {
   HeraConfig,
   HistoryHit,
   LaneProjectState,
+  RemoteHostStatus,
   LanesInfo,
   LaneTier,
   PasteResult,
   Project,
   ProjectActivity,
+  ChangedFile,
+  FileChangeDetail,
+  FileImpact,
   ProjectInsight,
   SessionInfo,
   StartWorkRequest,
@@ -79,6 +83,11 @@ export const api = {
   gitStatus: (projectId: string) => call<Record<string, string>>('files:git', projectId),
   /** What running agents are reading and changing, per project (pushed as 'activity:changed'). */
   liveActivity: () => call<ProjectActivity[]>('activity:list'),
+  /** Files the agents' shown work changed in a project, and what each agent changed in one of them. */
+  changedFiles: (projectId: string) => call<ChangedFile[]>('activity:changed-files', projectId),
+  fileChanges: (projectId: string, file: string) => call<FileChangeDetail[]>('activity:file-changes', projectId, file),
+  /** Files that import this one (and tests), from the project's imports. */
+  fileImpact: (projectId: string, file: string) => call<FileImpact>('activity:impact', projectId, file),
   toolPackages: (force?: boolean) => call<ToolPackages>('tools:packages', Boolean(force)),
   toolExtensions: (projectId: string | null) => call<CliExtensions[]>('tools:extensions', projectId),
   updateTools: (ids: string[], projectId: string | null) => call<SessionInfo | null>('tools:update', ids, projectId),
@@ -151,6 +160,8 @@ export const api = {
 
   lanesInfo: () => call<LanesInfo>('lanes:info'),
   setLaneOptions: (patch: Record<string, string | number | boolean | null>) => call<LanesInfo>('lanes:setOptions', patch),
+  remoteStatus: () => call<RemoteHostStatus[]>('remote:status'),
+  retryRemote: (projectId: string) => call<void>('remote:retry', projectId),
   laneProject: (projectId: string) => call<LaneProjectState | null>('lanes:project', projectId),
   stopLanes: (projectId: string, which: LaneTier | 'all') => call<{ ok: boolean; message: string }>('lanes:stop', projectId, which),
   saveLaneRole: (projectId: string, tier: LaneTier, text: string) => call<void>('lanes:role', projectId, tier, text),

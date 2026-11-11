@@ -21,7 +21,7 @@ import * as nodePty from 'node-pty'
 import { GENERIC_APPROVAL, GENERIC_BUSY } from '../shared/defaults'
 import { locale, t } from '../shared/i18n'
 import type { AgentDef, CreateSessionRequest, SessionInfo, SessionStatus } from '../shared/types'
-import { newId, safeRegex } from '../shared/util'
+import { newId, remoteName, safeRegex } from '../shared/util'
 
 import { codexBootCommand } from './codex'
 import { binDir, dataPath, expandHome, home, isWin, readJson, writeJsonAtomic } from './paths'
@@ -281,6 +281,16 @@ function shellEnv(extra: Record<string, string>): Record<string, string> {
   return { ...env, ...extra }
 }
 
+/** The environment HERA gives an agent it starts, for processes that run outside a tab (Remote Control hosts). */
+export function agentEnv(): Record<string, string> {
+  return shellEnv({})
+}
+
+/** Claude teleport: the session comes from the phone or the web with its own id, so none of HERA's. */
+function teleporting(req: CreateSessionRequest, agent: AgentDef | null): boolean {
+  return Boolean(req.teleport && agent && (agent.id === 'claude' || agent.usageProvider === 'claude'))
+}
+
 function buildAgentCommand(req: CreateSessionRequest, agent: AgentDef | null, ids: { resumeId?: string | null; newId?: string | null } = {}): string | null {
   if (req.command?.trim()) {
     return req.command.trim()
@@ -292,7 +302,10 @@ function buildAgentCommand(req: CreateSessionRequest, agent: AgentDef | null, id
 
   const parts = [agent.command.trim()]
 
-  if (ids.resumeId && agent.resumeIdArgs) {
+  // Teleport opens Claude's picker; a restored tab goes on with its own conversation instead.
+  if (teleporting(req, agent) && !ids.resumeId && !req.resume) {
+    parts.push('--teleport')
+  } else if (ids.resumeId && agent.resumeIdArgs) {
     parts.push(withId(agent.resumeIdArgs, ids.resumeId))
   } else if (req.resume && agent.continueArgs) {
     parts.push(agent.continueArgs)
@@ -302,6 +315,12 @@ function buildAgentCommand(req: CreateSessionRequest, agent: AgentDef | null, id
 
   if (req.extraArgs) {
     parts.push(req.extraArgs)
+  }
+
+  // Remote Control, as the setting is now. Last, so `--remote-control`'s optional name never takes another argument.
+  if (req.remoteControl && getConfig().settings.claudeRemoteControl) {
+    const project = projectById(req.projectId || null)
+    parts.push(`${project ? `--remote-control-session-name-prefix ${remoteName(project.name)} ` : ''}--remote-control`)
   }
 
   return parts.join(' ')
@@ -322,7 +341,7 @@ export function createSession(req: CreateSessionRequest): SessionInfo {
   const name = uniqueName(agent?.id || spec.kind)
   const { term, serializer } = headlessTerminal(cols, rows, config.settings.scrollback)
   // A fresh agent conversation gets an id HERA knows, so it can be resumed exactly.
-  const conversationId = agent && !req.command?.trim() && !req.resume && agent.sessionIdArgs ? newConversationId() : null
+  const conversationId = agent && !req.command?.trim() && !req.resume && !teleporting(req, agent) && agent.sessionIdArgs ? newConversationId() : null
 
   const session: Session = {
     id,
@@ -1023,7 +1042,7 @@ export function revive(id: string, resume = true, auto = false): SessionInfo | n
   // Without a recorded conversation, an agent that supports exact ids starts fresh on
   // auto-restore rather than grabbing whatever conversation in that folder is newest.
   const useContinue = resume && !resumeId && Boolean(agent?.continueArgs) && !(auto && agent?.resumeIdArgs)
-  const newId = runAgent && !resumeId && !useContinue && agent?.sessionIdArgs && !session.launchReq.command?.trim() ? newConversationId() : null
+  const newId = runAgent && !resumeId && !useContinue && agent?.sessionIdArgs && !session.launchReq.command?.trim() && !teleporting(session.launchReq, agent || null) ? newConversationId() : null
   const request = session.agentId ? session.launchReq : { ...session.launchReq, agentId: agent?.id || null, command: undefined }
   session.bootCommand = runAgent ? buildAgentCommand({ ...request, resume: useContinue }, agent, { resumeId, newId }) : null
   if (newId && agent) session.conversation = { agentId: agent.id, id: newId }

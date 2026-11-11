@@ -542,7 +542,7 @@ export function WorktreesPanel() {
   )
 }
 
-function lineClass(line: string): string {
+export function lineClass(line: string): string {
   if (line.startsWith('@@')) return 'text-(--ui-accent-text)'
   if (line.startsWith('+')) return 'bg-[color-mix(in_srgb,var(--status-idle)_14%,transparent)]'
   if (line.startsWith('-')) return 'bg-[color-mix(in_srgb,var(--status-waiting)_14%,transparent)]'

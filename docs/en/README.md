@@ -13,6 +13,7 @@ HERA is a terminal for people who work with AI coding agents. These pages explai
 | [Worktrees](worktrees.md) | Isolated copies of a project for an AI to work in: review, merge or throw away; give several AIs the same task and keep the best |
 | [Live activity](live-activity.md) | What the agents are doing right now: progress, work per model and cost, subagents, and the files they read and change |
 | [The `hera` CLI](hera-cli.md) | Every `hera` command, with examples, and how agents hand work to each other |
+| [Phone and web](remote-control.md) | Claude tabs on your phone and claude.ai/code, starting sessions here from your phone, bringing them into a HERA tab |
 | [Lanes](lanes.md) | Running the lanes plugin's mid and low sessions inside HERA |
 | [Session memory](session-memory.md) | Autosave, restoring after a reboot, resuming the exact conversation |
 | [Usage](usage.md) | Limits, tokens and cost per agent and per project |

@@ -50,7 +50,7 @@ HERA 는 lane 을 직접 열지 않습니다. lane 은 메인 Claude 가 필요�
   - **inline** (lanes 0.4.0 이상): lane 이 메인 Claude 세션 안의 팀원이 되어 프롬프트 아래 에이전트 패널에 보입니다. 탭도 창도 Claude 프로세스도 늘지 않습니다. 에이전트 팀이 켜져 있어야 합니다. Claude Code `settings.json` 의 `env` 에 `"CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1"` 을 넣고 Claude 를 다시 여세요. 그 전까지 lane 은 창으로 열리고, 설정 페이지에 안내가 나옵니다.
 - “쉬는 lane 자동 종료 (분)”: `0` 은 종료 안 함, 최대 1,440.
 
-<p align="center"><img src="../images/lanes-tab.gif" alt="lanes 가 mid lane 을 시작하자 HERA 탭으로 열리는 모습" width="760"></p>
+<p align="center"><img src="../images/lanes-tab.gif" alt="메인 Claude 가 mid lane 에 일을 넘기면 lanes 플러그인이 HERA 탭으로 열고, 카드가 꺼짐에서 여는 중, 대기로 바뀌는 모습" width="760"></p>
 
 lane 탭의 제목은 “lane · mid”, “lane · low” 입니다. HERA 는 등록된 프로젝트에서만 lane 을 탭으로 엽니다. HERA 에 등록되지 않은 폴더에서 Claude 를 열면 플러그인이 자기 창을 따로 엽니다. 같은 종류의 lane 탭이 이미 끝났거나 쉬는 중이면 새 탭이 열릴 때 정리됩니다.
 

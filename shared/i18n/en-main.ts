@@ -101,4 +101,6 @@ export const EN_MAIN: Record<string, string> = {
   '서버가 알려 준 폴더를 쓸 수 없습니다': 'The folder the server reported cannot be used',
   'lane 을 HERA 탭 대신 별도 창으로 엽니다: {reason}. {hint}': 'The lane opens in its own window instead of a HERA tab: {reason}. {hint}',
   '이 폴더를 프로젝트로 추가하면 다음부터 탭으로 열립니다.': 'Add this folder as a project and lanes open as tabs from then on.',
+  'Remote Control 서버가 멈췄습니다 (종료 코드 {code}).': 'The Remote Control server stopped (exit code {code}).',
+  '프로젝트 폴더가 없습니다: {path}': 'The project folder is missing: {path}',
 }

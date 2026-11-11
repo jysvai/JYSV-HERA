@@ -42,11 +42,33 @@ The header sums it up: how many agents are working, the overall progress of the 
 | Orange pencil | **Editing** (수정 중): an agent changed the file | while that agent works, and 5 minutes after |
 | Red warning | **Several agents are editing it**: two different agents changed it during their current work | as long as the edits do |
 
-Each file shows its folder, the agents on it (`claude-1 +1` means one more) and how long ago. Click a file to open the tree at it. A file in a [worktree](worktrees.md) copy shows a branch icon; it is not marked in the tree, which shows the project folder.
+Each file shows its folder, the lines added and removed (<code>+12 −3</code>), the agents on it (`claude-1 +1` means one more) and how long ago. Click a file being read to open the tree at it; click a changed file to see what changed (below). A file in a [worktree](worktrees.md) copy shows a branch icon; it is not marked in the tree, which shows the project folder.
 
 The tree marks the same files: a colored name and a tint for a file, a dot on a closed folder that holds one.
 
 A red file means two agents are changing the same thing at once, and one may undo the other's work. Let one of them finish, or give the second one its own copy with [Worktrees](worktrees.md).
+
+### What changed and what it affects
+
+Once an agent has changed files, a **Changed files** (바뀐 파일) card shows above the file list: how many files and how many lines were added and removed in the current work. Click it (or a changed file) to open three columns:
+
+![Claude Code edits session.ts and adds errors.ts; the In progress section shows a Changed files card with 2 files, +12 −3. Clicking it opens the dialog: the diff of session.ts, and its impact: three files use it directly, three more through them, and two related tests. Picking errors.ts shows the new file; Ask to check fills in a note with the tests and files to check](../images/live-activity/en-changes.gif)
+
+
+- **The changed files** of the work shown, all agents together, newest first. A new file has a plus icon, a deleted one a minus.
+- **What changed**: each agent's changes to the selected file, line by line (added lines green, removed lines red), with the agent's name and when. **Show in tree** and **Open** take you to the file.
+- **Impact** (영향 범위): the files that import the selected one, the files reached through those (up to three steps), and the related tests: tests among them, and tests named after the file (`login.test.ts`, `test_login.py`). Click one to open the tree at it.
+
+At the bottom you can write a note to the tab whose agent changed the file last and send it there. **Ask to check** fills in a note that asks the agent to run the related tests and to check the files that use this one.
+
+The changes come from the agents' own edits: Claude Code's edit and write tools (the patch it records) and Codex's patches (counted when Codex sends them). Lines are counted as made, so a line changed and changed back counts both times. A file changed by a shell command or another program, or a notebook edit, shows in the list without its contents. A change that starts the next request belongs to the next piece of work: the card counts the current one.
+
+The impact comes from import statements, read when you open the dialog:
+
+- TypeScript and JavaScript: relative paths, `import()` and `require`, the `paths` and `baseUrl` of `tsconfig.json` / `jsconfig.json` (with what they `extends` and `references`, and the nearest config above each file in a monorepo), and workspace packages imported by their `package.json` name.
+- Python: relative and package imports, also over several lines.
+
+Imports in comments are skipped. It does not see code loaded by a name in a string, or config files that name a file. The files read are the project's source files (`git ls-files`, or the folder without `node_modules`, `dist` and the like), up to 30,000.
 
 ## Where the information comes from
 

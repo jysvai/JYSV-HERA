@@ -1,5 +1,5 @@
 import { useStore } from '@nanostores/react'
-import { IconAlertTriangle, IconChevronDown, IconEye, IconGitBranch, IconPencil } from '@tabler/icons-react'
+import { IconAlertTriangle, IconChevronDown, IconChevronRight, IconEye, IconFileDiff, IconGitBranch, IconPencil } from '@tabler/icons-react'
 import { useEffect, useState } from 'react'
 
 import { t } from '../../../shared/i18n'
@@ -8,6 +8,8 @@ import { formatTokens } from '../../../shared/util'
 import { cn } from '../../lib/cn'
 import { formatUsd } from '../../lib/usage'
 import { $config, $liveActivity, $sessions, focusSession } from '../../store/app'
+
+import { ChangesDialog, LineCounts } from './ChangesDialog'
 
 const FILES_SHOWN = 8
 
@@ -98,7 +100,7 @@ function RunRow({ run, color, nested, now }: { run: ActivityRun; color: string; 
   const plan = run.plan
   const detail = [
     plan?.current ? t('지금: {step}', { step: plan.current }) : null,
-    run.edits ? t('파일 {count}개 수정', { count: run.edits }) : null,
+    run.edits ? t('파일 {count}개 수정', { count: run.edits }) + (run.added || run.removed ? ` (+${run.added} −${run.removed})` : '') : null,
     run.tools ? t('도구 {count}회', { count: run.tools }) : null,
     run.tokens ? t('{tokens} 토큰', { tokens: formatTokens(run.tokens) }) : null
   ].filter(Boolean)
@@ -131,20 +133,22 @@ function RunRow({ run, color, nested, now }: { run: ActivityRun; color: string; 
   )
 }
 
-function FileRow({ file, runs, now, onReveal }: { file: ActivityFile; runs: Map<string, ActivityRun>; now: number; onReveal: (rel: string) => void }) {
+function FileRow({ file, runs, now, onReveal, onDiff }: { file: ActivityFile; runs: Map<string, ActivityRun>; now: number; onReveal: (rel: string) => void; onDiff: (path: string) => void }) {
   const name = file.path.split(/[\\/]/).pop() || file.path
   const where = file.rel ? file.rel.slice(0, Math.max(0, file.rel.length - name.length - 1)) : file.path.slice(0, Math.max(0, file.path.length - name.length - 1))
   const color = fileColor(file)
   const who = file.by.map(id => runs.get(id)?.label || '').filter(Boolean)
   const kind = file.conflict ? t('여러 에이전트가 함께 수정 중') : file.kind === 'edit' ? t('수정 중') : t('보는 중')
   const Icon = file.conflict ? IconAlertTriangle : file.kind === 'edit' ? IconPencil : IconEye
+  // A changed file opens what changed and who depends on it; a read one shows where it is.
+  const diff = file.kind === 'edit'
 
   return (
     <button
       type="button"
-      disabled={!file.rel || Boolean(file.worktree)}
-      onClick={() => file.rel && !file.worktree && onReveal(file.rel)}
-      title={`${file.path}\n${kind} · ${who.join(', ')}${file.worktree ? `\n${t('작업 공간: {name}', { name: file.worktree })}` : ''}`}
+      disabled={!diff && (!file.rel || Boolean(file.worktree))}
+      onClick={() => (diff ? onDiff(file.path) : file.rel && !file.worktree && onReveal(file.rel))}
+      title={`${file.path}\n${kind} · ${who.join(', ')}${file.worktree ? `\n${t('작업 공간: {name}', { name: file.worktree })}` : ''}${diff ? `\n${t('누르면 바뀐 내용과 영향 범위를 봅니다.')}` : ''}`}
       className="flex h-[24px] w-full min-w-0 items-center gap-1.5 rounded-md px-1.5 text-left text-[12px] hover:bg-(--chrome-action-hover) disabled:hover:bg-transparent"
     >
       <Icon size={13} className="shrink-0" style={{ color }} />
@@ -153,6 +157,7 @@ function FileRow({ file, runs, now, onReveal }: { file: ActivityFile; runs: Map<
       </span>
       {file.worktree && <IconGitBranch size={11} className="shrink-0 text-(--ui-text-tertiary)" />}
       <span className="min-w-0 flex-1 truncate font-mono text-[10.5px] text-(--ui-text-tertiary)">{where}</span>
+      <LineCounts added={file.added} removed={file.removed} />
       <span className="shrink-0 text-[10.5px] text-(--ui-text-tertiary)">
         {who[0] || ''}
         {who.length > 1 ? ` +${who.length - 1}` : ''} · {ago(file.at, now)}
@@ -167,6 +172,8 @@ export function LiveWork({ projectId, onReveal }: { projectId: string; onReveal:
   const agents = useStore($config)?.agents || []
   const [open, setOpen] = useState(readOpen)
   const [allFiles, setAllFiles] = useState(false)
+  /** The changes dialog: open on this file (null: the newest change). */
+  const [changesFor, setChangesFor] = useState<{ file: string | null } | null>(null)
   const [now, setNow] = useState(Date.now())
   const runs = activity?.runs || []
   const files = activity?.files || []
@@ -200,6 +207,7 @@ export function LiveWork({ projectId, onReveal }: { projectId: string; onReveal:
   const working = runs.filter(run => run.state === 'working').length
   const waiting = runs.filter(run => run.state === 'waiting').length
   const shownFiles = allFiles ? files : files.slice(0, FILES_SHOWN)
+  const changes = activity?.changes
 
   return (
     <div className="flex max-h-[48%] shrink-0 flex-col border-b border-(--ui-stroke-tertiary)">
@@ -258,6 +266,22 @@ export function LiveWork({ projectId, onReveal }: { projectId: string; onReveal:
                 ))}
             </div>
           ))}
+          {changes && changes.files > 0 && (
+            <button
+              type="button"
+              onClick={() => setChangesFor({ file: null })}
+              title={t('이번 작업에서 바뀐 파일, 줄 단위 변경, 영향 받는 파일과 테스트를 봅니다.')}
+              className="mx-1.5 mt-1.5 flex w-[calc(100%-12px)] items-center gap-1.5 rounded-md border border-(--ui-stroke-tertiary) px-2 py-1.5 text-left text-[11.5px] hover:bg-(--chrome-action-hover)"
+            >
+              <IconFileDiff size={13} className="shrink-0" style={{ color: EDIT_COLOR }} />
+              <span className="min-w-0 truncate">{t('바뀐 파일 {count}개', { count: changes.files })}</span>
+              <LineCounts added={changes.added} removed={changes.removed} />
+              <span className="ml-auto flex shrink-0 items-center text-[10.5px] text-(--ui-text-tertiary)">
+                {t('변경 · 영향 보기')}
+                <IconChevronRight size={12} />
+              </span>
+            </button>
+          )}
           {files.length > 0 && (
             <div className="mt-1.5">
               <div className="flex items-center gap-2 px-1.5 pb-0.5 text-[10.5px] text-(--ui-text-tertiary)">
@@ -272,7 +296,7 @@ export function LiveWork({ projectId, onReveal }: { projectId: string; onReveal:
                 </span>
               </div>
               {shownFiles.map(file => (
-                <FileRow key={file.path} file={file} runs={byId} now={now} onReveal={onReveal} />
+                <FileRow key={file.path} file={file} runs={byId} now={now} onReveal={onReveal} onDiff={path => setChangesFor({ file: path })} />
               ))}
               {files.length > FILES_SHOWN && (
                 <button type="button" onClick={() => setAllFiles(value => !value)} className="px-1.5 pt-0.5 text-[11px] text-(--ui-text-tertiary) hover:text-(--ui-text-primary)">
@@ -283,6 +307,7 @@ export function LiveWork({ projectId, onReveal }: { projectId: string; onReveal:
           )}
         </div>
       )}
+      {changesFor && <ChangesDialog projectId={projectId} initial={changesFor.file} onReveal={onReveal} onClose={() => setChangesFor(null)} />}
     </div>
   )
 }

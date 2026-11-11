@@ -1,6 +1,9 @@
 import { useStore } from '@nanostores/react'
+import { useEffect, useState } from 'react'
 import {
   IconBolt,
+  IconCloudDownload,
+  IconDeviceMobile,
   IconExternalLink,
   IconPlayerPlay,
   IconPlus,
@@ -10,11 +13,11 @@ import {
 
 import { t } from '../../../shared/i18n'
 import { readableOn } from '../../../shared/themes'
-import type { AgentDef, Project } from '../../../shared/types'
-import { Button } from '../../components/ui/primitives'
+import type { AgentDef, Project, RemoteHostStatus } from '../../../shared/types'
+import { Button, Switch } from '../../components/ui/primitives'
 import { Menu, MenuItem, MenuLabel, MenuSeparator } from '../../components/ui/menu'
 import { api } from '../../lib/hera'
-import { $availability, $config, launch, launchTeam, toast } from '../../store/app'
+import { $availability, $config, $windowVisible, launch, launchTeam, toast, updateConfig } from '../../store/app'
 
 export function AgentGlyph({ agent, size = 16 }: { agent: Pick<AgentDef, 'name' | 'color'> | null; size?: number }) {
   if (!agent) {
@@ -89,6 +92,16 @@ export function LaunchMenu({ project, split = false }: { project: Project; split
               )}
             </div>
           ))}
+          {agents.some(agent => agent.id === 'claude') && (
+            <MenuItem
+              onSelect={() => {
+                close()
+                void launch({ projectId: project.id, agentId: 'claude', teleport: true }, { split })
+              }}
+            >
+              <IconCloudDownload /> {t('폰 · 웹 세션 가져오기')}
+            </MenuItem>
+          )}
           {!!config?.teams.length && <MenuLabel>{t('팀 (멀티 에이전트)')}</MenuLabel>}
           {config?.teams.map(team => (
             <MenuItem
@@ -176,6 +189,7 @@ export function LaunchPad({ project }: { project: Project }) {
             </div>
           ))}
         </div>
+        {agents.some(agent => agent.id === 'claude') && <PhonePanel project={project} />}
         {!!config?.teams.length && (
           <div className="mt-6">
             <div className="mb-2 text-[11px] font-semibold tracking-wide text-(--ui-text-tertiary) uppercase">{t('팀으로 시작')}</div>
@@ -202,6 +216,93 @@ export function LaunchPad({ project }: { project: Project }) {
         )}
         <div className="mt-6 text-[11.5px] text-(--ui-text-tertiary)">
           {t('▶ 버튼은 마지막 대화를 이어서 엽니다. 에이전트 목록은 PATH 에 설치된 CLI 만 표시됩니다 (에이전트 페이지에서 추가/관리).')}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+/** The project's Remote Control server, polled while the start screen shows. */
+function useRemoteStatus(projectId: string, on: boolean): RemoteHostStatus | null {
+  const visible = useStore($windowVisible)
+  const [status, setStatus] = useState<RemoteHostStatus | null>(null)
+
+  useEffect(() => {
+    if (!on) {
+      setStatus(null)
+      return
+    }
+    const read = () =>
+      void api
+        .remoteStatus()
+        .then(list => setStatus(list.find(entry => entry.projectId === projectId) || null))
+        .catch(() => undefined)
+    read()
+    if (!visible) return
+    const timer = setInterval(read, 3000)
+
+    return () => clearInterval(timer)
+  }, [projectId, on, visible])
+
+  return status
+}
+
+/** Phone and web: start sessions here from the Claude app, and bring them (or cloud ones) into a HERA tab. */
+function PhonePanel({ project }: { project: Project }) {
+  const on = Boolean(project.phoneServer)
+  const status = useRemoteStatus(project.id, on)
+  const setOn = (next: boolean) =>
+    updateConfig(draft => {
+      const entry = draft.projects.find(item => item.id === project.id)
+      if (entry) entry.phoneServer = next
+    })
+
+  const line = !on
+    ? t('켜면 Claude 앱의 Code 탭과 claude.ai/code 에서 이 폴더로 새 세션을 시작할 수 있습니다. 세션은 이 컴퓨터에서 돕니다.')
+    : !status || status.state === 'starting'
+      ? t('연결하는 중…')
+      : status.state === 'connected'
+        ? t('연결됨: 폰의 Code 탭에서 이 컴퓨터의 {name} 을 고르세요.', { name: status.label || project.name })
+        : status.message
+
+  return (
+    <div className="mt-6">
+      <div className="mb-2 text-[11px] font-semibold tracking-wide text-(--ui-text-tertiary) uppercase">{t('폰 · 웹에서 이어 하기')}</div>
+      <div className="space-y-3 rounded-lg bg-(--ui-bg-quaternary) px-4 py-3">
+        <div className="flex items-center gap-3">
+          <IconDeviceMobile size={20} className="shrink-0 text-(--ui-text-secondary)" />
+          <div className="min-w-0 flex-1">
+            <div className="text-[13px] font-medium">{t('폰에서 이 프로젝트로 새 세션 시작')}</div>
+            <div className={status?.state === 'error' ? 'text-[11px] text-(--status-busy)' : 'text-[11px] text-(--ui-text-tertiary)'}>{line}</div>
+          </div>
+          <Switch checked={on} onChange={setOn} label={t('폰에서 새 세션')} />
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button variant="outline" size="sm" onClick={() => void launch({ projectId: project.id, agentId: 'claude', teleport: true })}>
+            <IconCloudDownload /> {t('폰 · 웹 세션 가져오기')}
+          </Button>
+          {status?.state === 'error' && (
+            <Button variant="ghost" size="sm" onClick={() => void api.retryRemote(project.id)}>
+              {t('다시 시도')}
+            </Button>
+          )}
+          {status?.url && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() =>
+                void api
+                  .copy(status.url!)
+                  .then(() => toast(t('링크를 복사했습니다.')))
+                  .catch(() => undefined)
+              }
+            >
+              {t('링크 복사')}
+            </Button>
+          )}
+        </div>
+        <div className="text-[11px] text-(--ui-text-tertiary)">
+          {t('가져오기는 이 저장소의 폰 · 웹 세션 목록을 엽니다(claude --teleport). 고른 세션은 이 컴퓨터의 HERA 탭에서 이어지고, 설정의 Remote Control 이 켜져 있으면 폰에서도 계속 이어집니다.')}
         </div>
       </div>
     </div>

@@ -1,11 +1,11 @@
 // Live activity, the reading half: follows one agent conversation's transcript
 // (and the transcripts of the subagents it starts) and keeps what activity.ts
-// shows: files read and changed, the agent's own plan, tokens per model.
+// shows: files read and changed (and what changed in them), the agent's own plan, tokens per model.
 // Plain Node, no Electron, so it can be run against real transcripts on its own.
 import fs from 'node:fs'
 import path from 'node:path'
 
-import type { ActivityPlan, ActivityRun, FileTouchKind } from '../shared/types'
+import type { ActivityPlan, ActivityRun, DiffHunk, FileTouchKind } from '../shared/types'
 import { clip } from '../shared/util'
 
 import { claudeCost } from './prices'
@@ -41,6 +41,26 @@ interface Touch {
   at: number
 }
 
+/** What one piece of work changed in one file, from the CLI's own patch. */
+export interface Change {
+  path: string
+  added: number
+  removed: number
+  /** The work made the file (Claude Write of a new file, Codex "Add File"). */
+  created: boolean
+  deleted: boolean
+  hunks: DiffHunk[]
+  /** Hunks past CHANGE_LINES were counted but not kept. */
+  truncated: boolean
+  at: number
+}
+
+// Diff lines and characters kept per file and piece of work; the counts go on past them.
+const CHANGE_LINES = 4000
+const CHANGE_CHARS = 400_000
+// A minified file or a data blob is one huge line: shown clipped.
+const LINE_CHARS = 2000
+
 interface Spawn {
   prompt: string
   label: string
@@ -69,6 +89,8 @@ export interface Run {
   tools: number
   edited: Set<string>
   touches: Map<string, Touch & { path: string }>
+  /** What this piece of work changed, per file. */
+  changes: Map<string, Change>
   /** Claude: message ids already counted (each content block repeats the usage). */
   seen: Set<string>
   /** Claude: subagents this run started, by tool_use id. */
@@ -125,6 +147,7 @@ export function newRun(id: string, sessionId: string, parentId: string | null, l
     tools: 0,
     edited: new Set(),
     touches: new Map(),
+    changes: new Map(),
     seen: new Set(),
     spawns: new Map(),
     codexNow: null,
@@ -145,6 +168,7 @@ function beginWork(run: Run, task: string, at: number) {
   run.byModel.clear()
   run.tools = 0
   run.edited.clear()
+  run.changes.clear()
   run.spawns.clear()
   run.codexBase = run.codexNow || (run.fromStart ? { input: 0, cached: 0, output: 0 } : null)
 }
@@ -165,6 +189,40 @@ function touch(run: Run, file: string, kind: FileTouchKind, at: number) {
   if (run.touches.size > 400) {
     const oldest = [...run.touches.entries()].sort((a, b) => a[1].at - b[1].at).slice(0, 100)
     for (const [entry] of oldest) run.touches.delete(entry)
+  }
+}
+
+function recordChange(run: Run, file: string, at: number, hunks: DiffHunk[], flags: { created?: boolean; deleted?: boolean } = {}) {
+  if (!file || file.length > 1024) return
+  const abs = path.resolve(run.cwd, file)
+  const key = keyOf(abs)
+  const fresh = !run.changes.has(key)
+  const change = run.changes.get(key) || { path: abs, added: 0, removed: 0, created: false, deleted: false, hunks: [], truncated: false, at }
+  let kept = change.hunks.reduce((sum, hunk) => sum + hunk.lines.length, 0)
+  let chars = change.hunks.reduce((sum, hunk) => hunk.lines.reduce((total, line) => total + line.length, sum), 0)
+
+  for (const hunk of hunks) {
+    let size = 0
+    for (const line of hunk.lines) {
+      if (line.startsWith('+')) change.added++
+      else if (line.startsWith('-')) change.removed++
+      size += Math.min(line.length, LINE_CHARS + 1)
+    }
+    if (kept + hunk.lines.length <= CHANGE_LINES && chars + size <= CHANGE_CHARS) {
+      change.hunks.push({ ...hunk, lines: hunk.lines.map(line => (line.length > LINE_CHARS ? `${line.slice(0, LINE_CHARS)}…` : line)) })
+      kept += hunk.lines.length
+      chars += size
+    } else change.truncated = true
+  }
+
+  // Made and changed again in the same work is still a new file; deleted afterwards is gone.
+  if (flags.created && fresh) change.created = true
+  if (flags.deleted) change.deleted = true
+  change.at = at
+  run.changes.set(key, change)
+  if (run.changes.size > 200) {
+    const oldest = [...run.changes.entries()].sort((a, b) => a[1].at - b[1].at)[0]
+    if (oldest) run.changes.delete(oldest[0])
   }
 }
 
@@ -258,6 +316,52 @@ function patchTouches(run: Run, patch: string, cwd: string, at: number) {
     touch(run, path.resolve(cwd, (match[1] || match[2]).trim()), 'edit', at)
     match = re.exec(patch)
   }
+
+  patchChanges(run, patch, cwd, at)
+}
+
+/**
+ * A Codex patch (`*** Update File: x`, `@@`, then `+` / `-` / ` ` lines). It names no line
+ * numbers, so its hunks carry none (0).
+ */
+function patchChanges(run: Run, patch: string, cwd: string, at: number) {
+  let file: string | null = null
+  let mode: 'add' | 'update' | 'delete' = 'update'
+  let hunks: DiffHunk[] = []
+  let hunk: DiffHunk | null = null
+  const flush = () => {
+    if (file) recordChange(run, path.resolve(cwd, file), at, hunks, { created: mode === 'add', deleted: mode === 'delete' })
+    hunks = []
+    hunk = null
+  }
+
+  for (const raw of patch.split('\n')) {
+    const line = raw.replace(/\r$/, '')
+    const header = /^\*\*\* (Update|Add|Delete) File: (.+)$/.exec(line)
+    if (header) {
+      flush()
+      file = header[2].trim()
+      mode = header[1] === 'Add' ? 'add' : header[1] === 'Delete' ? 'delete' : 'update'
+      continue
+    }
+    const moved = /^\*\*\* Move to: (.+)$/.exec(line)
+    if (moved) {
+      file = moved[1].trim()
+      continue
+    }
+    if (!file || line.startsWith('***')) continue
+    if (line.startsWith('@@')) {
+      hunk = { oldStart: 0, newStart: 0, lines: [] }
+      hunks.push(hunk)
+    } else if (/^[+\- ]/.test(line)) {
+      if (!hunk) {
+        hunk = { oldStart: 0, newStart: mode === 'add' ? 1 : 0, lines: [] }
+        hunks.push(hunk)
+      }
+      hunk.lines.push(line)
+    }
+  }
+  flush()
 }
 
 // ---- Claude Code
@@ -337,6 +441,30 @@ function claudeTool(run: Run, tool: Json, at: number) {
   }
 }
 
+/**
+ * What an Edit / MultiEdit / Write did, from its result: `structuredPatch` hunks (lines
+ * prefixed ' ', '-', '+'), or a new file's whole content.
+ */
+function claudeChange(run: Run, result: Json, at: number) {
+  const file = str(result.filePath)
+  if (!file) return
+
+  if (result.type === 'create' && typeof result.content === 'string') {
+    const lines = result.content.split('\n')
+    if (lines[lines.length - 1] === '') lines.pop()
+    recordChange(run, file, at, [{ oldStart: 0, newStart: 1, lines: lines.map(line => `+${line}`) }], { created: true })
+    return
+  }
+
+  if (!Array.isArray(result.structuredPatch)) return
+  const hunks = (result.structuredPatch as Json[]).map(hunk => ({
+    oldStart: Number(hunk?.oldStart) || 0,
+    newStart: Number(hunk?.newStart) || 0,
+    lines: Array.isArray(hunk?.lines) ? (hunk.lines as unknown[]).filter((line): line is string => typeof line === 'string') : []
+  }))
+  if (hunks.length) recordChange(run, file, at, hunks)
+}
+
 function claudeLine(run: Run, line: Json, sub: boolean) {
   if (!sub && line.isSidechain === true) return
   const at = timeOf(line)
@@ -354,6 +482,7 @@ function claudeLine(run: Run, line: Json, sub: boolean) {
         const spawn = part?.type === 'tool_result' ? run.spawns.get(str(part.tool_use_id)) : undefined
         if (spawn && !launched) spawn.done = true
       }
+      claudeChange(run, result, at)
       run.updatedAt = at
       return
     }
@@ -795,7 +924,9 @@ export function summarize(run: Run, state: ActivityRun['state']): ActivityRun {
     output,
     costUsd: cost,
     tools: run.tools,
-    edits: run.edited.size
+    edits: run.edited.size,
+    added: [...run.changes.values()].reduce((sum, change) => sum + change.added, 0),
+    removed: [...run.changes.values()].reduce((sum, change) => sum + change.removed, 0)
   }
 }
 
