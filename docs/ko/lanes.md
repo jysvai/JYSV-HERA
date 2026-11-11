@@ -21,7 +21,7 @@ claude plugin install lanes@claude-mod --scope user
 
 설치한 뒤 “다시 찾기” 를 누르세요. 상태 카드에 “설치됨” 과 Claude Code 에서 lanes 가 켜져 있는지 꺼져 있는지가 표시됩니다.
 
-HERA 에서 연 lane 은 Windows 에서 lanes 버전과 상관없이 HERA 탭으로 열립니다. 메인 Claude 가 스스로 연 lane(닫힌 lane 에 일을 넘길 때, `/lane start`, 죽은 lane 을 다시 열 때)은 lanes 0.3.13 이상이면 모든 OS 에서 HERA 탭이 됩니다. lanes 가 `hera host --lane` 으로 HERA 에 탭을 요청합니다. 플러그인이 그보다 오래됐으면 상태 카드에 업데이트 안내가 나옵니다.
+HERA 는 lane 을 직접 열지 않습니다. lane 은 메인 Claude 가 필요할 때 엽니다. 닫힌 lane 에 일을 넘길 때, `/lane start`, 죽은 lane 을 다시 열 때입니다. lanes 0.3.13 이상이면 이 lane 이 모든 OS 에서 HERA 탭이 됩니다. lanes 가 `hera host --lane` 으로 HERA 에 탭을 요청합니다. 플러그인이 그보다 오래됐으면 상태 카드에 업데이트 안내가 나옵니다.
 
 탭으로 열지는 **연동** 섹션의 “HERA 에서 lane 을 열 때” 가 정합니다(기본값 **HERA 탭**). 아래 “HERA 에서 lanes 사용” 스위치가 꺼져 있어도 적용되므로, 새 PC 에 HERA 와 lanes 를 설치하면 바로 탭으로 열립니다. 바꾼 설정은 새로 여는 터미널부터 적용됩니다.
 
@@ -44,15 +44,17 @@ HERA 에서 연 lane 은 Windows 에서 lanes 버전과 상관없이 HERA 탭으
 
 ## 실행 방식
 
-- “Claude 가 스스로 lane 을 열 때”: 별도 창(기본값) 또는 백그라운드. 백그라운드 lane 은 `claude attach` 로 볼 수 있습니다. 그 Claude 가 등록된 프로젝트의 HERA 탭에서 돌고 **연동** 섹션의 “HERA 에서 lane 을 열 때” 가 **HERA 탭** 이면, 별도 창 대신 HERA 탭으로 열립니다 (lanes 0.3.13 이상).
-- “Claude 를 열면 lanes 도 같이 열기”: Claude 를 열 때 보조 세션 둘을 함께 엽니다.
+- “lane 여는 방식”: 별도 창(기본값), 백그라운드, inline.
+  - **별도 창**: 메인 Claude 가 등록된 프로젝트의 HERA 탭에서 돌고 **연동** 섹션의 “HERA 에서 lane 을 열 때” 가 **HERA 탭** 이면, 별도 창 대신 HERA 탭으로 열립니다 (lanes 0.3.13 이상).
+  - **백그라운드**: `claude attach` 로 봅니다.
+  - **inline** (lanes 0.4.0 이상): lane 이 메인 Claude 세션 안의 팀원이 되어 프롬프트 아래 에이전트 패널에 보입니다. 탭도 창도 Claude 프로세스도 늘지 않습니다. 에이전트 팀이 켜져 있어야 합니다. Claude Code `settings.json` 의 `env` 에 `"CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1"` 을 넣고 Claude 를 다시 여세요. 그 전까지 lane 은 창으로 열리고, 설정 페이지에 안내가 나옵니다.
 - “쉬는 lane 자동 종료 (분)”: `0` 은 종료 안 함, 최대 1,440.
 
 <p align="center"><img src="../images/lanes-tab.gif" alt="lanes 가 mid lane 을 시작하자 HERA 탭으로 열리는 모습" width="760"></p>
 
 lane 탭의 제목은 “lane · mid”, “lane · low” 입니다. HERA 는 등록된 프로젝트에서만 lane 을 탭으로 엽니다. HERA 에 등록되지 않은 폴더에서 Claude 를 열면 플러그인이 자기 창을 따로 엽니다. 같은 종류의 lane 탭이 이미 끝났거나 쉬는 중이면 새 탭이 열릴 때 정리됩니다.
 
-Claude 가 폴더를 아직 신뢰하지 않으면 “Workspace not trusted” 안내가 나옵니다. 그 폴더에서 Claude 를 한 번 열어 신뢰를 허용하세요.
+Claude 가 폴더를 아직 신뢰하지 않으면 그 폴더에서 lane 이 열리지 않습니다. 그 폴더에서 Claude 를 한 번 열어 신뢰를 허용하세요.
 
 ## 권한
 
@@ -74,8 +76,9 @@ lanes 는 사람이 지켜보지 않아도 일하므로 권한이 중요합니�
 
 오른쪽 패널의 **Lanes** 탭:
 
-- 제목에 프로젝트 이름 (“lanes · <이름>”), **모두 열기 / 모두 닫기**, **Lanes 설정**.
-- lane 마다 카드: 상태 (꺼짐 / 여는 중 / 대기 / 작업 중), 모델, “lane 탭 보기” 버튼, 시작 · 정지 버튼, 현재 작업, “대기 중인 일 N개”.
+- 제목에 프로젝트 이름 (“lanes · <이름>”), **모두 닫기** (lane 세션이 떠 있을 때), **Lanes 설정**.
+- lane 마다 카드: 상태 (꺼짐 / 여는 중 / 대기 / 작업 중), 모델, “lane 탭 보기” 버튼, 닫기 버튼, 현재 작업, “대기 중인 일 N개”. 여는 버튼은 없습니다. lane 은 메인 Claude 가 일을 넘길 때 열립니다.
+- inline lane 은 모델 옆에 “메인의 팀원” 이 붙고 닫기 버튼이 없습니다. 메인 Claude 프로세스 안에서 돌기 때문입니다. 메인 Claude 에서 `/lane stop` 으로 닫으세요.
 - **비용**: 오늘 lane 비용과 메인에서 했을 때보다 아낀 돈(누적). API 정가 기준 추정치이고 lanes 가 기록한 값입니다.
 - **최근 작업**: 최근 15개 (id, lane, 결과 배지, 비용, 경과 시간). 누르면 보고서가 열립니다. 3초마다 갱신됩니다.
 

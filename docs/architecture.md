@@ -8,7 +8,7 @@
 │ resume.ts     session memory: shell folder tracking, agent conversation ids         │
 │ bus.ts        \\.\pipe\jysvhera-<user> (macOS/Linux: <data>/hera.sock), JSON lines,  │
 │               cli-token auth → hera CLI requests (list/ask/send/reply/peek/…)       │
-│ lanes.ts      lanes plugin: find, options, start/stop (HERA tabs), project state     │
+│ lanes.ts      lanes plugin: find, options, host (HERA tabs), stop, project state     │
 │ shell.ts      shell choice · boot script (UTF-8, PATH, aliases) · per-shell quoting  │
 │ insight.ts    project backlog: git, recent files, each AI's last prompt (15 s cache) │
 │ accounts.ts   account profiles (config-folder env), non-secret auth state           │
@@ -87,24 +87,20 @@
 - **Options.** Read from and written to `~/.claude/settings.json` → `pluginConfigs["lanes@…"].options`.
   - Only that key is touched. Values are checked against the schema (type and enum). `null` removes a value (back to the plugin default), and empty objects are pruned.
   - The first write keeps a copy of the original file as `claude-settings.backup.json` in HERA's data folder. A file that does not parse is not rewritten.
-  - *Auto* mode clears every stored value (plugin defaults) and lets HERA pick the launch host, main flags and allow-list.
+  - *Auto* mode clears every stored value (plugin defaults) except `launch: inline`, and lets HERA pick the launch host, main flags and allow-list.
 - **Project state.** For each lane:
   - **Name:** `<slug>-<tier>`, where slug = folder name plus the first 4 hex digits of the FNV-1a hash of the path, computed the way lanes does.
-  - **Running:** a live `~/.claude/sessions/<pid>.json` with that name (pid checked).
+  - **Running:** a live `~/.claude/sessions/<pid>.json` with that name (pid checked). An inline lane (lanes 0.4.0+, `launch: inline` with `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS` on) has no session of its own: it is a teammate in main's process. It counts as running while its state file is not `off` and the session whose `sessionId` is the state's `lead` is alive, which is how lanes itself sees it from another session (`leadElsewhere`). The panel marks it `teammate`.
   - **Live state:** `<project>/.claude/lanes/state/<tier>.json`.
   - **Tasks and verdicts:** `<tier>.tasks.json`.
   - **Cost and savings:** `<tier>.spend.json` (`onMain - cost`).
   - **Queued work:** `~/.claude/lanes/<slug>/<tier>.queue.json`.
   - **Reports:** `out/<id>.md`.
-- **Starting a lane in a HERA tab (Windows).** HERA writes a small script and runs it in a new tab of the project.
-  - The script removes inherited Claude session markers, defines a `Start-Process` function, then runs `lanes.ps1 start <tier>` with the effective options as parameters.
-  - `lanes.ps1` opens a lane with `Start-Process powershell.exe -Command "<launch>" | Out-Null`. The function takes that call and starts the same command with `System.Diagnostics.Process.Start` on the tab's console.
-  - It must not run the command through the pipeline: the redirected stdout would make Claude fall back to `--print`.
-  - The role prompt, flags and the lane's hard denials are exactly what lanes.ps1 produces.
-  - The tab carries `lane: 'mid' | 'low'` so the panel can link to it. Stopping a lane runs `lanes.ps1 stop` (it kills the lane's process tree and removes its registry entry) and closes the tab.
-- **Separate windows (any OS).** `lanes.ps1` / `lanes.sh` run hidden with the same parameters (`LANES_*` env on macOS/Linux). `Workspace not trusted` in the output counts as a failure, because the script still exits 0.
-- **Permissions.** For `dontAsk` lanes, the allow-list (default: `Read`, `Grep`, `Glob`, `Edit(./.claude/lanes/**)`, `SendMessage`, `ListAgents`, `WebSearch`, `WebFetch`, read-only git) is merged into `<project>/.claude/settings.local.json`. Auto mode does this when HERA starts a lane; the panel can also do it.
-- **Main session (opt-in).** With *apply main settings* on, when HERA starts Claude without its own `--model` it appends `--model <main_model> --fallback-model <main_fallback> --effort <main_effort>`, what lanes' `claude-main` does. It is off by default so the user's own model choice is never overridden. Optionally both lanes start with Claude.
+- **No starting from HERA.** HERA never opens a lane itself (0.3.8 dropped the panel's open buttons and the "open lanes with Claude" switch). The main Claude opens a lane when it hands work to a closed one, so a lane HERA opened would only sit there. An inline lane cannot be started from outside main's session at all.
+- **Hosting in a HERA tab (any OS, lanes 0.3.13+).** HERA sets `HERA_LANES_HOST=1` in its terminals. When main opens a window lane, `lanes.ps1` / `lanes.sh` call `hera host --lane <tier>` with the project and the lane's run file (`<project>/.claude/lanes/state/<tier>.run.ps1|.command`) in `HERA_HOST_CWD` / `HERA_HOST_RUN`; HERA checks the project is registered and the run file is the lane's own, then opens it in a tab carrying `lane: 'mid' | 'low'` so the panel can link to it. A refusal makes lanes open its own window, and HERA says why once.
+- **Stopping.** `lanes.ps1 stop` / `lanes.sh stop` (it kills the lane's process tree and removes its registry entry), then the lane's tab closes. An inline lane is skipped with a note to use `/lane stop` in main: nothing outside main's process can stop a teammate.
+- **Permissions.** For `dontAsk` lanes, the allow-list (default: `Read`, `Grep`, `Glob`, `Edit(./.claude/lanes/**)`, `SendMessage`, `ListAgents`, `WebSearch`, `WebFetch`, read-only git) is merged into `<project>/.claude/settings.local.json`: in auto mode before HERA starts a main Claude in the project (`autoLaneAllowlist`, so main's lanes and inline teammates start with it), and from the panel's "Apply allow list". A `settings.local.json` that does not parse is left alone.
+- **Main session (opt-in).** With *apply main settings* on, when HERA starts Claude without its own `--model` it appends `--model <main_model> --fallback-model <main_fallback> --effort <main_effort>`, what lanes' `claude-main` does. It is off by default so the user's own model choice is never overridden.
 - Verified end to end: main Claude in a HERA tab → `/lane low …` → the low lane in another HERA tab answered → the reply arrived in main. The panel showed the task, its cost and the savings; `lanes:stop` closed the lane and its tab.
 
 ## Version check

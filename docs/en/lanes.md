@@ -21,7 +21,7 @@ claude plugin install lanes@claude-mod --scope user
 
 Press "Find again" (다시 찾기) after installing. The status card shows "Installed" (설치됨) and whether lanes is on or off in Claude Code.
 
-A lane you start from HERA opens as a HERA tab with any lanes version on Windows. A lane the main Claude opens by itself (a task sent to a closed lane, `/lane start`, a lane restarted after it died) becomes a HERA tab with lanes 0.3.13 or newer, on every OS: lanes asks HERA for the tab with `hera host --lane`. With an older plugin the status card says to update it.
+HERA does not start lanes itself. The main Claude opens a lane when it needs one: a task sent to a closed lane, `/lane start`, or a lane restarted after it died. With lanes 0.3.13 or newer that lane becomes a HERA tab on every OS: lanes asks HERA for the tab with `hera host --lane`. With an older plugin the status card says to update it.
 
 Whether lanes open as tabs is set by "When HERA opens a lane" in the **Integration** section (**HERA tab** by default). It applies even while "Use lanes in HERA" below is off, so on a new PC lanes open as tabs as soon as HERA and lanes are installed. A change applies from the next terminal you open.
 
@@ -44,15 +44,17 @@ A table with one row each for **Main**, **mid lane** and **low lane**: model, fa
 
 ## How lanes run
 
-- "When Claude opens a lane itself": a separate window (the default) or in the background. A background lane can be viewed with `claude attach`. When that Claude runs in a HERA tab of a registered project and "When HERA opens a lane" in the **Integration** section is **HERA tab**, the window choice becomes a HERA tab instead (lanes 0.3.13+).
-- "Open lanes together with Claude" starts both helpers whenever you open Claude.
+- "How lanes open": a separate window (the default), the background, or inline.
+  - **Separate window**: when the main Claude runs in a HERA tab of a registered project and "When HERA opens a lane" in the **Integration** section is **HERA tab**, the lane opens as a HERA tab instead (lanes 0.3.13+).
+  - **Background**: watch the lane with `claude attach`.
+  - **Inline** (lanes 0.4.0+): each lane is a teammate inside the main Claude's own session, listed in the agent panel under its prompt. No tab, window or extra Claude process opens. It needs agent teams: add `"CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1"` to `env` in Claude Code's `settings.json` and reopen Claude. Until then lanes open in windows, and the settings page says so.
 - "Close idle lanes automatically (minutes)": `0` means never; the maximum is 1,440.
 
 <p align="center"><img src="../images/lanes-tab.gif" alt="lanes starting a mid lane, which opens as a HERA tab" width="760"></p>
 
 Lane tabs are titled "lane · mid" and "lane · low". HERA only opens a lane in a project you registered. If you start Claude in a folder that is not a HERA project, the plugin opens its own window instead. Closed or finished lane tabs of the same kind are replaced when a new one opens.
 
-If Claude does not trust the folder yet, HERA shows "Workspace not trusted"; open Claude there once and accept.
+If Claude does not trust the folder yet, a lane cannot start there; open Claude in that folder once and accept.
 
 ## Permissions
 
@@ -74,8 +76,9 @@ The "Per-project instructions" (프로젝트별 작업 지시) section has a box
 
 In the right-hand panel, **Lanes** shows:
 
-- The project slug in the title, **Open all / Close all** and **Lanes settings**.
-- One card per lane: state (off, starting, idle, working), model, a button to show its tab, a start/stop button, the current task and "N waiting".
+- The project slug in the title, **Close all** (while a lane session is up) and **Lanes settings**.
+- One card per lane: state (off, starting, idle, working), model, a button to show its tab, a close button, the current task and "N waiting". There is no open button: a lane opens when the main Claude hands it work.
+- An inline lane shows "teammate of main" next to its model and has no close button, because it runs inside the main Claude's process. Close it with `/lane stop` in the main Claude.
 - **Cost**: today's lane cost and the money saved compared with doing the same work in the main session. These are estimates at API list price, as recorded by lanes.
 - **Recent tasks**: the last 15 (id, lane, result badge, cost, age). Click one to read its report. The list refreshes every 3 seconds.
 

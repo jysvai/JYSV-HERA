@@ -189,11 +189,11 @@ hera --version                   설치된 HERA 버전
 
 lanes 가 설치되어 있으면 HERA 가 알아서 찾아 **Lanes 페이지**와 오른쪽 패널의 **Lanes 탭**을 붙입니다.
 
-- **HERA 탭에서 lane 실행.** HERA 에 등록한 프로젝트의 lane 은 모두 별도 창이 아니라 HERA 탭으로 열립니다. HERA 에서 연 lane 도, 메인 세션이 스스로 연 lane(닫힌 lane 에 일을 넘길 때, `/lane start`, 죽은 lane 을 다시 열 때)도 마찬가지입니다. lanes 0.3.13 이상이 HERA 에 탭을 요청하고(`hera host --lane`), HERA 는 등록된 프로젝트일 때만 받습니다. 그 밖의 폴더에서는 예전처럼 lane 창이 따로 열립니다. lanes 자신의 실행 스크립트를 그대로 쓰므로 역할 지시 · 플래그 · 안전 규칙은 lanes 가 정한 그대로입니다.
+- **HERA 탭에서 lane 실행.** lane 은 메인 세션이 필요할 때 엽니다(닫힌 lane 에 일을 넘길 때, `/lane start`, 죽은 lane 을 다시 열 때). HERA 에 등록한 프로젝트에서는 이 lane 이 별도 창이 아니라 HERA 탭으로 열립니다. lanes 0.3.13 이상이 HERA 에 탭을 요청하고(`hera host --lane`), HERA 는 등록된 프로젝트일 때만 받습니다. 그 밖의 폴더에서는 예전처럼 lane 창이 따로 열립니다. lanes 자신의 실행 스크립트를 그대로 쓰므로 역할 지시 · 플래그 · 안전 규칙은 lanes 가 정한 그대로입니다. lanes 0.4.0 의 inline 방식에서는 lane 이 메인 세션 안의 팀원으로 에이전트 패널에 뜨고, Lanes 탭도 그렇게 보여 줍니다.
 - **재시작해도 메인과 lane 이 섞이지 않음.** 재시작 뒤 lane 의 대화를 메인 탭에서 이어 여는 일이 없어서, lane 의 회신이 계속 올바른 메인 세션에 도착합니다.
 - **실시간 패널.** lane 마다 상태, 지금 하는 일, 대기열, 최근 작업과 결과(누르면 보고서), 오늘 lane 비용과 메인 모델 대비 아낀 금액.
 - **모델 라우팅.** 메인 · mid · low 의 모델, 대체 모델, effort, 넘김 알림 기준과 작업 스타일. *자동*은 lanes 권장값, *직접 조정*은 모든 값을 엽니다. 값은 Claude Code `settings.json` 의 lanes 항목에 저장되며, 처음 바꿀 때 원본을 한 번 백업합니다.
-- **권한.** lane 권한 모드와 `dontAsk` 용 허용 목록. 자동 모드에서는 lane 을 열 때 이 목록을 프로젝트의 `.claude/settings.local.json` 에 넣습니다. lanes 는 lane 의 코드 편집과 git 쓰기를 항상 막습니다.
+- **권한.** lane 권한 모드와 `dontAsk` 용 허용 목록. 자동 모드에서는 HERA 가 그 프로젝트에서 Claude 를 열 때 이 목록을 프로젝트의 `.claude/settings.local.json` 에 넣습니다(Lanes 탭에도 넣는 버튼이 있습니다). lanes 는 lane 의 코드 편집과 git 쓰기를 항상 막습니다.
 - **프로젝트별 지시.** `.claude/lanes/roles/mid.md` · `low.md` 를 HERA 에서 고치거나, 프로젝트에 저장된 명령으로 초안을 만듭니다.
 - **메인 세션 플래그 (선택).** HERA 가 Claude 를 열 때 lanes 의 메인 모델 · 대체 모델 · effort 를 붙일 수 있습니다(lanes 의 `claude-main` 과 같은 효과). 기본은 꺼짐이라 내가 정한 모델이 그대로 쓰입니다.
 

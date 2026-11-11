@@ -700,10 +700,8 @@ export interface LanesSettings {
   enabled: boolean
   /** auto: lanes' recommended options and HERA-chosen launch and permissions. custom: every option editable. */
   mode: 'auto' | 'custom'
-  /** Where a lane HERA starts opens: a HERA tab or its own window. */
+  /** Where a lane the main Claude opens shows up: a HERA tab or its own window. */
   host: 'hera' | 'window'
-  /** Start both lanes when HERA opens Claude in a project. */
-  autoStart: boolean
   /** Start HERA's Claude with the lanes main model, fallback and effort. */
   applyMain: boolean
   /** Allow rules for lanes in dontAsk mode (written to a project's .claude/settings.local.json). */
@@ -742,6 +740,10 @@ export interface LanesInfo {
   canHost: boolean
   /** lanes 0.3.13+: a lane the main Claude opens by itself asks HERA for a tab too. */
   hostSeam: boolean
+  /** CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS is on (Claude Code settings.json env or HERA's own env). */
+  agentTeams: boolean
+  /** Lanes open inline: launch is inline and agent teams are on, so each lane is a teammate in main's session. */
+  inline: boolean
   recommendedRules: string[]
 }
 
@@ -758,6 +760,8 @@ export interface LaneLive {
   since: number
   /** HERA tab hosting the lane, if any. */
   sessionId: string | null
+  /** An inline lane: a teammate in a live main session, so only that session can stop it (/lane stop). */
+  teammate: boolean
 }
 
 export interface LaneTask {

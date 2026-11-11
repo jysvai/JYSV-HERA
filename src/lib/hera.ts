@@ -152,7 +152,6 @@ export const api = {
   lanesInfo: () => call<LanesInfo>('lanes:info'),
   setLaneOptions: (patch: Record<string, string | number | boolean | null>) => call<LanesInfo>('lanes:setOptions', patch),
   laneProject: (projectId: string) => call<LaneProjectState | null>('lanes:project', projectId),
-  startLanes: (projectId: string, which: LaneTier | 'all') => call<{ ok: boolean; message: string }>('lanes:start', projectId, which),
   stopLanes: (projectId: string, which: LaneTier | 'all') => call<{ ok: boolean; message: string }>('lanes:stop', projectId, which),
   saveLaneRole: (projectId: string, tier: LaneTier, text: string) => call<void>('lanes:role', projectId, tier, text),
   applyLaneAllow: (projectId: string) => call<{ added: number; file: string }>('lanes:allow', projectId),

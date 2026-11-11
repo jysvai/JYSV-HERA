@@ -37,7 +37,7 @@ import { openExternalTerminal, scanForProjects } from './external'
 import { listProjectDir, openProjectPath, projectAbsPath, projectGitStatus } from './files'
 import { searchHistory } from './history'
 import { invalidateInsight, projectActivityTimes, projectInsight } from './insight'
-import { applyLaneAllowlist, laneMainArgs, laneProject, lanesInfo, saveLaneRole, setLaneOptions, setLaneTabs, startLanes, stopLanes } from './lanes'
+import { applyLaneAllowlist, autoLaneAllowlist, laneMainArgs, laneProject, lanesInfo, saveLaneRole, setLaneOptions, setLaneTabs, stopLanes } from './lanes'
 import { pasteClipboardImage, pasteFiles, pasteImageBytes } from './paste-target'
 import { dataPath, findOnPath, hydrateLoginPath, isMac, isWin, readJson, writeJsonAtomic } from './paths'
 import * as pty from './pty-host'
@@ -454,11 +454,16 @@ function launch(request: CreateSessionRequest): SessionInfo {
     if (extra) req = { ...req, extraArgs: [req.extraArgs, extra].filter(Boolean).join(' ') }
   }
 
-  const info = pty.createSession(req)
-
-  if (claudeMain && info.projectId && config.settings.lanes.enabled && config.settings.lanes.autoStart) {
-    void startLanes(info.projectId, 'all').catch(() => undefined)
+  // Auto mode with dontAsk lanes: the allow rules go in before Claude reads its settings.
+  if (claudeMain && req.projectId) {
+    try {
+      autoLaneAllowlist(req.projectId)
+    } catch {
+      // the Lanes panel offers the list again
+    }
   }
+
+  const info = pty.createSession(req)
 
   if (info.projectId) {
     const agent = getConfig().agents.find(entry => entry.id === info.agentId)
@@ -745,7 +750,6 @@ function registerIpc() {
   handle('lanes:info', () => lanesInfo())
   handle('lanes:setOptions', (patch: Record<string, string | number | boolean | null>) => setLaneOptions(patch || {}))
   handle('lanes:project', (projectId: string) => laneProject(String(projectId)))
-  handle('lanes:start', (projectId: string, which: LaneTier | 'all') => startLanes(String(projectId), laneWhich(which)))
   handle('lanes:stop', (projectId: string, which: LaneTier | 'all') => stopLanes(String(projectId), laneWhich(which)))
   handle('lanes:role', (projectId: string, tier: LaneTier, text: string) => saveLaneRole(String(projectId), tier === 'low' ? 'low' : 'mid', String(text || '')))
   handle('lanes:allow', (projectId: string) => applyLaneAllowlist(String(projectId)))

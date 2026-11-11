@@ -55,7 +55,6 @@ const INVOKE = new Set([
   'lanes:info',
   'lanes:setOptions',
   'lanes:project',
-  'lanes:start',
   'lanes:stop',
   'lanes:role',
   'lanes:allow',

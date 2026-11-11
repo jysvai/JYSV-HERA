@@ -597,7 +597,6 @@ export const DEFAULT_LANES: LanesSettings = {
   enabled: false,
   mode: 'auto',
   host: 'hera',
-  autoStart: false,
   applyMain: false,
   allowRules: LANE_ALLOW_RULES
 }
@@ -610,7 +609,6 @@ function normalizeLanes(raw: Partial<LanesSettings> | undefined): LanesSettings 
     enabled: value.enabled === true,
     mode: value.mode === 'custom' ? 'custom' : 'auto',
     host: value.host === 'window' ? 'window' : 'hera',
-    autoStart: value.autoStart === true,
     applyMain: value.applyMain === true,
     allowRules: rules && rules.length ? rules : [...LANE_ALLOW_RULES]
   }

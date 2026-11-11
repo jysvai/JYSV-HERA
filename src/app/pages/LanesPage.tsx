@@ -288,7 +288,12 @@ export function LanesPage() {
     if (mode === settings.mode) return
     if (mode === 'auto' && info) {
       // Auto = the plugin's own recommended values plus HERA's choices for launch and permissions.
-      const reset = Object.fromEntries(Object.keys(info.stored).map(key => [key, null]))
+      // inline stays: it was picked on purpose and needs agent teams set up for it.
+      const reset = Object.fromEntries(
+        Object.keys(info.stored)
+          .filter(key => !(key === 'launch' && info.stored.launch === 'inline'))
+          .map(key => [key, null])
+      )
       if (Object.keys(reset).length) await setLaneOptions(reset)
       // A tab whenever lanes can be one: a plugin updated later should not stay stuck on windows.
       setSettings({ mode, host: 'hera', allowRules: [...info.recommendedRules] })
@@ -314,7 +319,7 @@ export function LanesPage() {
 
         <Section title={t('연동')}>
           {installed && info && (
-            <Row label={t('HERA 에서 lane 을 열 때')} description={info.canHost ? t('HERA 탭: lane 이 이 창 안의 탭으로 열려 바로 보고 입력할 수 있습니다. 아래 스위치와 상관없이 적용되고, 새로 여는 터미널부터 바뀝니다.') : t('이 운영체제에서는 lane 이 별도 창으로 열립니다.')}>
+            <Row label={t('HERA 에서 lane 을 열 때')} description={info.canHost ? t('HERA 탭: lane 이 이 창 안의 탭으로 열려 바로 보고 입력할 수 있습니다. 아래 스위치와 상관없이 적용되고, 새로 여는 터미널부터 바뀝니다.') : t('이 lanes 버전은 메인 Claude 가 스스로 연 lane 을 HERA 탭으로 열지 못합니다. Claude Code 의 /plugin 에서 lanes 를 0.3.13 이상으로 업데이트하세요.')}>
               <SegmentedControl
                 value={info.canHost ? settings.host : 'window'}
                 options={[
@@ -364,18 +369,29 @@ export function LanesPage() {
             </Section>
 
             <Section title={t('실행 방식')}>
-              <Row label={t('Claude 가 스스로 lane 을 열 때')} description={t('메인 Claude 가 일을 넘기다 lane 이 꺼져 있으면 직접 엽니다. 백그라운드는 claude attach 로 봅니다.')}>
+              <Row
+                label={t('lane 여는 방식')}
+                description={
+                  <>
+                    {t('lane 은 메인 Claude 가 일을 넘길 때 꺼져 있으면 열립니다. 별도 창은 HERA 안에서 HERA 탭으로 열리고, 백그라운드는 claude attach 로 봅니다. inline 은 메인 세션의 팀원으로 프롬프트 아래 에이전트 패널에 열려 창도 프로세스도 늘지 않습니다.')}
+                    {option(info, 'launch') === 'inline' && !info.agentTeams && (
+                      <span className="mt-1 block text-(--status-busy)">
+                        {t('inline 은 에이전트 팀이 켜져 있어야 합니다. {file} 의 env 에 CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1 을 넣고 Claude 를 다시 여세요. 그 전까지 lane 은 별도 창으로 열립니다.', { file: info.settingsLabel })}
+                      </span>
+                    )}
+                  </>
+                }
+              >
                 <SegmentedControl
-                  value={option(info, 'launch') === 'background' ? 'background' : 'window'}
+                  value={option(info, 'launch') === 'background' ? 'background' : option(info, 'launch') === 'inline' ? 'inline' : 'window'}
                   options={[
                     { value: 'window', label: t('별도 창') },
-                    { value: 'background', label: t('백그라운드') }
+                    { value: 'background', label: t('백그라운드') },
+                    // lanes 0.4.0+ only: an older plugin would drop the value.
+                    ...(info.schema.find(spec => spec.key === 'launch')?.options?.includes('inline') ? [{ value: 'inline', label: 'inline' }] : [])
                   ]}
                   onChange={launch => !locked && void setLaneOptions({ launch })}
                 />
-              </Row>
-              <Row label={t('Claude 를 열면 lanes 도 같이 열기')} description={t('HERA 에서 Claude 를 열 때 그 프로젝트의 mid · low lane 을 함께 엽니다.')}>
-                <Switch checked={settings.autoStart} onChange={autoStart => setSettings({ autoStart })} label={t('lanes 같이 열기')} />
               </Row>
               <Row label={t('쉬는 lane 자동 종료 (분)')} description={t('할 일이 없는 lane 은 이만큼 지나면 스스로 닫힙니다. 0 = 닫지 않음.')}>
                 <NumberOption info={info} name="idle_minutes" locked={locked} max={1440} />

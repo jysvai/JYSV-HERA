@@ -1,5 +1,5 @@
 import { useStore } from '@nanostores/react'
-import { IconExternalLink, IconPlayerPlay, IconPlayerStop, IconSettings, IconTerminal2 } from '@tabler/icons-react'
+import { IconExternalLink, IconPlayerStop, IconSettings, IconTerminal2 } from '@tabler/icons-react'
 import { useCallback, useEffect, useState } from 'react'
 
 import { t } from '../../../shared/i18n'
@@ -32,7 +32,10 @@ function ago(time: number): string {
   return hours < 24 ? t('{hours}시간 전', { hours }) : t('{days}일 전', { days: Math.round(hours / 24) })
 }
 
-function LaneCard({ lane, busy, onStart, onStop }: { lane: LaneLive; busy: boolean; onStart: () => void; onStop: () => void }) {
+/** A lane HERA can close: a lane session that is up. An inline lane (a teammate in main's session) closes only from main. */
+const closable = (lane: LaneLive) => lane.state !== 'off' && !lane.teammate
+
+function LaneCard({ lane, busy, onStop }: { lane: LaneLive; busy: boolean; onStop: () => void }) {
   const sessions = useStore($sessions)
   const tab = lane.sessionId ? sessions[lane.sessionId] : null
 
@@ -41,17 +44,16 @@ function LaneCard({ lane, busy, onStart, onStop }: { lane: LaneLive; busy: boole
       <div className="flex items-center gap-2">
         <span className="text-[13px] font-semibold">{lane.tier}</span>
         <Badge tone={STATE_TONE[lane.state]}>{STATE_LABEL[lane.state]}</Badge>
-        <span className="min-w-0 flex-1 truncate text-[11px] text-(--ui-text-tertiary)">{lane.model}</span>
+        <span className="min-w-0 flex-1 truncate text-[11px] text-(--ui-text-tertiary)">
+          {lane.model}
+          {lane.teammate && ` · ${t('메인의 팀원')}`}
+        </span>
         {tab && (
           <Button size="icon-xs" variant="ghost" aria-label={t('lane 탭 보기')} onClick={() => focusSession(tab)}>
             <IconTerminal2 />
           </Button>
         )}
-        {lane.state === 'off' ? (
-          <Button size="icon-xs" variant="ghost" aria-label={t('{tier} lane 열기', { tier: lane.tier })} disabled={busy} onClick={onStart}>
-            <IconPlayerPlay />
-          </Button>
-        ) : (
+        {closable(lane) && (
           <Button size="icon-xs" variant="ghost" aria-label={t('{tier} lane 닫기', { tier: lane.tier })} disabled={busy || lane.state === 'opening'} onClick={onStop}>
             <IconPlayerStop />
           </Button>
@@ -63,7 +65,7 @@ function LaneCard({ lane, busy, onStart, onStop }: { lane: LaneLive; busy: boole
   )
 }
 
-/** One project's lanes: live state, start/stop, savings and the task ledger. */
+/** One project's lanes: live state, closing, savings and the task ledger. Lanes open only from the main Claude. */
 export function LanesPanel() {
   const project = useStore($project)
   const info = useStore($lanesInfo)
@@ -106,10 +108,10 @@ export function LanesPanel() {
     )
   }
 
-  const act = async (verb: 'start' | 'stop', which: LaneTier | 'all') => {
+  const stop = async (which: LaneTier | 'all') => {
     setBusy(true)
     try {
-      const result = verb === 'start' ? await api.startLanes(project.id, which) : await api.stopLanes(project.id, which)
+      const result = await api.stopLanes(project.id, which)
       toast(result.message.split('\n').slice(-2).join(' '), result.ok ? 'info' : 'error')
     } catch (error) {
       toast((error as Error).message, 'error')
@@ -120,7 +122,8 @@ export function LanesPanel() {
   }
 
   const allowNeeded = info?.effective.permission_mode === 'dontAsk' && state && !state.allowApplied
-  const anyOn = state?.lanes.some(lane => lane.state !== 'off')
+  const anyClosable = state?.lanes.some(closable)
+  const allOff = state?.lanes.every(lane => lane.state === 'off')
   const saved = state ? state.total.onMain - state.total.cost : 0
 
   return (
@@ -129,10 +132,12 @@ export function LanesPanel() {
         title={<span className="normal-case">{state ? `lanes · ${state.slug}` : 'lanes'}</span>}
         action={
           <div className="flex gap-1">
-            <Button size="xs" variant="ghost" disabled={busy} onClick={() => void act(anyOn ? 'stop' : 'start', 'all')}>
-              {anyOn ? <IconPlayerStop /> : <IconPlayerPlay />}
-              {anyOn ? t('모두 닫기') : t('모두 열기')}
-            </Button>
+            {anyClosable && (
+              <Button size="xs" variant="ghost" disabled={busy} onClick={() => void stop('all')}>
+                <IconPlayerStop />
+                {t('모두 닫기')}
+              </Button>
+            )}
             <Button size="icon-xs" variant="ghost" aria-label={t('Lanes 설정')} onClick={() => $view.set('lanes')}>
               <IconSettings />
             </Button>
@@ -141,10 +146,16 @@ export function LanesPanel() {
       >
         <div className="space-y-2">
           {(state?.lanes || []).map(lane => (
-            <LaneCard key={lane.tier} lane={lane} busy={busy} onStart={() => void act('start', lane.tier)} onStop={() => void act('stop', lane.tier)} />
+            <LaneCard key={lane.tier} lane={lane} busy={busy} onStop={() => void stop(lane.tier)} />
           ))}
           {!state && <div className="text-[12px] text-(--ui-text-tertiary)">{t('읽는 중…')}</div>}
         </div>
+        {state && info?.inline && (
+          <div className="mt-2 text-[11.5px] text-(--ui-text-tertiary)">
+            {t('inline: lane 은 메인 Claude 가 일을 넘길 때 그 세션의 팀원으로, 프롬프트 아래 에이전트 패널에 열립니다. 닫을 때는 메인 Claude 에서 /lane stop 을 씁니다.')}
+          </div>
+        )}
+        {state && !info?.inline && allOff && <div className="mt-2 text-[11.5px] text-(--ui-text-tertiary)">{t('lane 은 메인 Claude 가 일을 넘길 때 열립니다.')}</div>}
         {allowNeeded && (
           <div className="mt-2 rounded-lg border border-(--ui-stroke-tertiary) px-3 py-2 text-[11.5px] text-(--ui-text-secondary)">
             {t('권한 모드가 dontAsk 인데 이 프로젝트에 lane 허용 목록이 없습니다.')}

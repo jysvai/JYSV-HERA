@@ -1,8 +1,11 @@
 // lanes integration. The lanes Claude Code plugin (https://github.com/jysvai/lanes)
-// runs a mid and a low "lane" session beside a main Claude session. HERA finds
-// the plugin, edits its options in Claude Code's settings.json, starts and
-// stops lanes (in HERA tabs on Windows) and shows what they do from the files
-// they keep under <project>/.claude/lanes. The plugin itself is not changed.
+// runs a mid and a low "lane" beside a main Claude session. HERA finds the
+// plugin, edits its options in Claude Code's settings.json, hosts in a HERA tab
+// a lane the main session opens (`hera host --lane`), stops lane sessions and
+// shows what lanes do from the files they keep under <project>/.claude/lanes.
+// HERA never opens a lane itself: main opens one when it hands work over, and an
+// inline lane is a teammate inside main's own session that nothing else can start.
+// The plugin itself is not changed.
 import { execFile } from 'node:child_process'
 import fs from 'node:fs'
 import os from 'node:os'
@@ -13,7 +16,7 @@ import { t } from '../shared/i18n'
 import type { CreateSessionRequest, LaneLive, LaneOptionSpec, LaneProjectState, LanesInfo, LaneTask, LaneTier, Project, SessionInfo } from '../shared/types'
 import { HOST_PASSED_ENV } from '../shared/util'
 
-import { binDir, dataPath, hydrateLoginPath, isWin, readJson, writeJsonAtomic } from './paths'
+import { dataPath, hydrateLoginPath, isWin, readJson, writeJsonAtomic } from './paths'
 import { getConfig, projectById, projectForPath } from './store'
 
 const REPO = 'https://github.com/jysvai/lanes'
@@ -154,7 +157,11 @@ function readSchema(root: string): { version: string | null; schema: LaneOptionS
 type ClaudeSettings = {
   enabledPlugins?: Record<string, boolean>
   pluginConfigs?: Record<string, { options?: Record<string, unknown> } & Record<string, unknown>>
+  env?: Record<string, unknown>
 } & Record<string, unknown>
+
+/** An env switch as lanes reads one (register.ts isOn). */
+const isOn = (value: unknown) => typeof value === 'string' && /^(1|true|yes)$/i.test(value.trim())
 
 function validOption(spec: LaneOptionSpec, value: unknown): value is string | number | boolean {
   if (spec.type === 'number') return typeof value === 'number' && Number.isFinite(value)
@@ -181,6 +188,9 @@ export function lanesInfo(): LanesInfo {
     }
   }
 
+  // A session has a team only when agent teams were on as it started; settings.json env reaches every Claude.
+  const agentTeams = isOn(settings.env?.CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS) || isOn(process.env.CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS)
+
   return {
     installed: Boolean(where),
     pluginKey: where?.key || null,
@@ -194,8 +204,11 @@ export function lanesInfo(): LanesInfo {
     stored,
     effective,
     repo: REPO,
-    canHost: isWin || Boolean(where && hasHostSeam(where.root)),
+    // Only lanes itself can ask for a tab now (HERA starts no lanes), so that takes lanes 0.3.13+ on every OS.
+    canHost: Boolean(where && hasHostSeam(where.root)),
     hostSeam: Boolean(where && hasHostSeam(where.root)),
+    agentTeams,
+    inline: effective.launch === 'inline' && agentTeams,
     recommendedRules: [...LANE_ALLOW_RULES]
   }
 }
@@ -281,9 +294,10 @@ interface Peer {
   name: string
   pid: number
   status: string
+  sessionId: string
 }
 
-/** Claude Code sessions registered on this machine (~/.claude/sessions/<pid>.json). */
+/** Live Claude Code sessions registered on this machine (~/.claude/sessions/<pid>.json). */
 function peers(): Peer[] {
   const dir = path.join(claudeHome(), 'sessions')
   const out: Peer[] = []
@@ -291,8 +305,9 @@ function peers(): Peer[] {
   try {
     for (const file of fs.readdirSync(dir)) {
       if (!file.endsWith('.json')) continue
-      const entry = readJson<{ name?: string; pid?: number; status?: string }>(path.join(dir, file))
-      if (entry?.name && typeof entry.pid === 'number' && alive(entry.pid)) out.push({ name: entry.name, pid: entry.pid, status: entry.status || '' })
+      const entry = readJson<{ name?: string; pid?: number; status?: string; sessionId?: string }>(path.join(dir, file))
+      if (!entry || typeof entry.pid !== 'number' || !alive(entry.pid)) continue
+      out.push({ name: entry.name || '', pid: entry.pid, status: entry.status || '', sessionId: entry.sessionId || '' })
     }
   } catch {
     // no sessions yet
@@ -312,6 +327,8 @@ interface LaneStateFile {
   task?: string
   open?: boolean
   next?: unknown[]
+  /** An inline lane: the main session whose teammate it is. */
+  lead?: string
 }
 
 interface LedgerEntry {
@@ -377,6 +394,9 @@ export function laneProject(projectId: string): LaneProjectState | null {
     const name = `${slug}-${tier}`
     const peer = live.find(entry => entry.name === name)
     const state = readJson<LaneStateFile>(path.join(dir, 'state', `${tier}.json`)) || {}
+    // An inline lane is no session of its own: it lives while its state is on and the main session that leads it runs
+    // (as lanes' leadElsewhere sees it from another session).
+    const lead = !peer && state.lead && state.state !== 'off' ? live.find(entry => entry.sessionId === state.lead) : undefined
     const task = state.open && typeof state.task === 'string' ? state.task : ''
     const openedAt = opening.get(name) || 0
     const tab = hosted.find(session => session.lane === tier)
@@ -386,14 +406,25 @@ export function laneProject(projectId: string): LaneProjectState | null {
     lanes.push({
       tier,
       name,
-      state: peer ? (state.state === 'busy' || peer.status === 'busy' ? 'busy' : 'idle') : Date.now() - openedAt < OPENING_MS ? 'opening' : 'off',
+      state: peer
+        ? state.state === 'busy' || peer.status === 'busy'
+          ? 'busy'
+          : 'idle'
+        : lead
+          ? state.state === 'busy'
+            ? 'busy'
+            : 'idle'
+          : Date.now() - openedAt < OPENING_MS
+            ? 'opening'
+            : 'off',
       pid: peer?.pid || null,
-      model: (peer && state.model) || String(info.effective[`${tier}_model`] || ''),
+      model: ((peer || lead) && state.model) || String(info.effective[`${tier}_model`] || ''),
       task: task.split('\n')[0] || '',
       taskId: /^\[([A-Z]\d+[a-z]?)\]/.exec(task)?.[1] || null,
       queued: (Array.isArray(state.next) ? state.next.length : 0) + queueLength(slug, tier),
       since: typeof state.since === 'number' ? state.since : 0,
-      sessionId: tab?.id || null
+      sessionId: tab?.id || null,
+      teammate: Boolean(lead)
     })
 
     const ledger = readJson<Record<string, LedgerEntry>>(path.join(dir, 'state', `${tier}.tasks.json`)) || {}
@@ -443,7 +474,7 @@ export function laneProject(projectId: string): LaneProjectState | null {
   }
 }
 
-// ---------------------------------------------------------------- start / stop
+// ---------------------------------------------------------------- stop and host
 
 /** A path inside .claude/lanes that is a link turns the lanes off (lanes refuses to write through it). */
 function linkedUnder(project: Project): string | null {
@@ -510,29 +541,22 @@ function run(file: string, args: string[], env: NodeJS.ProcessEnv): Promise<{ co
   })
 }
 
-/** What lets lanes.ps1 / lanes.sh reach this HERA: the host switch and the `hera` CLI on PATH. */
-function hostEnv(): Record<string, string> {
-  const pathKey = Object.keys(process.env).find(key => key.toLowerCase() === 'path') || 'PATH'
-
-  return { HERA_LANES_HOST: '1', [pathKey]: `${binDir()}${path.delimiter}${process.env[pathKey] || ''}` }
-}
-
-/** Run lanes.ps1 / lanes.sh hidden, the way the plugin itself does. */
-async function runScript(info: LanesInfo, project: Project, verb: 'start' | 'stop', which: LaneTier | 'all', launch: 'window' | 'background', extra: Record<string, string> = {}) {
+/** Run lanes.ps1 / lanes.sh hidden, the way the plugin itself does (only `stop`: HERA opens no lanes). */
+async function runScript(info: LanesInfo, project: Project, verb: 'stop', which: LaneTier | 'all') {
   // lanes.sh looks for `claude` on PATH; a Dock / Finder launch needs the login shell's PATH first.
   await hydrateLoginPath()
   const slug = laneSlug(project.path)
-  const args = scriptArgs(info, project, slug, launch)
+  // The launch only shapes how a lane starts; stopping is the same for every launch.
+  const args = scriptArgs(info, project, slug, 'window')
 
   if (isWin) {
-    return run('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', scriptCall(info, verb, which, args)], cleanEnv(extra))
+    return run('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', scriptCall(info, verb, which, args)], cleanEnv())
   }
 
   return run('/bin/bash', [path.join(info.root || '', 'bin', 'lanes.sh'), verb, which], cleanEnv({
-    ...extra,
     LANES_PROJECT: project.path,
     LANES_SLUG: slug,
-    LANES_LAUNCH: launch,
+    LANES_LAUNCH: 'window',
     LANES_PERMISSION_MODE: args.PermissionMode,
     LANES_STYLE: args.Style,
     LANES_MID_MODEL: args.MidModel,
@@ -542,47 +566,6 @@ async function runScript(info: LanesInfo, project: Project, verb: 'start' | 'sto
     LANES_LOW_FALLBACK: args.LowFallback,
     LANES_LOW_EFFORT: args.LowEffort
   }))
-}
-
-/**
- * The script a HERA tab runs to host a lane. lanes.ps1 opens a lane with
- * `Start-Process powershell.exe -Command "<launch>"`; the function below takes
- * that call and runs the launch in this tab, so everything else (role prompt,
- * flags, checks) stays exactly what lanes.ps1 does.
- */
-function hostScript(info: LanesInfo, project: Project, tier: LaneTier): string {
-  const slug = laneSlug(project.path)
-
-  return [
-    `# JYSV HERA: runs the lanes lane ${slug}-${tier} in this tab instead of a new window.`,
-    `foreach ($name in @(${[...CLAUDE_SESSION_MARKERS, 'HERA_LANES_HOST'].map(psQuote).join(', ')})) { Remove-Item -LiteralPath "Env:$name" -ErrorAction SilentlyContinue }`,
-    // lanes.ps1 pipes Start-Process into Out-Null: a launch run through that pipeline gets a
-    // redirected stdout and claude falls back to --print. Process.Start keeps this tab's console.
-    'function Start-Process {',
-    '  param([string]$FilePath, [string]$WorkingDirectory, [string]$ArgumentList)',
-    '  $info = New-Object System.Diagnostics.ProcessStartInfo $FilePath, $ArgumentList',
-    '  $info.UseShellExecute = $false',
-    '  if ($WorkingDirectory) { $info.WorkingDirectory = $WorkingDirectory }',
-    '  [System.Diagnostics.Process]::Start($info).WaitForExit()',
-    '}',
-    scriptCall(info, 'start', tier, scriptArgs(info, project, slug, 'window')),
-    ''
-  ].join('\r\n')
-}
-
-function hostInTab(info: LanesInfo, project: Project, tier: LaneTier): SessionInfo | null {
-  if (!tabs) return null
-
-  const slug = laneSlug(project.path)
-  const file = dataPath('lanes', `${slug}-${tier}.ps1`)
-
-  fs.mkdirSync(path.dirname(file), { recursive: true })
-  fs.writeFileSync(file, hostScript(info, project, tier), 'utf8')
-
-  // Typed into the project's shell, so it has to read the same in PowerShell and cmd.
-  const command = `powershell.exe -NoProfile -Command "& ([scriptblock]::Create([IO.File]::ReadAllText(${psQuote(file)}, [Text.Encoding]::UTF8)))"`
-
-  return tabs.open({ projectId: project.id, command, title: `lane · ${tier}`, lane: tier })
 }
 
 export interface HostRequest {
@@ -636,7 +619,10 @@ export function hostLane(req: HostRequest): { id: string | null; name: string; p
 
 function applyAllowFor(project: Project, rules: string[]): number {
   const file = allowFile(project)
-  const settings = readJson<Record<string, unknown> & { permissions?: { allow?: unknown[] } & Record<string, unknown> }>(file) || {}
+  const parsed = readJson<Record<string, unknown> & { permissions?: { allow?: unknown[] } & Record<string, unknown> }>(file)
+  // A settings file that does not parse is the user's to fix, not ours to replace.
+  if (!parsed && fs.existsSync(file)) throw new Error(t('{file} 을 읽지 못해 허용 규칙을 넣지 않았습니다.', { file }))
+  const settings = parsed || {}
   const permissions = (settings.permissions ||= {})
   const allow = Array.isArray(permissions.allow) ? permissions.allow.filter((rule): rule is string => typeof rule === 'string') : []
   const added = rules.filter(rule => !allow.includes(rule))
@@ -656,88 +642,51 @@ export function applyLaneAllowlist(projectId: string): { added: number; file: st
   return { added: applyAllowFor(project, getConfig().settings.lanes.allowRules), file: allowFile(project) }
 }
 
-export async function startLanes(projectId: string, which: LaneTier | 'all'): Promise<{ ok: boolean; message: string }> {
+/**
+ * Auto mode with dontAsk lanes: add the lane allow rules before HERA starts a main Claude in the
+ * project, so the lanes it opens (or its inline teammates) start with them. HERA opens no lane
+ * itself any more, so this is where auto mode applies the list.
+ */
+export function autoLaneAllowlist(projectId: string): void {
+  const settings = getConfig().settings.lanes
+  if (!settings.enabled || settings.mode !== 'auto') return
+
   const project = projectById(projectId)
   const info = lanesInfo()
-  const settings = getConfig().settings.lanes
+  if (!project || !info.installed || !info.enabledInClaude || info.effective.permission_mode !== 'dontAsk' || linkedUnder(project)) return
 
-  if (!project) return { ok: false, message: t('프로젝트를 찾을 수 없습니다.') }
-  if (!info.installed) return { ok: false, message: t('lanes 플러그인이 설치되어 있지 않습니다.') }
-
-  const linked = linkedUnder(project)
-  if (linked) return { ok: false, message: t('{linked} 가 링크라서 lanes 가 이 프로젝트에서 꺼져 있습니다.', { linked }) }
-
-  // dontAsk denies every call that is not allowed in advance; in auto mode HERA adds what a lane needs.
-  if (info.effective.permission_mode === 'dontAsk' && settings.mode === 'auto') applyAllowFor(project, settings.allowRules)
-
-  const slug = laneSlug(project.path)
-  const state = laneProject(projectId)
-  const tiers = (which === 'all' ? TIERS : [which]).filter(tier => {
-    const lane = state?.lanes.find(entry => entry.tier === tier)
-    return !lane || lane.state === 'off'
-  })
-
-  if (!tiers.length) return { ok: true, message: t('이미 열려 있습니다.') }
-
-  const scope = tiers.length === 2 ? 'all' : tiers[0]
-
-  // lanes asks HERA for its tabs itself (`hera host`), the same way a lane the main session opens does.
-  if (settings.host === 'hera' && info.root && hasHostSeam(info.root)) {
-    const result = await runScript(info, project, 'start', scope, 'window', hostEnv())
-    const untrusted = /Workspace not trusted/i.test(result.out)
-
-    if (result.code === 0 && !untrusted) for (const tier of tiers) opening.set(`${slug}-${tier}`, Date.now())
-
-    const failure = result.out.split('\n').filter(Boolean).slice(-2).join(' ') || `exit ${result.code}`
-
-    return {
-      ok: result.code === 0 && !untrusted,
-      message: untrusted
-        ? t('이 폴더를 Claude Code 가 아직 신뢰하지 않습니다. 이 프로젝트에서 claude 를 한 번 열어 신뢰를 허용한 뒤 다시 시도하세요.')
-        : result.code === 0
-          ? t('{tiers} lane 을 HERA 탭에서 엽니다.', { tiers: tiers.join(', ') })
-          : t('lane 을 열지 못했습니다: {reason}', { reason: failure })
-    }
-  }
-
-  if (settings.host === 'hera' && isWin) {
-    for (const tier of tiers) {
-      hostInTab(info, project, tier)
-      opening.set(`${slug}-${tier}`, Date.now())
-    }
-
-    return { ok: true, message: t('{tiers} lane 을 HERA 탭에서 엽니다.', { tiers: tiers.join(', ') }) }
-  }
-
-  const result = await runScript(info, project, 'start', scope, 'window')
-  // claude refuses an untrusted folder but lanes.ps1 still exits 0.
-  const untrusted = /Workspace not trusted/i.test(result.out)
-
-  if (result.code === 0 && !untrusted) for (const tier of tiers) opening.set(`${slug}-${tier}`, Date.now())
-
-  return {
-    ok: result.code === 0 && !untrusted,
-    message: untrusted ? t('이 폴더를 Claude Code 가 아직 신뢰하지 않습니다. 이 프로젝트에서 claude 를 한 번 열어 신뢰를 허용한 뒤 다시 시도하세요.') : result.out || `exit ${result.code}`
-  }
+  applyAllowFor(project, settings.allowRules)
 }
 
+/**
+ * Stop lane sessions (window / background). An inline lane is a teammate in main's own
+ * process: nothing outside that session can stop it, so that is left to `/lane stop` there.
+ */
 export async function stopLanes(projectId: string, which: LaneTier | 'all'): Promise<{ ok: boolean; message: string }> {
   const project = projectById(projectId)
   const info = lanesInfo()
 
   if (!project || !info.installed) return { ok: false, message: t('lanes 를 찾을 수 없습니다.') }
 
-  const result = await runScript(info, project, 'stop', which, 'window')
+  const teammates = new Set(laneProject(projectId)?.lanes.filter(lane => lane.teammate).map(lane => lane.tier))
+  const tiers = (which === 'all' ? TIERS : [which]).filter(tier => !teammates.has(tier))
+  const inlineNote = t('inline lane 은 메인 Claude 의 팀원이라 HERA 에서 닫을 수 없습니다. 메인 Claude 에서 /lane stop 으로 닫으세요.')
+
+  if (!tiers.length) return { ok: false, message: inlineNote }
+
+  const result = await runScript(info, project, 'stop', tiers.length === TIERS.length ? 'all' : tiers[0])
   const slug = laneSlug(project.path)
 
-  for (const tier of which === 'all' ? TIERS : [which]) {
+  for (const tier of tiers) {
     opening.delete(`${slug}-${tier}`)
     for (const session of tabs?.list() || []) {
       if (session.projectId === project.id && session.lane === tier) tabs?.close(session.id)
     }
   }
 
-  return { ok: result.code === 0, message: result.out || `exit ${result.code}` }
+  const message = result.out || `exit ${result.code}`
+
+  return { ok: result.code === 0, message: teammates.size ? [message, inlineNote].join('\n') : message }
 }
 
 /** Save a project's instructions for one lane (.claude/lanes/roles/<tier>.md, read when the lane starts). */

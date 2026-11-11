@@ -38,9 +38,9 @@ HERA only takes the lane when all of these hold:
 
 1. "When HERA opens a lane" in Settings → Lanes is **HERA tab** (the default; see [Lanes](lanes.md)). "Use lanes in HERA" may be off. If you changed this setting, start Claude again in a newly opened terminal: terminals that were already open keep the old setting.
 2. The folder belongs to a project registered in HERA. If it does not, HERA says so in a notice. Start Claude from a registered project, or add the folder.
-3. The lanes plugin is version 0.3.13 or newer. With an older one, the status card on the Lanes page says to update it. Older versions open a lane in a HERA tab only when you start it from HERA on Windows; a lane the main Claude opens by itself gets its own window.
+3. The lanes plugin is version 0.3.13 or newer. With an older one, the status card on the Lanes page says to update it, and every lane gets its own window.
 
-Otherwise lanes opens its own window by design.
+Otherwise lanes opens its own window by design. A lane set to open inline (lanes 0.4.0) never gets a tab or a window: it is a teammate in the main Claude's agent panel, under the prompt.
 
 ## An AI CLI does not appear in the launch menus
 
